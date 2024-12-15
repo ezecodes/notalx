@@ -10,29 +10,28 @@ import {
   IoPerson,
 } from "react-icons/io5";
 import ReactQuill from "react-quill";
-import { BiHide } from "react-icons/bi";
 import { ImCancelCircle, ImInfo } from "react-icons/im";
-import Select from "react-select";
+import { FaRegEyeSlash } from "react-icons/fa";
+import { IoEyeOutline } from "react-icons/io5";
+
+interface Editor {
+  hidden?: boolean;
+  title?: string;
+  content?: string;
+}
 
 const Page = () => {
   const [isEditorVisibile, setEditorVisibility] = useState(true);
-  const [editor, setEditor] = useState({
+  const [editor, setEditor] = useState<Editor>({
+    content: "",
     hidden: false,
     title: "",
-    content: "",
   });
   const [isSaveModalVisible, setSaveModalVisibility] = useState(true);
 
-  const handleEditorVisibility = () => {
-    setEditorVisibility((prev) => !prev);
-  };
-  const handleSaveModalVisibility = () => {
-    setSaveModalVisibility((prev) => !prev);
-  };
-
   // Handle content change
-  const handleNoteChange = (value: string) => {
-    setEditor((prev) => ({ ...prev, content: value }));
+  const handleNoteChange = (data: Editor) => {
+    setEditor((prev) => ({ ...prev, ...data }));
   };
 
   const handleNoteUpload = () => {
@@ -47,7 +46,7 @@ const Page = () => {
           <Button
             text="Create note"
             icon={<IoCreateOutline />}
-            listener={handleEditorVisibility}
+            listener={() => setEditorVisibility(true)}
           />
           <form className="w-full flex justify-center">
             <div className="flex items-center gap-x-3">
@@ -56,54 +55,62 @@ const Page = () => {
                 placeholder="Find your alias"
                 type="text"
               />
-              <Button text="Find" listener={handleEditorVisibility} />
+              {/* <Button text="Find" listener={() => setEditorVisibility(false)} /> */}
             </div>
           </form>
         </div>
       </header>
 
-      {isSaveModalVisible && (
-        <div className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-3 py-2 rounded-md">
-          <h3 className="text-[1.3rem] font-[500]">Saving your note</h3>
+      {isSaveModalVisible && isEditorVisibile && (
+        <div
+          style={{ border: "1px solid #535353" }}
+          className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-5 py-5 rounded-md"
+        >
+          <h3 className="text-[1.1rem] font-[500]">Saving your note</h3>
           <div className="flex items-start gap-x-3 ">
             <ImInfo />
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-[.8rem]">
               You must choose an alias or type a new one in order to save your
               note. <br></br> For a note to be marked as hidden, its alias must
               have a secret{" "}
             </p>
           </div>
 
-          <div className="absolute right-0">
-            <ImCancelCircle onClick={handleSaveModalVisibility} />
+          <div className="absolute right-[10px]">
+            <ImCancelCircle onClick={() => setSaveModalVisibility(false)} />
           </div>
 
           <div className="flex flex-col gap-y-3">
-            <div className="flex flex-col items-start">
+            <div className="flex flex-col items-start  w-[300px]">
               <label className="text-gray-400">Find your alias</label>
               <SearchDropdown options={[]} />
             </div>
-            <div className="flex flex-col items-start">
-              <label className="text-gray-400">
-                Enter a secret for this alias
-              </label>
-              <InputWithIcon
-                icon={<IoEyeOffOutline />}
-                placeholder="Enter a secret"
-                type="password"
-              />
-            </div>
+
+            {editor.hidden && (
+              <div className="flex flex-col items-start w-[300px]">
+                <label className="text-gray-400">
+                  Enter a secret for this alias
+                </label>
+                <InputWithIcon
+                  icon={<IoEyeOffOutline />}
+                  placeholder="Enter a secret"
+                  type="password"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {isEditorVisibile && (
         <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
+          <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
+
           <div className="absolute right-0">
             <Button
               text="Close"
               icon={<ImCancelCircle />}
-              listener={handleEditorVisibility}
+              listener={() => setEditorVisibility(false)}
             />
           </div>
 
@@ -116,16 +123,22 @@ const Page = () => {
               />
             </div>
             <div>
-              <NoteEditor value={editor.content} onChange={handleNoteChange} />
+              <NoteEditor
+                value={editor.content ?? ""}
+                onChange={(value) => handleNoteChange({ content: value })}
+              />
             </div>
           </fieldset>
           <fieldset className="flex gap-x-4 justify-end ">
             <Button
-              text="Mark as hidden"
-              icon={<BiHide />}
-              listener={() => {}}
+              text={editor.hidden ? "Mark as public" : "Mark as hidden"}
+              icon={editor.hidden ? <FaRegEyeSlash /> : <IoEyeOutline />}
+              listener={() => handleNoteChange({ hidden: !editor.hidden })}
             />
-            <Button text="Save note" listener={handleSaveModalVisibility} />
+            <Button
+              text="Save note"
+              listener={() => setSaveModalVisibility(true)}
+            />
           </fieldset>
         </form>
       )}
@@ -242,7 +255,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ options }) => {
   };
 
   return (
-    <div className="relative w-full max-w-sm mx-auto">
+    <div className="relative w-full ">
       <input
         type="text"
         name="alias"
@@ -250,8 +263,8 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ options }) => {
         onChange={handleInputChange}
         onFocus={() => setShowDropdown(true)} // Show dropdown on focus
         onBlur={handleBlur}
-        placeholder="Find your alias ..."
-        className="w-full input bg-transparent border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Start typing..."
+        className="w-full input bg-transparent border border-gray-300 rounded-md p-2  "
       />
       {showDropdown && filteredOptions.length > 0 && (
         <ul className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10">

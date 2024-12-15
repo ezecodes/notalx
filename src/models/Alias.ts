@@ -10,12 +10,14 @@ class Alias extends Model {
 Alias.init(
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
       primaryKey: true,
+      type: DataTypes.UUID,
+      unique: true,
+      allowNull: false,
+      defaultValue: DataTypes.UUIDV4,
     },
     name: { type: DataTypes.STRING, allowNull: false },
-    password: { type: DataTypes.STRING, allowNull: false },
+    password: { type: DataTypes.STRING, allowNull: true },
   },
   { sequelize, modelName: "Alias" }
 );
