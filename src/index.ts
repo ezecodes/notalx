@@ -6,6 +6,7 @@ import { ICreateAlias, ICreateNote } from "./type";
 import { connectDb } from "./sequelize";
 import { hashSync } from "bcrypt";
 import morgan from "morgan";
+import { Op } from "sequelize";
 const server = express();
 
 type IApiResponse<T> = {
@@ -31,25 +32,23 @@ declare global {
 
 server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
-server.use(
-  morgan((tokens, req, res) => {
-    // Define log format
-    return [
-      tokens.date(req, res, "iso"),
-      tokens.method(req, res),
-      tokens.url(req, res),
-      res.statusCode,
-      tokens["response-time"](req, res) + " ms",
-      tokens["remote-addr"](req, res),
-      tokens.referrer(req, res),
-      tokens["user-agent"](req, res),
-    ].join(" ");
-  })
-);
+server.use(morgan("tiny"));
 
 server.get("/alias", async (req: Request, res: Response) => {
   const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
   res.json({ status: "ok", data: { rows: all } });
+});
+
+server.get("/alias/search", async (req: Request, res: Response) => {
+  const name = req.query.name;
+  const data = await Alias.findAll({
+    where: {
+      name: {
+        [Op.like]: `%${name}%`,
+      },
+    },
+  });
+  res.json({ status: "ok", data: { rows: data } });
 });
 
 server.post("/alias", async (req: Request, res: Response) => {
@@ -94,12 +93,16 @@ server.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
   const aliasId = req.params.alias_id;
 
   const all = await Note.findAll({
-    where: { alias_id: aliasId, hidden: false },
+    where: {
+      alias_id: aliasId,
+      [Op.or]: [{ hidden: false }, { hidden: null }],
+    },
   });
   res.json({ status: "ok", data: { rows: all ?? [] } });
 });
 server.post("/note", async (req: Request, res: Response) => {
   const { alias_id, content, hidden, secret, title }: ICreateNote = req.body;
+  console.log(req.body);
 
   const findAlias = await Alias.findByPk(alias_id);
   if (hidden && (!findAlias?.secret || !secret)) {

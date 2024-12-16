@@ -2,7 +2,7 @@ import "react-quill/dist/quill.snow.css";
 import "choices.js/public/assets/styles/choices.min.css";
 import "react-toastify/dist/ReactToastify.css";
 
-import React, { FC, ReactNode, useEffect, useState } from "react";
+import React, { FC, ReactNode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   IoCreateOutline,
@@ -45,7 +45,7 @@ const Page = () => {
     if (!selectedAlias) return;
     fetchAliasNotes(selectedAlias?.id).then((res) => {
       console.log(res);
-      setSelectedNotes(res.data.rows);
+      setSelectedNotes({ id: "", rows: res.data.rows });
     });
   }, [selectedAlias?.id]);
 
@@ -93,14 +93,14 @@ const Page = () => {
             {selectedNotes?.rows.map((i, key) => {
               return (
                 <div
-                  className="shadow-md px-4 py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+                  className="shadow-md py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
                   style={{ border: "1px solid #555555" }}
                 >
-                  <div className="flex justify-between">
+                  <div className="flex justify-between px-4">
                     <span className="font-[500] text-[1.1rem]">{i.title}</span>
                   </div>
                   <div
-                    className="cursor-pointer text-gray-300 h-[65%] overflow-hidden"
+                    className="hover:bg-[#292929] duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
                     onClick={() => setSelectedNote(i)}
                   >
                     <span
@@ -108,8 +108,10 @@ const Page = () => {
                     ></span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-x-5">
-                    <span className="text-gray-400">3 mins ago</span>
+                  <div className="flex  px-4 items-center justify-end gap-x-5">
+                    <span className="text-gray-400 text-sm">
+                      {formatRelativeTime(i.createdAt)}{" "}
+                    </span>
                     <IoCreateOutline />
                   </div>
                 </div>
@@ -206,7 +208,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
   );
 };
 interface SearchDropdownProps {
-  onClick: (selected: _Alias) => void;
+  onClick: (selected: _Alias | null) => void;
   selected: _Alias | null;
 }
 interface _Alias extends Optional<Alias, "email" | "secret"> {}
@@ -216,32 +218,30 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   selected,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [filteredOptions, setFilteredOptions] = useState<Alias[]>([]);
   const [options, setOptions] = useState<Alias[]>([]);
+  const [input, setInput] = useState<string>("");
 
   useEffect(() => {
     fetchAlias().then((res) => {
-      console.log(res);
       setOptions(res.data.rows);
     });
   }, []);
+  useEffect(() => {
+    setShowDropdown(false);
+  }, [selected?.id]);
   // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    onClick({ name: value, id: "" });
+    setInput(value);
 
-    // Filter dropdown options based on input
-    const filtered = options.filter((option) =>
-      option.name.toLowerCase().includes(value.toLowerCase())
-    );
-    setFilteredOptions(filtered);
-    setShowDropdown(true);
+    searchAliasByName(value).then((res) => {
+      setOptions(res.data.rows);
+    });
   };
 
   // Handle option selection
   const handleOptionClick = (option: _Alias) => {
     onClick(option);
-    setShowDropdown(false);
   };
 
   // Close dropdown when clicking outside
@@ -251,20 +251,35 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   };
 
   return (
-    <div className="relative w-full ">
-      <input
-        type="text"
-        name="alias"
-        value={selected?.name ?? ""}
-        onChange={handleInputChange}
-        onFocus={() => setShowDropdown(true)} // Show dropdown on focus
-        onBlur={handleBlur}
-        placeholder="Find alias..."
-        className="w-full input bg-transparent border border-gray-300 rounded-md p-2  "
-      />
-      {showDropdown && filteredOptions.length > 0 && (
+    <div className="relative  w-[300px] ">
+      <div className="w-full px-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
+        {selected && (
+          <button className="bg-[#535ca3] px-3 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">
+            <span>{selected.name}</span>
+            <ImCancelCircle
+              className="text-sm"
+              onClick={() => {
+                onClick(null);
+              }}
+            />
+          </button>
+        )}
+        <input
+          type="text"
+          name="alias"
+          value={input}
+          onChange={handleInputChange}
+          onFocus={() => setShowDropdown(true)} // Show dropdown on focus
+          onBlur={handleBlur}
+          placeholder="Find alias..."
+          className="w-full bg-transparent p-2"
+          autoComplete="off" // Disable browser's autocomplete
+        />
+      </div>
+
+      {showDropdown && options.length > 0 && (
         <ul className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10">
-          {filteredOptions.map((option) => (
+          {options.map((option) => (
             <li
               key={option.id}
               onClick={() => handleOptionClick(option)}
@@ -378,12 +393,18 @@ interface ISaveModal {
     secret,
   }: {
     alias_id: string;
-    secret?: string;
+    secret: string;
   }) => void;
   isOpen: boolean;
+  isHidden: boolean;
 }
-const SaveModal: FC<ISaveModal> = ({ onClose, handleNoteUpload, isOpen }) => {
-  const [info, setInfo] = useState({ alias_id: "", secret: "" });
+const SaveModal: FC<ISaveModal> = ({
+  onClose,
+  handleNoteUpload,
+  isOpen,
+  isHidden,
+}) => {
+  const [info, setInfo] = useState({ secret: "" });
   const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
 
   if (!isOpen) return <></>;
@@ -416,23 +437,33 @@ const SaveModal: FC<ISaveModal> = ({ onClose, handleNoteUpload, isOpen }) => {
             />
           </div>
 
-          <div className="label_input">
-            <label className="text-gray-400">
-              Enter a secret for this alias
-            </label>
-            <InputWithIcon
-              icon={<IoEyeOffOutline />}
-              placeholder="Enter a secret"
-              type="password"
-              value={info.secret}
-              onChange={(value) =>
-                setInfo((prev) => ({ ...prev, secret: value }))
-              }
-            />
-          </div>
+          {isHidden && (
+            <div className="label_input">
+              <label className="text-gray-400">
+                Enter a secret for this alias
+              </label>
+              <InputWithIcon
+                icon={<IoEyeOffOutline />}
+                placeholder="Enter a secret"
+                type="password"
+                value={info.secret}
+                onChange={(value) =>
+                  setInfo((prev) => ({ ...prev, secret: value }))
+                }
+              />
+            </div>
+          )}
         </div>
 
-        <Button text="Proceed" onClick={() => handleNoteUpload(info)} />
+        <Button
+          text="Proceed"
+          onClick={() =>
+            handleNoteUpload({
+              alias_id: selectedAlias ? selectedAlias?.id : "",
+              secret: info.secret,
+            })
+          }
+        />
       </div>
     </div>
   );
@@ -542,6 +573,7 @@ const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
       <SaveModal
         isOpen={editor.isSaving}
         handleNoteUpload={handleNoteUpload}
+        isHidden={editor.hidden}
         onClose={() => setEditor((prev) => ({ ...prev, isSaving: false }))}
       />{" "}
     </>
@@ -555,8 +587,13 @@ interface IViewNote {
 const ViewNote: FC<IViewNote> = ({ selected, onClose }) => {
   if (!selected) return <></>;
   return (
-    <div className="modal relative animate__animated animate__slideInDown">
-      <div className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-5 py-5 rounded-md">
+    <div className="modal px-5 relative animate__animated animate__slideInDown">
+      <div
+        className="flex mt-7 flex-col gap-y-3 sm:w-[600px] md:w-[700px]  relative  shadow-md px-5 py-5 rounded-md"
+        style={{
+          border: "1px solid #555555",
+        }}
+      >
         <div className="absolute right-[10px]">
           <ImCancelCircle onClick={onClose} />
         </div>
@@ -576,5 +613,32 @@ const fetchAliasNotes = async (id: string) => {
   const f = await fetch("/note/alias/" + id);
   return await f.json();
 };
+const searchAliasByName = async (name: string) => {
+  const f = await fetch("/alias/search?name=" + name);
+  return await f.json();
+};
 
+function formatRelativeTime(timestamp: string | Date): string {
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  const timeUnits: { unit: string; seconds: number }[] = [
+    { unit: "year", seconds: 365 * 24 * 60 * 60 },
+    { unit: "month", seconds: 30 * 24 * 60 * 60 },
+    { unit: "day", seconds: 24 * 60 * 60 },
+    { unit: "hour", seconds: 60 * 60 },
+    { unit: "minute", seconds: 60 },
+    { unit: "second", seconds: 1 },
+  ];
+
+  for (const { unit, seconds } of timeUnits) {
+    const value = Math.floor(diffInSeconds / seconds);
+    if (value > 0) {
+      return value === 1 ? `A ${unit} ago` : `${value} ${unit}s ago`;
+    }
+  }
+
+  return "just now";
+}
 createRoot(document.getElementById("root")!).render(<Page />);

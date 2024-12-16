@@ -40,6 +40,8 @@ build/Release
 
 **.sqlite
 
+public/css/output.css
+
 # Dependency directories
 node_modules/
 jspm_packages/
