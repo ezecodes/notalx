@@ -126,7 +126,7 @@ server.use("/public", express.static(path.join(__dirname, "../public")));
 
 server.get("/", (req, res) => {
   res.render("index", {
-    title: "Notes space", // Dynamic title for the page
+    title: "Hushboard", // Dynamic title for the page
     publicPath: "/public", // Path to the public directory
   });
 });

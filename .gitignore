@@ -40,6 +40,8 @@ build/Release
 
 **.sqlite
 
+public/js/bundle.js
+
 public/css/output.css
 
 # Dependency directories

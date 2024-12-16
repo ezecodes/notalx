@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["src/page.tsx"],
+  content: ["src/client/**/*.tsx"],
   theme: {
     screens: {
       "1micro": "320px",

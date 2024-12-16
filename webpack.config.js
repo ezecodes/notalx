@@ -2,14 +2,21 @@ const path = require("path");
 
 module.exports = {
   entry: {
-    page: "./src/page.tsx",
+    index: "./src/client/index.tsx",
   },
   output: {
     path: path.resolve(__dirname, "public/js"), // Place the bundled file in a public folder
-    filename: "bundle.js", // Bundle file name
+    filename: "[name].bundle.js", // Bundle file name
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"], // Resolve TypeScript and JavaScript files
+  },
+  devServer: {
+    static: {
+      directory: path.join(__dirname, "public"),
+    },
+    compress: true,
+    port: 9000,
   },
   module: {
     rules: [
@@ -28,5 +35,4 @@ module.exports = {
       },
     ],
   },
-  mode: "development", // Can be set to 'production' for optimized builds
 };

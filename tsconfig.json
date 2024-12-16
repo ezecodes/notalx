@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "module": "CommonJS",
+    "outDir": "./dist/src",
     "lib": ["DOM", "ES6"],
     "jsx": "react-jsx", // Or "react" for older versions
     "moduleResolution": "Node",
@@ -12,5 +13,6 @@
     "allowSyntheticDefaultImports": true
   },
   "include": ["src"],
+
   "exclude": ["node_modules", "dist"]
 }
