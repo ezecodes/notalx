@@ -2,19 +2,13 @@ import express, { Request, Response } from "express";
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
-import { ICreateAlias, ICreateNote } from "./type";
+import { IApiResponse, ICreateAlias, ICreateNote } from "./type";
 import { connectDb } from "./sequelize";
 import { hashSync } from "bcrypt";
 import morgan from "morgan";
 import { Op } from "sequelize";
 const server = express();
 
-type IApiResponse<T> = {
-  status: "ok" | "err";
-  data?: T;
-  message?: string;
-  errors?: { field: string; code: string; message?: string }[];
-};
 declare module "express" {
   interface Response {
     json<DataType = any>(body: IApiResponse<DataType>): this;
