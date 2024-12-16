@@ -2,8 +2,11 @@ import express, { Request, Response } from "express";
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
-import { ICreateNote } from "./type";
-const app = express();
+import { ICreateAlias, ICreateNote } from "./type";
+import { connectDb } from "./sequelize";
+import { hashSync } from "bcrypt";
+import morgan from "morgan";
+const server = express();
 
 type IApiResponse<T> = {
   status: "ok" | "err";
@@ -25,76 +28,107 @@ declare global {
     }
   }
 }
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
 
-app.use("/public", express.static(path.join(__dirname, "../public")));
+server.use(express.json({ limit: "5mb" }));
+server.use(express.urlencoded({ extended: false }));
+server.use(
+  morgan((tokens, req, res) => {
+    // Define log format
+    return [
+      tokens.date(req, res, "iso"),
+      tokens.method(req, res),
+      tokens.url(req, res),
+      res.statusCode,
+      tokens["response-time"](req, res) + " ms",
+      tokens["remote-addr"](req, res),
+      tokens.referrer(req, res),
+      tokens["user-agent"](req, res),
+    ].join(" ");
+  })
+);
 
-app.get("/", (req, res) => {
+server.get("/alias", async (req: Request, res: Response) => {
+  const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
+  res.json({ status: "ok", data: { rows: all } });
+});
+
+server.post("/alias", async (req: Request, res: Response) => {
+  const body: ICreateAlias = req.body;
+  const { name, email, secret } = body;
+
+  const count = await Alias.count({ where: { name } });
+  if (count > 0) {
+    res.json({ status: "err", message: "Alias alredy exisits" });
+    return;
+  }
+
+  const hashedSecret = secret ? await hashSync(secret, 10) : null;
+
+  Alias.create({ name, email, secret: hashedSecret });
+  res.json({ status: "ok" });
+});
+
+server.get("/alias/:alias_id", async (req: Request, res: Response) => {
+  const aliasId = req.params.alias_id;
+
+  const all = await Alias.findByPk(aliasId, {
+    attributes: ["id", "name"],
+  });
+  res.json({ status: "ok", data: { rows: all } });
+});
+
+server.get("/note", async (req: Request, res: Response) => {
+  const all = await Note.findAll({ where: { hidden: false } });
+  res.json({ status: "ok", data: { rows: all } });
+});
+
+server.get("/note/:note_id", async (req: Request, res: Response) => {
+  const noteId = req.params.note_id;
+
+  const data = await Note.findByPk(noteId, {
+    attributes: ["title", "content"],
+  });
+  res.json({ status: "ok", data });
+});
+server.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
+  const aliasId = req.params.alias_id;
+
+  const all = await Note.findAll({
+    where: { alias_id: aliasId, hidden: false },
+  });
+  res.json({ status: "ok", data: { rows: all ?? [] } });
+});
+server.post("/note", async (req: Request, res: Response) => {
+  const { alias_id, content, hidden, secret, title }: ICreateNote = req.body;
+
+  const findAlias = await Alias.findByPk(alias_id);
+  if (hidden && (!findAlias?.secret || !secret)) {
+    res.json({ status: "err", message: "Enter a secret to continue" });
+    return;
+  }
+
+  if (!findAlias) {
+    res.json({ status: "err", message: "Alias not found" });
+    return;
+  }
+  await Note.create({ title, content, alias_id });
+
+  res.json({ status: "ok", message: "Note has been saved to your alias!" });
+});
+
+server.set("view engine", "ejs");
+server.set("views", path.join(__dirname, "views"));
+
+server.use("/public", express.static(path.join(__dirname, "../public")));
+
+server.get("/", (req, res) => {
   res.render("index", {
     title: "Notes space", // Dynamic title for the page
     publicPath: "/public", // Path to the public directory
   });
 });
 
-app.get("/alias", async (req: Request, res: Response) => {
-  const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-app.get("/alias/:name", async (req: Request, res: Response) => {
-  const name = req.params.name;
-  const isAuth = req.alias?.isCorrectSecret;
-
-  const noteAttrs = ["id", "title", "content", "hidden"];
-
-  const all = await Alias.findOne({
-    where: { name },
-    attributes: ["id", "name"],
-    include: {
-      model: Note,
-      attributes: ["id"],
-    },
-  });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-app.get("/note/:alias_id", async (req: Request, res: Response) => {
-  const aliasId = req.params.alias_id;
-
-  const all = await Note.findAll({
-    where: { alias_id: aliasId, hidden: false },
-  });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-app.get("/note", async (req: Request, res: Response) => {
-  const all = await Note.findAll({ where: { hidden: false } });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-app.post("/note", async (req: Request, res: Response) => {
-  const { alias, note }: ICreateNote = req.body;
-  const { name, secret } = alias;
-  const { title, content, hidden } = note;
-
-  const findAlias = await Alias.findOne({ where: { name } });
-  if (hidden && (!findAlias?.password || !secret)) {
-    res.json({ status: "err", message: "Enter a secret to continue" });
-  }
-  if (!findAlias) {
-    const newAlias = await Alias.create(
-      { name, password: secret ?? null },
-      { returning: true }
-    );
-    await Note.create({ title, content, alias_id: newAlias.id });
-  } else {
-    await Note.create({ title, content, alias_id: findAlias.id });
-  }
-
-  res.json({ status: "ok", message: "Note has been saved to your alias!" });
-});
-
-app.listen(4000, () => {
+server.listen(4000, () => {
   console.log(`Listening on 4000 ...`);
+  connectDb();
 });

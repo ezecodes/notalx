@@ -1,166 +1,143 @@
 import "react-quill/dist/quill.snow.css";
 import "choices.js/public/assets/styles/choices.min.css";
+import "react-toastify/dist/ReactToastify.css";
 
-import React, { ReactNode, useState } from "react";
+import React, { FC, ReactNode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   IoCreateOutline,
   IoEyeOffOutline,
+  IoMailOutline,
   IoPencilOutline,
   IoPerson,
+  IoPersonAdd,
+  IoPersonOutline,
 } from "react-icons/io5";
 import ReactQuill from "react-quill";
 import { ImCancelCircle, ImInfo } from "react-icons/im";
 import { FaRegEyeSlash } from "react-icons/fa";
 import { IoEyeOutline } from "react-icons/io5";
+import { IoIosTimer } from "react-icons/io";
+import { Alias, ICreateNote, Note } from "./type";
+import { Optional } from "sequelize";
 
 interface Editor {
   hidden?: boolean;
   title?: string;
   content?: string;
+  selectedAliasId?: string;
 }
 
 const Page = () => {
-  const [isEditorVisibile, setEditorVisibility] = useState(true);
-  const [editor, setEditor] = useState<Editor>({
-    content: "",
-    hidden: false,
-    title: "",
-  });
-  const [isSaveModalVisible, setSaveModalVisibility] = useState(true);
+  const [isEditorVisibile, setEditorVisibility] = useState(false);
 
-  // Handle content change
-  const handleNoteChange = (data: Editor) => {
-    setEditor((prev) => ({ ...prev, ...data }));
-  };
+  const [isCreateAliasModalVisible, setCreateAliasModalVisibility] =
+    useState(false);
 
-  const handleNoteUpload = () => {
-    // Handle the note submission or saving here (e.g., upload the note content to a server)
-    console.log("Note content:", editor.content);
-  };
+  const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNotes, setSelectedNotes] = useState<{
+    id: string;
+    rows: Note[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedAlias) return;
+    fetchAliasNotes(selectedAlias?.id).then((res) => {
+      console.log(res);
+      setSelectedNotes(res.data.rows);
+    });
+  }, [selectedAlias?.id]);
 
   return (
     <section className="flex flex-col justify-center items-center w-full">
       <header className="flex flex-col py-4 gap-y-5 w-full items-center ">
         <div className="flex flex-row gap-x-5">
           <Button
+            text="New alias"
+            icon={<IoPersonAdd />}
+            onClick={() => setCreateAliasModalVisibility(true)}
+          />
+          <Button
             text="Create note"
             icon={<IoCreateOutline />}
-            listener={() => setEditorVisibility(true)}
+            onClick={() => setEditorVisibility(true)}
           />
           <form className="w-full flex justify-center">
             <div className="flex items-center gap-x-3">
-              <InputWithIcon
-                icon={<IoPerson />}
-                placeholder="Find your alias"
-                type="text"
+              <SearchDropdown
+                onClick={(value) => setSelectedAlias(value)}
+                selected={selectedAlias}
               />
-              {/* <Button text="Find" listener={() => setEditorVisibility(false)} /> */}
             </div>
           </form>
         </div>
       </header>
 
-      {isSaveModalVisible && isEditorVisibile && (
-        <div
-          style={{ border: "1px solid #535353" }}
-          className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-5 py-5 rounded-md"
-        >
-          <h3 className="text-[1.1rem] font-[500]">Saving your note</h3>
-          <div className="flex items-start gap-x-3 ">
-            <ImInfo />
-            <p className="text-gray-300 text-[.8rem]">
-              You must choose an alias or type a new one in order to save your
-              note. <br></br> For a note to be marked as hidden, its alias must
-              have a secret{" "}
-            </p>
-          </div>
-
-          <div className="absolute right-[10px]">
-            <ImCancelCircle onClick={() => setSaveModalVisibility(false)} />
-          </div>
-
-          <div className="flex flex-col gap-y-3">
-            <div className="flex flex-col items-start  w-[300px]">
-              <label className="text-gray-400">Find your alias</label>
-              <SearchDropdown options={[]} />
-            </div>
-
-            {editor.hidden && (
-              <div className="flex flex-col items-start w-[300px]">
-                <label className="text-gray-400">
-                  Enter a secret for this alias
-                </label>
-                <InputWithIcon
-                  icon={<IoEyeOffOutline />}
-                  placeholder="Enter a secret"
-                  type="password"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <CreateAlias
+        isOpen={isCreateAliasModalVisible}
+        onClose={() => setCreateAliasModalVisibility(false)}
+      />
 
       {isEditorVisibile && (
-        <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
-          <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
-
-          <div className="absolute right-0">
-            <Button
-              text="Close"
-              icon={<ImCancelCircle />}
-              listener={() => setEditorVisibility(false)}
-            />
-          </div>
-
-          <fieldset className="flex flex-col gap-y-3">
-            <div>
-              <InputWithIcon
-                icon={<IoPencilOutline />}
-                placeholder="Enter note title"
-                type="text"
-              />
-            </div>
-            <div>
-              <NoteEditor
-                value={editor.content ?? ""}
-                onChange={(value) => handleNoteChange({ content: value })}
-              />
-            </div>
-          </fieldset>
-          <fieldset className="flex gap-x-4 justify-end ">
-            <Button
-              text={editor.hidden ? "Mark as public" : "Mark as hidden"}
-              icon={editor.hidden ? <FaRegEyeSlash /> : <IoEyeOutline />}
-              listener={() => handleNoteChange({ hidden: !editor.hidden })}
-            />
-            <Button
-              text="Save note"
-              listener={() => setSaveModalVisibility(true)}
-            />
-          </fieldset>
-        </form>
+        <Editor
+          isOpen={isEditorVisibile}
+          onClose={() => setEditorVisibility(false)}
+        />
       )}
+
+      {selectedAlias && selectedNotes && selectedNotes?.rows.length > 0 && (
+        <section className="w-full px-10 py-5 mb-3">
+          {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
+          <div className="flex gap-4">
+            {selectedNotes?.rows.map((i, key) => {
+              return (
+                <div
+                  className="shadow-md px-4 py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+                  style={{ border: "1px solid #555555" }}
+                >
+                  <div className="flex justify-between">
+                    <span className="font-[500] text-[1.1rem]">{i.title}</span>
+                  </div>
+                  <div
+                    className="cursor-pointer text-gray-300 h-[65%] overflow-hidden"
+                    onClick={() => setSelectedNote(i)}
+                  >
+                    <span
+                      dangerouslySetInnerHTML={{ __html: i.content }}
+                    ></span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-x-5">
+                    <span className="text-gray-400">3 mins ago</span>
+                    <IoCreateOutline />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      <ViewNote selected={selectedNote} onClose={() => setSelectedNote(null)} />
     </section>
   );
 };
 
 const Button = ({
-  listener,
+  onClick,
   text,
   icon,
   type,
 }: {
   text: string;
-  listener: () => void;
+  onClick: () => void;
   icon?: ReactNode;
   type?: "button" | "submit";
 }) => {
   return (
     <button
       className="rounded-md gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center "
-      onClick={listener}
+      onClick={onClick}
       type={type ?? "button"}
     >
       {text} {icon && icon}
@@ -171,19 +148,27 @@ const Button = ({
 interface InputWithIconProps {
   type: string;
   placeholder: string;
-  icon?: ReactNode; // This will be the icon passed as a prop
+  icon?: ReactNode;
+  value: string;
+  onChange: (value: string) => void;
 }
 
-const InputWithIcon: React.FC<InputWithIconProps> = ({
+const InputWithIcon: FC<InputWithIconProps> = ({
   type,
   placeholder,
   icon,
+  onChange,
+  value,
 }) => {
   return (
     <div className="flex input items-center border border-gray-300 rounded-lg p-2 w-full max-w-xs">
       {icon && <span className="text-gray-500">{icon}</span>}
       <input
         type={type}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+        }}
         placeholder={placeholder}
         className="ml-2 w-full  bg-transparent   placeholder-gray-400  "
       />
@@ -221,31 +206,42 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
   );
 };
 interface SearchDropdownProps {
-  options: string[];
+  onClick: (selected: _Alias) => void;
+  selected: _Alias | null;
 }
+interface _Alias extends Optional<Alias, "email" | "secret"> {}
 
-const SearchDropdown: React.FC<SearchDropdownProps> = ({ options }) => {
-  const [inputValue, setInputValue] = useState<string>("");
-  const [filteredOptions, setFilteredOptions] = useState<string[]>(options);
+const SearchDropdown: React.FC<SearchDropdownProps> = ({
+  onClick,
+  selected,
+}) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [filteredOptions, setFilteredOptions] = useState<Alias[]>([]);
+  const [options, setOptions] = useState<Alias[]>([]);
 
+  useEffect(() => {
+    fetchAlias().then((res) => {
+      console.log(res);
+      setOptions(res.data.rows);
+    });
+  }, []);
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value);
+    onClick({ name: value, id: "" });
 
     // Filter dropdown options based on input
     const filtered = options.filter((option) =>
-      option.toLowerCase().includes(value.toLowerCase())
+      option.name.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredOptions(filtered);
     setShowDropdown(true);
   };
 
   // Handle option selection
-  const handleOptionClick = (option: string) => {
-    setInputValue(option);
-    setShowDropdown(false); // Hide dropdown after selection
+  const handleOptionClick = (option: _Alias) => {
+    onClick(option);
+    setShowDropdown(false);
   };
 
   // Close dropdown when clicking outside
@@ -259,22 +255,23 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ options }) => {
       <input
         type="text"
         name="alias"
-        value={inputValue}
+        value={selected?.name ?? ""}
         onChange={handleInputChange}
         onFocus={() => setShowDropdown(true)} // Show dropdown on focus
         onBlur={handleBlur}
-        placeholder="Start typing..."
+        placeholder="Find alias..."
         className="w-full input bg-transparent border border-gray-300 rounded-md p-2  "
       />
       {showDropdown && filteredOptions.length > 0 && (
         <ul className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10">
           {filteredOptions.map((option) => (
             <li
-              key={option}
+              key={option.id}
               onClick={() => handleOptionClick(option)}
-              className="px-4 py-2 cursor-pointer  "
+              className="px-4 py-2 cursor-pointer hover:bg-gray-[#777777] "
+              style={{ borderBottom: "1px solid #555555" }}
             >
-              {option}
+              {option.name}
             </li>
           ))}
         </ul>
@@ -282,4 +279,302 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ options }) => {
     </div>
   );
 };
+
+interface ICreateAlias {
+  onClose: () => void;
+  isOpen: boolean;
+}
+
+const CreateAlias: FC<ICreateAlias> = ({ onClose, isOpen }) => {
+  const [alias, setAlias] = useState({ name: "", secret: "", email: "" });
+
+  const send = async () => {
+    const f = await fetch("/alias", {
+      method: "post",
+      body: JSON.stringify(alias),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    const response = await f.json();
+    alert(response.message);
+
+    if (response.status === "ok") {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return <></>;
+  return (
+    <div className="modal animate__animated animate__slideInDown">
+      <div
+        style={{ border: "1px solid #535353" }}
+        className="flex mt-7 flex-col gap-y-3 relative 3micro:w-[400px] sm:w-[600px] shadow-md px-5 py-5 rounded-md"
+      >
+        <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
+        <div className="flex items-start gap-x-3 ">
+          <ImInfo />
+          <p className="text-gray-300 text-[.8rem]">
+            Add a secret to this alias to enable you create hidden notes that
+            can only be accessed with anyone with the secret. An email address
+            though optional is recommended to enable you recover your secret
+            incase you loose it
+          </p>
+        </div>
+
+        <div className="absolute right-[10px]">
+          <ImCancelCircle onClick={onClose} />
+        </div>
+
+        <div className="flex flex-col gap-y-3">
+          <div className="label_input">
+            <label>Choose your alias</label>
+            <InputWithIcon
+              placeholder="Chose an alias"
+              type="text"
+              value={alias.name}
+              onChange={(value) =>
+                setAlias((prev) => ({ ...prev, name: value }))
+              }
+            />
+          </div>
+
+          <div className="label_input">
+            <label>Enter a secret for this alias (Optional)</label>
+            <InputWithIcon
+              icon={<IoEyeOffOutline />}
+              placeholder="Enter a secret"
+              type="password"
+              value={alias.secret}
+              onChange={(value) =>
+                setAlias((prev) => ({ ...prev, secret: value }))
+              }
+            />
+          </div>
+          <div className="label_input">
+            <label>Enter an email (Optional)</label>
+            <InputWithIcon
+              icon={<IoMailOutline />}
+              placeholder=""
+              type="email"
+              value={alias.email}
+              onChange={(value) =>
+                setAlias((prev) => ({ ...prev, email: value }))
+              }
+            />
+          </div>
+        </div>
+
+        <Button text="Create" onClick={send} />
+      </div>
+    </div>
+  );
+};
+
+interface ISaveModal {
+  onClose: () => void;
+  handleNoteUpload: ({
+    alias_id,
+    secret,
+  }: {
+    alias_id: string;
+    secret?: string;
+  }) => void;
+  isOpen: boolean;
+}
+const SaveModal: FC<ISaveModal> = ({ onClose, handleNoteUpload, isOpen }) => {
+  const [info, setInfo] = useState({ alias_id: "", secret: "" });
+  const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
+
+  if (!isOpen) return <></>;
+  return (
+    <div className="modal animate__animated animate__slideInDown">
+      <div
+        style={{ border: "1px solid #535353" }}
+        className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-5 py-5 rounded-md"
+      >
+        <h3 className="text-[1.1rem] font-[500]">Saving your note</h3>
+        <div className="flex items-start gap-x-3 ">
+          <ImInfo />
+          <p className="text-gray-300 text-[.8rem]">
+            You must choose an alias or type a new one in order to save your
+            note. <br></br> For a note to be marked as hidden, its alias must
+            have a secret{" "}
+          </p>
+        </div>
+
+        <div className="absolute right-[10px]">
+          <ImCancelCircle onClick={onClose} />
+        </div>
+
+        <div className="flex flex-col gap-y-3">
+          <div className="label_input">
+            <label className="text-gray-400">Find your alias</label>
+            <SearchDropdown
+              onClick={(value) => setSelectedAlias(value)}
+              selected={selectedAlias}
+            />
+          </div>
+
+          <div className="label_input">
+            <label className="text-gray-400">
+              Enter a secret for this alias
+            </label>
+            <InputWithIcon
+              icon={<IoEyeOffOutline />}
+              placeholder="Enter a secret"
+              type="password"
+              value={info.secret}
+              onChange={(value) =>
+                setInfo((prev) => ({ ...prev, secret: value }))
+              }
+            />
+          </div>
+        </div>
+
+        <Button text="Proceed" onClick={() => handleNoteUpload(info)} />
+      </div>
+    </div>
+  );
+};
+
+interface IEditor {
+  onClose: () => void;
+  isOpen: boolean;
+}
+
+const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
+  const [editor, setEditor] = useState({
+    title: "",
+    content: "",
+    hidden: false,
+    selfDestruct: false,
+    isSaving: false,
+  });
+
+  const handleNoteUpload = async ({
+    alias_id,
+    secret,
+  }: {
+    alias_id: string;
+    secret?: string;
+  }) => {
+    const f = await fetch("/note", {
+      method: "post",
+      body: JSON.stringify({
+        title: editor.title,
+        content: editor.content,
+        hidden: editor.hidden,
+        self_destruct: editor.selfDestruct,
+        alias_id,
+        secret,
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    const response = await f.json();
+    alert(response.message);
+
+    if (response.status === "ok") {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return <></>;
+
+  return (
+    <>
+      <div className="modal animate__animated animate__slideInDown">
+        <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
+          <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
+
+          <div className="absolute right-0">
+            <Button text="Close" icon={<ImCancelCircle />} onClick={onClose} />
+          </div>
+
+          <fieldset className="flex flex-col gap-y-3">
+            <div>
+              <InputWithIcon
+                icon={<IoPencilOutline />}
+                placeholder="Enter note title"
+                type="text"
+                value={editor.title}
+                onChange={(value) =>
+                  setEditor((prev) => ({ ...prev, title: value }))
+                }
+              />
+            </div>
+            <div>
+              <NoteEditor
+                value={editor.content ?? ""}
+                onChange={(value) =>
+                  setEditor((prev) => ({ ...prev, content: value }))
+                }
+              />
+            </div>
+          </fieldset>
+          <fieldset className="flex gap-x-4 justify-end ">
+            <Button
+              text="Self destruct"
+              icon={<IoIosTimer />}
+              onClick={() =>
+                setEditor((prev) => ({
+                  ...prev,
+                  selfDestruct: !prev.selfDestruct,
+                }))
+              }
+            />
+            <Button
+              text={editor.hidden ? "Mark as public" : "Mark as hidden"}
+              icon={editor.hidden ? <FaRegEyeSlash /> : <IoEyeOutline />}
+              onClick={() =>
+                setEditor((prev) => ({ ...prev, hidden: !prev.hidden }))
+              }
+            />
+            <Button
+              text="Save note"
+              onClick={() => setEditor((prev) => ({ ...prev, isSaving: true }))}
+            />
+          </fieldset>
+        </form>
+      </div>
+      <SaveModal
+        isOpen={editor.isSaving}
+        handleNoteUpload={handleNoteUpload}
+        onClose={() => setEditor((prev) => ({ ...prev, isSaving: false }))}
+      />{" "}
+    </>
+  );
+};
+
+interface IViewNote {
+  selected: Note | null;
+  onClose: () => void;
+}
+const ViewNote: FC<IViewNote> = ({ selected, onClose }) => {
+  if (!selected) return <></>;
+  return (
+    <div className="modal relative animate__animated animate__slideInDown">
+      <div className="flex mt-7 flex-col gap-y-3 relative min-w-[300px] shadow-md px-5 py-5 rounded-md">
+        <div className="absolute right-[10px]">
+          <ImCancelCircle onClick={onClose} />
+        </div>
+        <h4 className="font-[500] text-[1.1rem]">{selected.title}</h4>
+        <div dangerouslySetInnerHTML={{ __html: selected.content }}></div>
+      </div>
+    </div>
+  );
+};
+
+const fetchAlias = async () => {
+  const f = await fetch("/alias");
+  return await f.json();
+};
+
+const fetchAliasNotes = async (id: string) => {
+  const f = await fetch("/note/alias/" + id);
+  return await f.json();
+};
+
 createRoot(document.getElementById("root")!).render(<Page />);

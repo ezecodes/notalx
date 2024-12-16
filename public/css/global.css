@@ -5,6 +5,9 @@
   --bg_color: #232323;
   --text_color: #fff;
 }
+.animate__animated.animate__slideInDown {
+  --animate-duration: 50ms;
+}
 * {
   font-family: "Space Grotesk", sans-serif;
   margin: 0;
@@ -30,4 +33,20 @@ body {
 }
 .input {
   border: 1px solid #555555;
+}
+.label_input {
+  @apply flex flex-col items-start w-[300px];
+}
+.label_input > label {
+  @apply text-gray-300;
+}
+.modal {
+  position: fixed;
+  inset: 0px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #232323d4;
+  backdrop-filter: blur(1px);
 }

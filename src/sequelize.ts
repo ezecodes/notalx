@@ -7,4 +7,14 @@ const sequelize = new Sequelize({
   logging: true, // Optional: disable logging of SQL queries
 });
 
+async function connectDb() {
+  try {
+    await sequelize.authenticate();
+    // sequelize.sync({ force: true });
+  } catch (err) {
+    throw new Error("Database connection failed:" + err);
+  }
+}
+
+export { connectDb };
 export default sequelize;

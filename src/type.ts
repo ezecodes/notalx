@@ -1,17 +1,25 @@
-export type Alias = {};
+export type Alias = {
+  id: string;
+  name: string;
+  secret: string;
+  email: string;
+};
 export type Note = {
   id: string;
   title: string;
   content: string;
 };
 export interface ICreateNote {
-  alias: {
-    name: string;
-    secret: string;
-  };
-  note: {
-    content: string;
-    title: string;
-    hidden: boolean;
-  };
+  title: string;
+  content: string;
+  hidden: boolean;
+  self_destruct: boolean;
+  alias_id: string;
+  secret: string;
+}
+
+export interface ICreateAlias {
+  name: string;
+  secret?: string;
+  email?: string;
 }

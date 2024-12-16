@@ -6,6 +6,8 @@ class Note extends Model {
   public id!: number;
   public title!: string;
   public content!: string;
+  public alias_id!: string;
+  public hidden!: boolean;
 }
 
 Note.init(
@@ -17,6 +19,7 @@ Note.init(
       allowNull: false,
       defaultValue: DataTypes.UUIDV4,
     },
+    hidden: { type: DataTypes.BOOLEAN, allowNull: true },
     title: { type: DataTypes.STRING, allowNull: false },
     content: { type: DataTypes.STRING, allowNull: true },
     alias_id: {

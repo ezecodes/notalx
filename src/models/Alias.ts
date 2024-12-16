@@ -4,7 +4,8 @@ import sequelize from "../sequelize";
 class Alias extends Model {
   public id!: number;
   public name!: string;
-  public password!: string;
+  public secret!: string;
+  public email!: string;
 }
 
 Alias.init(
@@ -17,7 +18,8 @@ Alias.init(
       defaultValue: DataTypes.UUIDV4,
     },
     name: { type: DataTypes.STRING, allowNull: false },
-    password: { type: DataTypes.STRING, allowNull: true },
+    email: { type: DataTypes.STRING, allowNull: true },
+    secret: { type: DataTypes.STRING, allowNull: true },
   },
   { sequelize, modelName: "Alias" }
 );
