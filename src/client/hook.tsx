@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IEditor } from "../type";
+import { IAlias, IEditor } from "../type";
 
 type IContext = {
   editor: Partial<IEditor>;
@@ -18,6 +18,8 @@ type IContext = {
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
   draftCount: number;
+  selectedAlias: Partial<IAlias> | null;
+  setSelectedAlias: Dispatch<React.SetStateAction<Partial<IAlias> | null>>;
 };
 const key = "drafts";
 
@@ -34,6 +36,10 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     isSaving: false,
     draft_id: null,
   });
+
+  const [selectedAlias, setSelectedAlias] = useState<Partial<IAlias> | null>(
+    null
+  );
 
   const loadDrafts = () => {
     const drafts = localStorage.getItem(key);
@@ -98,6 +104,8 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     expandDraft,
     loadDrafts,
     draftCount,
+    setSelectedAlias,
+    selectedAlias,
   };
 
   return (

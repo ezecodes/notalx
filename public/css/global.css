@@ -57,10 +57,14 @@ body {
   background: #232323;
   overflow-y: scroll;
 }
-.draft_actions {
+.draft_actions,
+.header_actions {
   @apply rounded-full add_border flex items-center justify-center add_bg w-[25px] h-[25px];
 }
 .modal_child,
 .ql-editor {
   @apply w-full 3micro:w-[400px] sm:w-[600px];
+}
+.subtext {
+  @apply text-gray-300;
 }

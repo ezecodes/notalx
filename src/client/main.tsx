@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import ViewNote from "./ViewNote";
 import Editor from "./NoteEditor";
 import CreateAlias from "./AliasCreator";
+import AliasAuth from "./AliasAuth";
 
 const route = createBrowserRouter([
   {
@@ -22,6 +23,10 @@ const route = createBrowserRouter([
       {
         path: "newalias",
         element: <CreateAlias />,
+      },
+      {
+        path: "auth-with-alias",
+        element: <AliasAuth />,
       },
       {
         path: ":note_slug",

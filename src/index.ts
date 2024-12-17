@@ -15,12 +15,12 @@ import morgan from "morgan";
 import { Op } from "sequelize";
 import { randomBytes } from "crypto";
 import { validate } from "uuid";
-import { createTransport, TransportOptions } from "nodemailer";
+import { createTransport } from "nodemailer";
 
 import dotenv from "dotenv";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
-import Otp from "./models/Otp";
 import Session from "./models/Session";
+import cookieParser from "cookie-parser";
+import memcachedService from "./memcache";
 dotenv.config();
 
 const server = express();
@@ -91,7 +91,7 @@ const isAuthenticated = async (req: Request) => {
 
   return true;
 };
-
+server.use(cookieParser(process.env.COOKIE_SECRET));
 server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
 server.use(morgan("tiny"));
@@ -104,25 +104,28 @@ ApiRoute.get("/alias", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: all } });
 });
 ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { email, alias_id } = req.body;
   const user = await Alias.findOne({
-    where: { email },
+    where: { email, id: alias_id },
     attributes: ["id", "name"],
   });
 
   if (!user) {
-    res.json({ status: "err", message: "Email is not valid" });
+    res.json({
+      status: "err",
+      message: "Email and alias combination is not valid",
+    });
     return;
   }
 
   const code = randomBytes(2).toString("hex");
 
-  Otp.create({ email, hash: hashSync(code, 10) });
+  memcachedService.set(`opt:${email}`, hashSync(code, 10), 3600);
 
   sendEmail({
     html: `Your code ${code}`,
     receiver: email,
-    subject: "Unlock hidden notes",
+    subject: "Your OTP",
   });
 
   res.json({ status: "ok", message: "OTP sent to email" });
@@ -139,17 +142,15 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     res.json({ status: "err", message: "Email is not valid" });
     return;
   }
-  const otp = await Otp.findOne({
-    where: { email },
-    attributes: ["hash"],
-  });
+
+  const otp = await memcachedService.get(`otp:${email}`);
 
   if (!otp) {
     res.status(400).json({ status: "err", message: "Invalid Otp code" });
     return;
   }
 
-  const valid = compareSync(code, otp.dataValues.hash);
+  const valid = compareSync(code, otp as string);
   if (!valid) {
     res.status(400).json({ status: "err", message: "Invalid Otp code" });
     return;
@@ -162,17 +163,11 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     ip_address:
       req.headers["x-forwarded-for"]! || req.connection.remoteAddress!,
     user_agent: req.headers["user-agent"]!,
+    alias_id: user.dataValues.id!,
   };
-  const session = await Session.create(
-    {
-      ...sessionObj,
-      ip_address: Array.isArray(sessionObj.ip_address)
-        ? sessionObj.ip_address[0]
-        : sessionObj.ip_address,
-      alias_id: user.dataValues.id!,
-    },
-    { returning: true }
-  );
+  const id = randomBytes(10).toString("hex");
+
+  memcachedService.set(id, sessionObj, 3600);
 
   const cookieOpts: CookieOptions = {
     httpOnly: true,
@@ -182,7 +177,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     signed: true,
   };
 
-  res.cookie(sessionKey, session.dataValues.id, cookieOpts);
+  res.cookie(sessionKey, id, cookieOpts);
 
   res.json({ status: "ok", message: "OTP sent to email" });
 });

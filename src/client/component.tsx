@@ -33,6 +33,7 @@ interface InputWithIconProps {
   onChange: (value: string) => void;
   focusListener?: () => void;
   blurListener?: () => void;
+  disabled?: boolean;
 }
 
 export const InputWithIcon: FC<InputWithIconProps> = ({
@@ -43,6 +44,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
   value,
   focusListener,
   blurListener,
+  disabled,
 }) => {
   return (
     <div className="flex input items-center border border-gray-300 rounded-lg p-2 w-full max-w-xs">
@@ -53,6 +55,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
         onChange={(e) => {
           onChange(e.target.value);
         }}
+        disabled={disabled}
         onBlur={blurListener}
         onFocus={focusListener}
         placeholder={placeholder}

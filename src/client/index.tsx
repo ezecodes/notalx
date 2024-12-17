@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import {
   IoCreateOutline,
   IoEyeOffOutline,
@@ -11,10 +11,11 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { fetchAliasNotes, formatRelativeTime, parseUrl } from "./utils";
 import { TbPasswordUser } from "react-icons/tb";
+import { GlobalContext } from "./hook";
 
 const Home = () => {
   const navigate = useNavigate();
-
+  const { selectedAlias, setSelectedAlias } = useContext(GlobalContext)!;
   useEffect(() => {
     try {
       const url = parseUrl(document.location);
@@ -25,9 +26,7 @@ const Home = () => {
       console.error(err);
     }
   }, []);
-  const [selectedAlias, setSelectedAlias] = useState<Partial<IAlias> | null>(
-    null
-  );
+
   const [selectedNotes, setSelectedNotes] = useState<{
     id: string;
     rows: INote[];
@@ -44,7 +43,7 @@ const Home = () => {
   return (
     <section className="flex flex-col justify-center items-center w-full">
       <header className="flex flex-col py-4 gap-y-5 w-full items-center px-3">
-        <div className="flex flex-row gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 justify-center">
+        <div className="flex flex-row gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
           <Button
             text="New alias"
             icon={<IoPersonAdd />}
@@ -67,12 +66,9 @@ const Home = () => {
           </form>
 
           {selectedAlias && (
-            <Button
-              text="Include hidden"
-              icon={<TbPasswordUser />}
-              onClick={() => {
-                // navigate("/newnote");
-              }}
+            <TbPasswordUser
+              onClick={() => navigate("/auth-with-alias")}
+              className="text-[30px]"
             />
           )}
         </div>
