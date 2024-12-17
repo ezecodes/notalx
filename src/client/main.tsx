@@ -15,11 +15,11 @@ const route = createBrowserRouter([
     element: <Home />,
     children: [
       {
-        path: "/edit",
+        path: "edit",
         element: <Editor />,
       },
       {
-        path: "/:note_slug",
+        path: ":note_slug",
         element: <ViewNote />,
       },
     ],

@@ -11,10 +11,17 @@ import { FaRegEyeSlash } from "react-icons/fa";
 import ReactQuill from "react-quill";
 import { _Alias } from "../type";
 import { useNavigate } from "react-router-dom";
+import { Optional } from "sequelize";
 
-interface IEditor {}
-const Editor: FC<IEditor> = () => {
-  const [editor, setEditor] = useState({
+interface IEditor {
+  title: string;
+  content: string;
+  hidden: boolean;
+  selfDestruct: boolean;
+  isSaving: boolean;
+}
+const Editor = () => {
+  const [editor, setEditor] = useState<IEditor>({
     title: "",
     content: "",
     hidden: false,
@@ -23,6 +30,15 @@ const Editor: FC<IEditor> = () => {
   });
   const navigate = useNavigate();
 
+  const updateEditor = (
+    values: Optional<
+      IEditor,
+      "content" | "hidden" | "isSaving" | "selfDestruct" | "title"
+    >
+  ) => {
+    setEditor((prev) => ({ ...prev, ...values }));
+  };
+
   const handleNoteUpload = async ({
     alias_id,
     secret,
@@ -30,7 +46,7 @@ const Editor: FC<IEditor> = () => {
     alias_id: string;
     secret?: string;
   }) => {
-    const f = await fetch("/note", {
+    const f = await fetch("/api/note", {
       method: "post",
       body: JSON.stringify({
         title: editor.title,
@@ -69,9 +85,7 @@ const Editor: FC<IEditor> = () => {
                 placeholder="Enter note title"
                 type="text"
                 value={editor.title}
-                onChange={(value) =>
-                  setEditor((prev) => ({ ...prev, title: value }))
-                }
+                onChange={(value) => updateEditor({ title: value })}
               />
             </div>
             <div>
@@ -217,15 +231,17 @@ const SaveModal: FC<ISaveModal> = ({
           )}
         </div>
 
-        <Button
-          text="Proceed"
-          onClick={() =>
-            handleNoteUpload({
-              alias_id: selectedAlias ? selectedAlias?.id : "",
-              secret: info.secret,
-            })
-          }
-        />
+        <div className="flex justify-end">
+          <Button
+            text="Proceed"
+            onClick={() =>
+              handleNoteUpload({
+                alias_id: selectedAlias ? selectedAlias?.id : "",
+                secret: info.secret,
+              })
+            }
+          />
+        </div>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ Alias.init(
       allowNull: false,
       defaultValue: DataTypes.UUIDV4,
     },
-    name: { type: DataTypes.STRING, allowNull: false },
+    name: { type: DataTypes.STRING, unique: true, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: true },
     secret: { type: DataTypes.STRING, allowNull: true },
   },

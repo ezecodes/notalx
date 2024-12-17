@@ -17,7 +17,7 @@ export const Button = ({
 }) => {
   return (
     <button
-      className="rounded-md gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center "
+      className="rounded-md text-sm gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center "
       onClick={onClick}
       type={type ?? "button"}
     >

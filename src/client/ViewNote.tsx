@@ -1,17 +1,17 @@
 import { FC, useEffect, useState } from "react";
 import { ImCancelCircle } from "react-icons/im";
 import { INote } from "../type";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { fetchNote } from "./utils";
 
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
-  const params = useParams<{ note_id: string }>();
+  const params = useParams<{ note_slug: string }>();
   const [note, setNote] = useState<INote | null>(null);
 
   useEffect(() => {
-    params.note_id &&
-      fetchNote(params.note_id).then((res) => {
+    params.note_slug &&
+      fetchNote(params.note_slug).then((res) => {
         res.data && setNote(res.data);
       });
   }, []);
@@ -26,9 +26,9 @@ const ViewNote: FC<IViewNote> = () => {
           border: "1px solid #555555",
         }}
       >
-        <div className="absolute right-[10px]">
-          <ImCancelCircle onClick={() => history.back()} />
-        </div>
+        <Link to={"/"} className="absolute right-[10px]">
+          <ImCancelCircle />
+        </Link>
         <h4 className="font-[500] text-[1.1rem]">{note.title}</h4>
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
       </div>

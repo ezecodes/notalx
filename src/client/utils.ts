@@ -1,4 +1,3 @@
-import { URL } from "url";
 import {
   _Alias,
   IAlias,
@@ -7,7 +6,7 @@ import {
   IPaginatedResponse,
 } from "../type";
 
-export const parseUrl = (url: Location) => {
+export const parseUrl = (url: any) => {
   // Create a URL object
   const parsedUrl = new URL(url);
 
@@ -22,20 +21,20 @@ export const parseUrl = (url: Location) => {
   return { parsedUrl, requestQuery };
 };
 export const fetchAllAlias = async () => {
-  const f = await fetch("/alias");
+  const f = await fetch("/api/alias");
   return (await f.json()) as IPaginatedResponse<Omit<IAlias, "secret">>;
 };
 
 export const fetchAliasNotes = async (id: string) => {
-  const f = await fetch("/note/alias/" + id);
+  const f = await fetch("/api/note/alias/" + id);
   return (await f.json()) as IPaginatedResponse<INote>;
 };
 export const searchAliasByName = async (name: string) => {
-  const f = await fetch("/alias/search?name=" + name);
+  const f = await fetch("/api/alias/search?name=" + name);
   return (await f.json()) as IPaginatedResponse<_Alias>;
 };
 export const fetchNote = async (slug: string) => {
-  const f = await fetch("/note/" + slug);
+  const f = await fetch("/api/note/" + slug);
   return (await f.json()) as IApiResponse<INote>;
 };
 export function formatRelativeTime(timestamp: string | Date): string {

@@ -5,6 +5,7 @@ import Alias from "./Alias";
 class Note extends Model {
   public id!: number;
   public title!: string;
+  public slug!: string;
   public content!: string;
   public alias_id!: string;
   public hidden!: boolean;
@@ -19,6 +20,7 @@ Note.init(
       allowNull: false,
       defaultValue: DataTypes.UUIDV4,
     },
+    slug: { type: DataTypes.STRING, unique: true, allowNull: false },
     hidden: { type: DataTypes.BOOLEAN, allowNull: true },
     title: { type: DataTypes.STRING, allowNull: false },
     content: { type: DataTypes.STRING, allowNull: true },

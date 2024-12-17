@@ -78,11 +78,12 @@ ApiRoute.get("/note", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: all } });
 });
 
-ApiRoute.get("/note/:note_id", async (req: Request, res: Response) => {
-  const noteId = req.params.note_id;
+ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
+  const slug = req.params.note_slug;
 
-  const data = await Note.findByPk(noteId, {
-    attributes: ["title", "content"],
+  const data = await Note.findOne({
+    where: { slug },
+    attributes: ["title", "content", "id", "createdAt", "updatedAt"],
   });
   res.json({ status: "ok", data });
 });
@@ -111,7 +112,8 @@ ApiRoute.post("/note", async (req: Request, res: Response) => {
     res.json({ status: "err", message: "Alias not found" });
     return;
   }
-  await Note.create({ title, content, alias_id });
+  const slug = generateSlug(title, 3);
+  await Note.create({ title, content, alias_id, slug });
 
   res.json({ status: "ok", message: "Note has been saved to your alias!" });
 });
@@ -128,10 +130,30 @@ server.get("/", (req, res) => {
   });
 });
 server.get("/edit", (req, res) => {
-  res.redirect(`/?rroot=${encodeURIComponent(req.originalUrl)}`);
+  res.redirect(`/?r=${encodeURIComponent(req.originalUrl)}`);
+});
+server.use("/", (req, res) => {
+  res.redirect(`/?r=${encodeURIComponent(req.originalUrl)}`);
 });
 
 server.listen(4000, () => {
   console.log(`Listening on 4000 ...`);
   connectDb();
 });
+
+function generateSlug(title: string, maxWords: number = 3): string {
+  const randomString = Math.random().toString(36).substring(2, 7); // Generate a 5-char random string
+
+  // Process the title to extract significant words
+  const slug = title
+    .toLowerCase()
+    .replace(/['"]/g, "") // Remove quotes
+    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters except spaces
+    .trim()
+    .split(/\s+/) // Split into words
+    .slice(0, maxWords) // Take the first `maxWords` words
+    .join("-"); // Join with hyphens
+
+  // Combine processed slug with the random string
+  return `${slug}-${randomString}`;
+}

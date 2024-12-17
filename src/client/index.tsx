@@ -7,7 +7,7 @@ import {
 } from "react-icons/io5";
 import { ImCancelCircle, ImInfo } from "react-icons/im";
 import { _Alias, INote } from "../type";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { fetchAliasNotes, formatRelativeTime, parseUrl } from "./utils";
 
@@ -19,15 +19,14 @@ const Home = () => {
   useEffect(() => {
     try {
       const url = parseUrl(document.location);
-      if (url.requestQuery.rroot) {
-        navigate(decodeURIComponent(url.requestQuery.rroot));
+      if (url.requestQuery.r) {
+        navigate(decodeURIComponent(url.requestQuery.r));
       }
     } catch (err) {
       console.error(err);
     }
   }, []);
   const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
-  const [selectedNote, setSelectedNote] = useState<INote | null>(null);
   const [selectedNotes, setSelectedNotes] = useState<{
     id: string;
     rows: INote[];
@@ -87,14 +86,15 @@ const Home = () => {
                   <div className="flex justify-between px-4">
                     <span className="font-[500] text-[1.1rem]">{i.title}</span>
                   </div>
-                  <div
+
+                  <Link
+                    to={i.slug}
                     className="hover:bg-[#292929] duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
-                    onClick={() => setSelectedNote(i)}
                   >
                     <span
                       dangerouslySetInnerHTML={{ __html: i.content }}
                     ></span>
-                  </div>
+                  </Link>
 
                   <div className="flex  px-4 items-center justify-end gap-x-5">
                     <span className="text-gray-400 text-sm">
@@ -124,7 +124,7 @@ const CreateAlias: FC<ICreateAlias> = ({ onClose, isOpen }) => {
   const [alias, setAlias] = useState({ name: "", secret: "", email: "" });
 
   const send = async () => {
-    const f = await fetch("/alias", {
+    const f = await fetch("/api/alias", {
       method: "post",
       body: JSON.stringify(alias),
       headers: {
