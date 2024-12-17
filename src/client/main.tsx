@@ -8,6 +8,7 @@ import { Provider } from "./hook";
 import { createRoot } from "react-dom/client";
 import ViewNote from "./ViewNote";
 import Editor from "./NoteEditor";
+import CreateAlias from "./AliasCreator";
 
 const route = createBrowserRouter([
   {
@@ -15,8 +16,12 @@ const route = createBrowserRouter([
     element: <Home />,
     children: [
       {
-        path: "edit",
+        path: "newnote",
         element: <Editor />,
+      },
+      {
+        path: "newalias",
+        element: <CreateAlias />,
       },
       {
         path: ":note_slug",

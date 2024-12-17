@@ -1,8 +1,7 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { _Alias, IAlias } from "../type";
-import { Optional } from "sequelize";
 import { fetchAllAlias, searchAliasByName } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
+import { IAlias } from "../type";
 
 export const Button = ({
   onClick,
@@ -17,7 +16,7 @@ export const Button = ({
 }) => {
   return (
     <button
-      className="rounded-md text-sm gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center "
+      className="primary_button "
       onClick={onClick}
       type={type ?? "button"}
     >
@@ -32,6 +31,8 @@ interface InputWithIconProps {
   icon?: ReactNode;
   value: string;
   onChange: (value: string) => void;
+  focusListener?: () => void;
+  blurListener?: () => void;
 }
 
 export const InputWithIcon: FC<InputWithIconProps> = ({
@@ -40,6 +41,8 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
   icon,
   onChange,
   value,
+  focusListener,
+  blurListener,
 }) => {
   return (
     <div className="flex input items-center border border-gray-300 rounded-lg p-2 w-full max-w-xs">
@@ -50,16 +53,18 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
         onChange={(e) => {
           onChange(e.target.value);
         }}
+        onBlur={blurListener}
+        onFocus={focusListener}
         placeholder={placeholder}
-        className="ml-2 w-full  bg-transparent   placeholder-gray-400  "
+        className="ml-2 w-full  bg-transparent placeholder-gray-400  "
       />
     </div>
   );
 };
 
 interface SearchDropdownProps {
-  onClick: (selected: _Alias | null) => void;
-  selected: _Alias | null;
+  onClick: (selected: Partial<IAlias> | null) => void;
+  selected: Partial<IAlias> | null;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -67,7 +72,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   selected,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [options, setOptions] = useState<_Alias[]>([]);
+  const [options, setOptions] = useState<Partial<IAlias>[]>([]);
   const [input, setInput] = useState<string>("");
 
   useEffect(() => {
@@ -85,7 +90,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     });
   };
 
-  const handleOptionClick = (option: _Alias) => {
+  const handleOptionClick = (option: Partial<IAlias>) => {
     onClick(option);
     handleBlur();
   };
@@ -124,7 +129,10 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
       </div>
 
       {showDropdown && options.length > 0 && (
-        <ul className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10">
+        <ul
+          style={{ borderTop: "1px solid #555555" }}
+          className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10"
+        >
           {options.map((option) => (
             <li
               key={option.id}

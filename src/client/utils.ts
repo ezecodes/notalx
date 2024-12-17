@@ -1,10 +1,4 @@
-import {
-  _Alias,
-  IAlias,
-  IApiResponse,
-  INote,
-  IPaginatedResponse,
-} from "../type";
+import { IAlias, IApiResponse, INote, IPaginatedResponse } from "../type";
 
 export const parseUrl = (url: any) => {
   // Create a URL object
@@ -31,11 +25,15 @@ export const fetchAliasNotes = async (id: string) => {
 };
 export const searchAliasByName = async (name: string) => {
   const f = await fetch("/api/alias/search?name=" + name);
-  return (await f.json()) as IPaginatedResponse<_Alias>;
+  return (await f.json()) as IPaginatedResponse<Partial<IAlias>>;
 };
 export const fetchNote = async (slug: string) => {
   const f = await fetch("/api/note/" + slug);
   return (await f.json()) as IApiResponse<INote>;
+};
+export const fetchAlias = async (id: string) => {
+  const f = await fetch("/api/alias/" + id);
+  return (await f.json()) as IApiResponse<Omit<Partial<IAlias>, "secret">>;
 };
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();

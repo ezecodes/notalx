@@ -21,6 +21,9 @@ body {
   background-color: var(--bg_color) !important;
   color: var(--text_color);
 }
+.primary_button {
+  @apply rounded-md text-sm gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center;
+}
 .ql-editor > * {
   color: var(--text_color) !important;
 }
@@ -38,7 +41,7 @@ body {
   @apply flex flex-col items-start w-[300px];
 }
 .label_input > label {
-  @apply text-gray-300;
+  @apply text-gray-200;
 }
 .modal {
   position: fixed;
@@ -48,5 +51,6 @@ body {
   align-items: center;
   justify-content: center;
   background: #232323d4;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(0.5px);
+  overflow-y: scroll;
 }

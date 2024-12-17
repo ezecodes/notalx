@@ -1,15 +1,9 @@
-import { Model, DataTypes } from "sequelize";
+import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
 import Alias from "./Alias";
+import { INote } from "../type";
 
-class Note extends Model {
-  public id!: number;
-  public title!: string;
-  public slug!: string;
-  public content!: string;
-  public alias_id!: string;
-  public hidden!: boolean;
-}
+class Note extends Model<Optional<INote, "createdAt" | "updatedAt" | "id">> {}
 
 Note.init(
   {
@@ -20,12 +14,26 @@ Note.init(
       allowNull: false,
       defaultValue: DataTypes.UUIDV4,
     },
-    slug: { type: DataTypes.STRING, unique: true, allowNull: false },
-    hidden: { type: DataTypes.BOOLEAN, allowNull: true },
-    title: { type: DataTypes.STRING, allowNull: false },
-    content: { type: DataTypes.STRING, allowNull: true },
     alias_id: {
       type: DataTypes.UUID,
+      allowNull: false,
+    },
+    slug: { type: DataTypes.STRING, unique: true, allowNull: false },
+    content: { type: DataTypes.STRING, allowNull: false },
+    title: { type: DataTypes.STRING, allowNull: false },
+    is_hidden: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    will_self_destroy: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    secret: { type: DataTypes.STRING, allowNull: true },
+    self_destroy_time: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

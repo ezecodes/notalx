@@ -2,11 +2,12 @@ import express, { Request, Response, Router } from "express";
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
-import { IApiResponse, ICreateAlias, ICreateNote } from "./type";
+import { IAlias, IApiResponse, INote } from "./type";
 import { connectDb } from "./sequelize";
 import { hashSync } from "bcrypt";
 import morgan from "morgan";
 import { Op } from "sequelize";
+import { randomBytes } from "crypto";
 const server = express();
 
 declare module "express" {
@@ -49,32 +50,32 @@ ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
 });
 
 ApiRoute.post("/alias", async (req: Request, res: Response) => {
-  const body: ICreateAlias = req.body;
-  const { name, email, secret } = body;
-
+  const body: Partial<IAlias> = req.body;
+  const { name, email } = body;
+  if (!name) {
+    res.json({ status: "err", message: "Alias must have a name" });
+    return;
+  }
   const count = await Alias.count({ where: { name } });
   if (count > 0) {
-    res.json({ status: "err", message: "Alias alredy exisits" });
+    res.json({ status: "err", message: "Alias already exists" });
     return;
   }
 
-  const hashedSecret = secret ? await hashSync(secret, 10) : null;
-
-  Alias.create({ name, email, secret: hashedSecret });
-  res.json({ status: "ok" });
+  Alias.create({ name, email: (email as string) ?? null });
+  res.json({ status: "ok", message: "Alias created!" });
 });
 
 ApiRoute.get("/alias/:alias_id", async (req: Request, res: Response) => {
-  const aliasId = req.params.alias_id;
-
-  const all = await Alias.findByPk(aliasId, {
-    attributes: ["id", "name"],
-  });
-  res.json({ status: "ok", data: { rows: all } });
+  // const aliasId = req.params.alias_id;
+  // const data = await Alias.findByPk(aliasId, {
+  //   attributes: ["id", "name", "secret"],
+  // });
+  // res.json({ status: "ok", data: {} });
 });
 
 ApiRoute.get("/note", async (req: Request, res: Response) => {
-  const all = await Note.findAll({ where: { hidden: false } });
+  const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
 });
 
@@ -93,27 +94,71 @@ ApiRoute.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
   const all = await Note.findAll({
     where: {
       alias_id: aliasId,
-      [Op.or]: [{ hidden: false }, { hidden: null }],
+      [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any],
     },
   });
   res.json({ status: "ok", data: { rows: all ?? [] } });
 });
 ApiRoute.post("/note", async (req: Request, res: Response) => {
-  const { alias_id, content, hidden, secret, title }: ICreateNote = req.body;
-  console.log(req.body);
+  const { alias_id, note }: { alias_id: string; note: Partial<INote> } =
+    req.body;
+  const {
+    content,
+    title,
+    is_hidden,
+    secret,
+    self_destroy_time,
+    will_self_destroy,
+  } = note;
 
-  const findAlias = await Alias.findByPk(alias_id);
-  if (hidden && (!findAlias?.secret || !secret)) {
-    res.json({ status: "err", message: "Enter a secret to continue" });
+  if (!title || !content) {
+    res.json({ status: "err", message: "Note must have a title and content" });
     return;
   }
+
+  if (is_hidden && !secret) {
+    res.json({ status: "err", message: "Enter a secret for hidden note" });
+    return;
+  }
+  if (will_self_destroy && !self_destroy_time) {
+    res.json({ status: "err", message: "Enter a time for note deletion" });
+    return;
+  }
+
+  if (self_destroy_time) {
+    const valid = validateSelfDestroyTime(self_destroy_time);
+    if (!valid) {
+      res.json({
+        status: "err",
+        message: "Invalid timer. Please follow the format: <number> <unit>.",
+      });
+      return;
+    }
+  }
+  const findAlias = await Alias.findByPk(alias_id);
 
   if (!findAlias) {
     res.json({ status: "err", message: "Alias not found" });
     return;
   }
-  const slug = generateSlug(title, 3);
-  await Note.create({ title, content, alias_id, slug });
+  const slug = generateSlug(title, 5, is_hidden ?? false);
+
+  const update: any = {
+    title,
+    content,
+    slug,
+    alias_id,
+  };
+  if (self_destroy_time) {
+    update.self_destroy_time = parseSelfDestroyTimeToDate(self_destroy_time);
+    update.will_self_destroy = true;
+  }
+  if (secret) {
+    update.secret = hashSync(secret, 10);
+    update.is_hidden = true;
+  }
+
+  await Note.create(update);
 
   res.json({ status: "ok", message: "Note has been saved to your alias!" });
 });
@@ -141,19 +186,64 @@ server.listen(4000, () => {
   connectDb();
 });
 
-function generateSlug(title: string, maxWords: number = 3): string {
+function generateSlug(
+  title: string,
+  maxWords: number = 3,
+  is_hidden: boolean
+): string {
+  if (is_hidden) {
+    return randomBytes(3).toString("base64url");
+  }
+
   const randomString = Math.random().toString(36).substring(2, 7); // Generate a 5-char random string
 
-  // Process the title to extract significant words
   const slug = title
     .toLowerCase()
-    .replace(/['"]/g, "") // Remove quotes
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters except spaces
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .split(/\s+/) // Split into words
-    .slice(0, maxWords) // Take the first `maxWords` words
-    .join("-"); // Join with hyphens
+    .split(/\s+/)
+    .slice(0, maxWords)
+    .join("-");
 
-  // Combine processed slug with the random string
   return `${slug}-${randomString}`;
+}
+
+const validTimeRegex =
+  /^\d+\s*(second|seconds|minute|minutes|day|days|year|years)$/i;
+
+export function validateSelfDestroyTime(input: string): boolean {
+  return validTimeRegex.test(input);
+}
+export function parseSelfDestroyTimeToDate(input: string): Date | null {
+  if (!validateSelfDestroyTime(input)) {
+    return null; // Invalid input
+  }
+
+  const [value, unit] = input.toLowerCase().split(/\s+/); // Split into number and unit
+  const num = parseInt(value, 10);
+  const now = new Date();
+
+  switch (unit) {
+    case "second":
+    case "seconds":
+      now.setSeconds(now.getSeconds() + num);
+      break;
+    case "minute":
+    case "minutes":
+      now.setMinutes(now.getMinutes() + num);
+      break;
+    case "day":
+    case "days":
+      now.setDate(now.getDate() + num);
+      break;
+    case "year":
+    case "years":
+      now.setFullYear(now.getFullYear() + num);
+      break;
+    default:
+      return null; // Invalid unit (shouldn't happen due to regex)
+  }
+
+  return now;
 }

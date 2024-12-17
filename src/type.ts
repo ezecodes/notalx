@@ -1,35 +1,25 @@
-import { Optional } from "sequelize";
-
 export type IAlias = {
   id: string;
   name: string;
-  secret: string;
   email: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
-export interface _Alias extends Optional<IAlias, "email" | "secret"> {}
 
 export type INote = {
   id: string;
   title: string;
   content: string;
+  alias_id: string;
   slug: string;
+  secret: string;
+  is_hidden: boolean;
+  will_self_destroy: boolean;
+  self_destroy_time: string;
   createdAt: Date;
   updatedAt: Date;
 };
-export interface ICreateNote {
-  title: string;
-  content: string;
-  hidden: boolean;
-  self_destruct: boolean;
-  alias_id: string;
-  secret: string;
-}
 
-export interface ICreateAlias {
-  name: string;
-  secret?: string;
-  email?: string;
-}
 export type IPagination = {
   page: number;
   page_size: number;

@@ -1,12 +1,8 @@
-import { Model, DataTypes } from "sequelize";
+import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
+import { IAlias } from "../type";
 
-class Alias extends Model {
-  public id!: number;
-  public name!: string;
-  public secret!: string;
-  public email!: string;
-}
+class Alias extends Model<Optional<IAlias, "createdAt" | "updatedAt" | "id">> {}
 
 Alias.init(
   {
@@ -19,7 +15,6 @@ Alias.init(
     },
     name: { type: DataTypes.STRING, unique: true, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: true },
-    secret: { type: DataTypes.STRING, allowNull: true },
   },
   { sequelize, modelName: "Alias" }
 );
