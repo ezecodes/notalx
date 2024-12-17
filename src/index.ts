@@ -1,14 +1,38 @@
-import express, { Request, Response, Router } from "express";
+import express, {
+  CookieOptions,
+  NextFunction,
+  Request,
+  Response,
+  Router,
+} from "express";
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
 import { IAlias, IApiResponse, INote } from "./type";
 import { connectDb } from "./sequelize";
-import { hashSync } from "bcrypt";
+import { compareSync, hashSync } from "bcrypt";
 import morgan from "morgan";
 import { Op } from "sequelize";
 import { randomBytes } from "crypto";
+import { validate } from "uuid";
+import { createTransport, TransportOptions } from "nodemailer";
+
+import dotenv from "dotenv";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
+import Otp from "./models/Otp";
+import Session from "./models/Session";
+dotenv.config();
+
 const server = express();
+const sessionKey = "s-tkn";
+const Brand = "Hush thoughts";
+
+const mailConfig = {
+  user: process.env.MAIL_USER,
+  pass: process.env.MAIL_PASSWORD,
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
+};
 
 declare module "express" {
   interface Response {
@@ -24,6 +48,49 @@ declare global {
     }
   }
 }
+const validateAliasId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const aliasId = req.params.alias_id;
+  if (!validate(aliasId)) {
+    return res
+      .status(400)
+      .json({ status: "err", message: "Alias ID is invalid" });
+  }
+  const find = await Alias.findByPk(aliasId, { attributes: ["id"] });
+  if (!find) {
+    return res
+      .status(400)
+      .json({ status: "err", message: "Alias ID is invalid" });
+  }
+
+  next();
+  return;
+};
+
+const isAuthenticated = async (req: Request) => {
+  const sessionId = req.signedCookies[sessionKey];
+  const aliasId = req.params.alias_id;
+  if (!sessionId) {
+    return false;
+  }
+
+  const session = await Session.findByPk(sessionId);
+  if (!session) {
+    return false;
+  }
+  if (session.dataValues.expiry < new Date()) {
+    return false;
+  }
+
+  if (session.dataValues.alias_id !== aliasId) {
+    return false;
+  }
+
+  return true;
+};
 
 server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
@@ -36,7 +103,89 @@ ApiRoute.get("/alias", async (req: Request, res: Response) => {
   const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
   res.json({ status: "ok", data: { rows: all } });
 });
+ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const user = await Alias.findOne({
+    where: { email },
+    attributes: ["id", "name"],
+  });
 
+  if (!user) {
+    res.json({ status: "err", message: "Email is not valid" });
+    return;
+  }
+
+  const code = randomBytes(2).toString("hex");
+
+  Otp.create({ email, hash: hashSync(code, 10) });
+
+  sendEmail({
+    html: `Your code ${code}`,
+    receiver: email,
+    subject: "Unlock hidden notes",
+  });
+
+  res.json({ status: "ok", message: "OTP sent to email" });
+});
+
+ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
+  const { code, email } = req.body;
+  const user = await Alias.findOne({
+    where: { email },
+    attributes: ["id"],
+  });
+
+  if (!user) {
+    res.json({ status: "err", message: "Email is not valid" });
+    return;
+  }
+  const otp = await Otp.findOne({
+    where: { email },
+    attributes: ["hash"],
+  });
+
+  if (!otp) {
+    res.status(400).json({ status: "err", message: "Invalid Otp code" });
+    return;
+  }
+
+  const valid = compareSync(code, otp.dataValues.hash);
+  if (!valid) {
+    res.status(400).json({ status: "err", message: "Invalid Otp code" });
+    return;
+  }
+  const expiry = new Date();
+  expiry.setHours(expiry.getHours() + 1);
+
+  const sessionObj = {
+    expiry,
+    ip_address:
+      req.headers["x-forwarded-for"]! || req.connection.remoteAddress!,
+    user_agent: req.headers["user-agent"]!,
+  };
+  const session = await Session.create(
+    {
+      ...sessionObj,
+      ip_address: Array.isArray(sessionObj.ip_address)
+        ? sessionObj.ip_address[0]
+        : sessionObj.ip_address,
+      alias_id: user.dataValues.id!,
+    },
+    { returning: true }
+  );
+
+  const cookieOpts: CookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 60 * 60 * 1000, // 60 minutes
+    signed: true,
+  };
+
+  res.cookie(sessionKey, session.dataValues.id, cookieOpts);
+
+  res.json({ status: "ok", message: "OTP sent to email" });
+});
 ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
   const name = req.query.name;
   const data = await Alias.findAll({
@@ -52,8 +201,11 @@ ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
 ApiRoute.post("/alias", async (req: Request, res: Response) => {
   const body: Partial<IAlias> = req.body;
   const { name, email } = body;
-  if (!name) {
-    res.json({ status: "err", message: "Alias must have a name" });
+  if (!name || !email) {
+    res.json({
+      status: "err",
+      message: "Alias must have a name an a recovery email",
+    });
     return;
   }
   const count = await Alias.count({ where: { name } });
@@ -81,24 +233,84 @@ ApiRoute.get("/note", async (req: Request, res: Response) => {
 
 ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const slug = req.params.note_slug;
+  const isAuth = isAuthenticated(req);
+  const authHeader = req.headers.authorization;
+  const secret = authHeader?.split(" ")[1];
 
-  const data = await Note.findOne({
+  const find = await Note.findOne({
     where: { slug },
-    attributes: ["title", "content", "id", "createdAt", "updatedAt"],
+    attributes: [
+      "title",
+      "secret",
+      "slug",
+      "is_hidden",
+      "content",
+      "createdAt",
+    ],
   });
-  res.json({ status: "ok", data });
-});
-ApiRoute.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
-  const aliasId = req.params.alias_id;
+  if (!find) {
+    res.status(400).json({ status: "err", message: "Note not found" });
+    return;
+  }
+  if (find?.dataValues.is_hidden) {
+    if (authHeader && secret) {
+      const valid = compareSync(secret, find?.dataValues.secret);
+      if (!valid) {
+        res
+          .status(400)
+          .json({ status: "err", message: "Action not permitted" });
+        return;
+      }
+    }
+    if (!isAuth) {
+      res.status(400).json({ status: "err", message: "Action not permitted" });
+      return;
+    }
+  }
 
-  const all = await Note.findAll({
-    where: {
-      alias_id: aliasId,
-      [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any],
+  res.json({
+    status: "ok",
+    message: "Note retrived",
+    data: {
+      title: find?.dataValues.title,
+      content: find?.dataValues.content,
+      createdAt: find?.dataValues.createdAt,
+      slug: find?.dataValues.slug,
     },
   });
-  res.json({ status: "ok", data: { rows: all ?? [] } });
 });
+ApiRoute.get(
+  "/note/alias/:alias_id",
+  validateAliasId as any,
+  async (req: Request, res: Response) => {
+    const aliasId = req.params.alias_id;
+    const isAuth = isAuthenticated(req);
+
+    let clause: any = { alias_id: aliasId };
+    if (!isAuth) {
+      clause = {
+        ...clause,
+        [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any],
+      };
+    } else {
+      clause = {
+        ...clause,
+        [Op.or]: [
+          { is_hidden: true },
+          { is_hidden: null },
+          { is_hidden: false } as any,
+        ],
+      };
+    }
+
+    const all = await Note.findAll({
+      where: clause,
+      attributes: ["title", "content", "createdAt", "slug"],
+    });
+    res.json({ status: "ok", data: { rows: all ?? [] } });
+  }
+);
+
 ApiRoute.post("/note", async (req: Request, res: Response) => {
   const { alias_id, note }: { alias_id: string; note: Partial<INote> } =
     req.body;
@@ -170,7 +382,7 @@ server.use("/public", express.static(path.join(__dirname, "../public")));
 
 server.get("/", (req, res) => {
   res.render("index", {
-    title: "Hushboard", // Dynamic title for the page
+    title: Brand, // Dynamic title for the page
     publicPath: "/public", // Path to the public directory
   });
 });
@@ -246,4 +458,37 @@ export function parseSelfDestroyTimeToDate(input: string): Date | null {
   }
 
   return now;
+}
+interface IEmailOptions {
+  receiver: string;
+  subject: string;
+  html: string;
+}
+async function sendEmail(options: IEmailOptions) {
+  try {
+    const config: any = {
+      host: mailConfig.host!,
+      port: mailConfig.port!,
+      secure: false,
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
+      },
+      connectionTimeout: 60000,
+      auth: {
+        user: mailConfig.user,
+        pass: mailConfig.pass,
+      },
+    };
+    const transporter = createTransport(config);
+    const mailOptions = {
+      from: `${Brand} <${mailConfig.user}>`,
+      to: options.receiver,
+      subject: options.subject,
+      html: options.html,
+    };
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.error(err);
+  }
 }

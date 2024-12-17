@@ -47,9 +47,11 @@ const Editor = () => {
   const handleNoteUpload = async ({
     alias_id,
     secret,
+    selfDestoryTime,
   }: {
     alias_id: string;
     secret?: string;
+    selfDestoryTime?: string;
   }) => {
     const f = await fetch("/api/note", {
       method: "post",
@@ -58,7 +60,7 @@ const Editor = () => {
           title: editor.title,
           content: editor.content,
           is_hidden: editor.hidden,
-          self_destroy_time: editor.selfDestoryTime,
+          self_destroy_time: selfDestoryTime,
           will_self_destroy: editor.willSelfDestroy,
           secret,
         },
@@ -77,8 +79,8 @@ const Editor = () => {
   return (
     <>
       <div className="modal animate__animated animate__slideInDown relative">
-        <header className="absolute top-[10px] right-[10px]">
-          {draftCount > 0 && (
+        <header className="absolute top-[50px] right-[50px]">
+          {draftCount > 0 && !isDraftModalOpen && (
             <Button
               text="Draft"
               icon={<RiDraftLine />}
@@ -86,7 +88,7 @@ const Editor = () => {
             />
           )}
         </header>
-        <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
+        <form className="modal_child relative gap-y-3 flex flex-col  px-3 my-5 py-3">
           <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
 
           <div className="absolute right-0">
@@ -114,7 +116,7 @@ const Editor = () => {
               />
             </div>
           </fieldset>
-          <fieldset className="flex gap-x-4 justify-end ">
+          <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end ">
             <button
               className={`primary_button ${
                 editor.willSelfDestroy ? "text-green-400" : "gray-300"
@@ -194,9 +196,11 @@ interface ISaveModal {
   handleNoteUpload: ({
     alias_id,
     secret,
+    selfDestoryTime,
   }: {
     alias_id: string;
     secret: string;
+    selfDestoryTime: string;
   }) => void;
   isOpen: boolean;
   isHidden: boolean;
@@ -224,7 +228,7 @@ const SaveModal: FC<ISaveModal> = ({
     <div className="modal animate__animated animate__slideInDown">
       <div
         style={{ border: "1px solid #535353" }}
-        className="flex mt-7 flex-col gap-y-3 relative w-[300px] sm:w-[600px] shadow-md px-5 py-5 rounded-md"
+        className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
       >
         <h3 className="text-[1.1rem] font-[500]">Saving your note</h3>
         <div className="flex items-start gap-x-3 ">
@@ -233,7 +237,11 @@ const SaveModal: FC<ISaveModal> = ({
             <p>
               To save your note, you need to choose an alias. If an alias is not
               available, you can create a new one{" "}
-              <Link className="text-blue-200 underline" to={"/newalias"}>
+              <Link
+                className="text-blue-200 underline"
+                target="_blank"
+                to={"/newalias"}
+              >
                 here
               </Link>
             </p>
@@ -320,6 +328,7 @@ const SaveModal: FC<ISaveModal> = ({
               handleNoteUpload({
                 alias_id: selectedAlias ? selectedAlias?.id! : "",
                 secret: info.secret,
+                selfDestoryTime: info.selfDestroyTime,
               })
             }
           />
@@ -340,7 +349,10 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
   if (!drafts || drafts?.length === 0 || !isOpen) return <></>;
 
   return (
-    <aside className="z-[90] add_bg flex flex-col gap-y-4 absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[400px]  shadow-md add_border">
+    <aside
+      className="z-[90] add_bg flex flex-col gap-y-4 sm:absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[350px] shadow-md add_border"
+      style={{ backdropFilter: "blur(1px)" }}
+    >
       <div className="flex justify-between items-center">
         <h3 className="font-[500]">Unsaved drafts</h3>
         <Button text="Dismis" onClick={() => closeModal()} />

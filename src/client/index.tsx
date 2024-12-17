@@ -10,6 +10,7 @@ import { IAlias, INote } from "../type";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { fetchAliasNotes, formatRelativeTime, parseUrl } from "./utils";
+import { TbPasswordUser } from "react-icons/tb";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -42,8 +43,8 @@ const Home = () => {
 
   return (
     <section className="flex flex-col justify-center items-center w-full">
-      <header className="flex flex-col py-4 gap-y-5 w-full items-center ">
-        <div className="flex flex-row gap-x-5">
+      <header className="flex flex-col py-4 gap-y-5 w-full items-center px-3">
+        <div className="flex flex-row gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 justify-center">
           <Button
             text="New alias"
             icon={<IoPersonAdd />}
@@ -64,6 +65,16 @@ const Home = () => {
               />
             </div>
           </form>
+
+          {selectedAlias && (
+            <Button
+              text="Include hidden"
+              icon={<TbPasswordUser />}
+              onClick={() => {
+                // navigate("/newnote");
+              }}
+            />
+          )}
         </div>
       </header>
 

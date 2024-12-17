@@ -20,12 +20,7 @@ const ViewNote: FC<IViewNote> = () => {
 
   return (
     <div className="modal px-5 relative animate__animated animate__slideInDown">
-      <div
-        className="flex mt-7 flex-col gap-y-3 sm:w-[600px] md:w-[700px]  relative  shadow-md px-5 py-5 rounded-md"
-        style={{
-          border: "1px solid #555555",
-        }}
-      >
+      <div className="flex modal_child mt-7 flex-col gap-y-3  relative  px-5 py-5 rounded-md">
         <Link to={"/"} className="absolute right-[10px]">
           <ImCancelCircle />
         </Link>

@@ -31,7 +31,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     content: "",
     hidden: false,
     willSelfDestroy: false,
-    selfDestoryTime: "",
     isSaving: false,
     draft_id: null,
   });
@@ -68,6 +67,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const saveToStore = (values: Partial<IEditor>) => {
+    if (!values.title) return;
     const drafts = localStorage.getItem(key);
     if (!drafts) {
       localStorage.setItem(

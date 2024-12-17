@@ -578,10 +578,6 @@ video {
   top: 50px;
 }
 
-.top-\[10px\] {
-  top: 10px;
-}
-
 .z-10 {
   z-index: 10;
 }
@@ -641,10 +637,6 @@ video {
   height: 200px;
 }
 
-.h-\[25px\] {
-  height: 25px;
-}
-
 .h-\[30px\] {
   height: 30px;
 }
@@ -661,24 +653,16 @@ video {
   width: 130px;
 }
 
-.w-\[25px\] {
-  width: 25px;
-}
-
 .w-\[300px\] {
   width: 300px;
 }
 
-.w-\[400px\] {
-  width: 400px;
+.w-\[350px\] {
+  width: 350px;
 }
 
 .w-full {
   width: 100%;
-}
-
-.min-w-\[300px\] {
-  min-width: 300px;
 }
 
 .max-w-4xl {
@@ -707,6 +691,10 @@ video {
 
 .flex-col {
   flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
 }
 
 .items-start {
@@ -895,10 +883,6 @@ video {
   line-height: 1.25rem;
 }
 
-.font-\[400\] {
-  font-weight: 400;
-}
-
 .font-\[500\] {
   font-weight: 500;
 }
@@ -961,6 +945,11 @@ video {
   --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.blur {
+  --tw-blur: blur(8px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
 .duration-200 {
@@ -1054,11 +1043,9 @@ body {
   inset: 0px;
   z-index: 50;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #232323d4;
-  -webkit-backdrop-filter: blur(0.5px);
-          backdrop-filter: blur(0.5px);
+  background: #232323;
   overflow-y: scroll;
 }
 
@@ -1071,6 +1058,25 @@ body {
   border-radius: 9999px;
   background-color: var(--bg_color);
   border: 1px solid #555555;
+}
+
+.modal_child,
+.ql-editor {
+  width: 100%;
+}
+
+@media (min-width: 425px) {
+  .modal_child,
+.ql-editor {
+    width: 400px;
+  }
+}
+
+@media (min-width: 640px) {
+  .modal_child,
+.ql-editor {
+    width: 600px;
+  }
 }
 
 .hover\:bg-\[\#292929\]:hover {
@@ -1091,8 +1097,16 @@ body {
 }
 
 @media (min-width: 640px) {
+  .sm\:absolute {
+    position: absolute;
+  }
+
   .sm\:w-\[600px\] {
     width: 600px;
+  }
+
+  .sm\:flex-nowrap {
+    flex-wrap: nowrap;
   }
 }
 

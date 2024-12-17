@@ -6,6 +6,22 @@ export type IAlias = {
   updatedAt: Date;
 };
 
+export type IOtp = {
+  id: string;
+  hash: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type ISession = {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  alias_id: string;
+  expiry: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type INote = {
   id: string;
   title: string;
@@ -41,7 +57,6 @@ export interface IEditor {
   content: string;
   hidden: boolean;
   willSelfDestroy: boolean;
-  selfDestoryTime: string;
   isSaving: boolean;
   draft_id: number | null;
   createdAt: Date;

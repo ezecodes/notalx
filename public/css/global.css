@@ -52,12 +52,15 @@ body {
   inset: 0px;
   z-index: 50;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #232323d4;
-  backdrop-filter: blur(0.5px);
+  background: #232323;
   overflow-y: scroll;
 }
 .draft_actions {
   @apply rounded-full add_border flex items-center justify-center add_bg w-[25px] h-[25px];
+}
+.modal_child,
+.ql-editor {
+  @apply w-full 3micro:w-[400px] sm:w-[600px];
 }
