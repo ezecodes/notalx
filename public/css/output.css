@@ -578,6 +578,10 @@ video {
   top: 50px;
 }
 
+.top-\[10px\] {
+  top: 10px;
+}
+
 .z-10 {
   z-index: 10;
 }

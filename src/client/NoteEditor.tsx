@@ -11,14 +11,37 @@ import { AiOutlineDelete } from "react-icons/ai";
 import { FaExpand } from "react-icons/fa";
 import { GlobalContext } from "./hook";
 import { formatRelativeTime } from "./utils";
+import { RiDraftLine } from "react-icons/ri";
 
 const Editor = () => {
   const navigate = useNavigate();
-  const { editor, setEditor, saveToStore } = useContext(GlobalContext)!;
+  const {
+    editor,
+    setEditor,
+    saveToStore,
+    draftCount,
+    loadDrafts,
+    deleteDraft,
+  } = useContext(GlobalContext)!;
+  const hasCalled = useRef(false);
 
+  const [isDraftModalOpen, setDraftModal] = useState(true);
+
+  useEffect(() => {
+    if (!hasCalled.current) {
+      loadDrafts();
+
+      hasCalled.current = true;
+    }
+  }, []);
   const handleUpdate = (values: Partial<IEditor>) => {
-    setEditor((prev) => ({ ...prev, ...values }));
-    saveToStore({ ...editor, ...values });
+    const data = { ...editor, ...values };
+    if (!editor.draft_id || editor.draft_id === undefined) {
+      data.draft_id = Date.now();
+      data.createdAt = new Date();
+    }
+    setEditor(data);
+    saveToStore(data);
   };
 
   const handleNoteUpload = async ({
@@ -47,12 +70,22 @@ const Editor = () => {
       },
     });
     const response = await f.json();
+    deleteDraft(editor.draft_id!);
     alert(response.message);
   };
 
   return (
     <>
       <div className="modal animate__animated animate__slideInDown relative">
+        <header className="absolute top-[10px] right-[10px]">
+          {draftCount > 0 && (
+            <Button
+              text="Draft"
+              icon={<RiDraftLine />}
+              onClick={() => setDraftModal(true)}
+            />
+          )}
+        </header>
         <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
           <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
 
@@ -118,7 +151,10 @@ const Editor = () => {
         willSelfDestroy={editor.willSelfDestroy!}
         onClose={() => setEditor((prev) => ({ ...prev, isSaving: false }))}
       />{" "}
-      <Drafts />
+      <Drafts
+        closeModal={() => setDraftModal(false)}
+        isOpen={isDraftModalOpen}
+      />
     </>
   );
 };
@@ -293,26 +329,21 @@ const SaveModal: FC<ISaveModal> = ({
   );
 };
 
-const Drafts = () => {
-  const { drafts, deleteDraft, loadDrafts, expandDraft } =
-    useContext(GlobalContext)!;
-  const hasCalled = useRef(false);
+interface IDraftModal {
+  isOpen: boolean;
+  closeModal: () => void;
+}
 
-  if (!drafts || drafts?.length === 0) return <></>;
+const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
+  const { drafts, deleteDraft, expandDraft } = useContext(GlobalContext)!;
 
-  useEffect(() => {
-    if (!hasCalled.current) {
-      loadDrafts();
-
-      hasCalled.current = true;
-    }
-  }, []);
+  if (!drafts || drafts?.length === 0 || !isOpen) return <></>;
 
   return (
     <aside className="z-[90] add_bg flex flex-col gap-y-4 absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[400px]  shadow-md add_border">
       <div className="flex justify-between items-center">
         <h3 className="font-[500]">Unsaved drafts</h3>
-        <Button text="Dismis" onClick={() => {}} />
+        <Button text="Dismis" onClick={() => closeModal()} />
       </div>
       <div className="text-gray-300 text-sm space-y-2">
         <p>
@@ -329,27 +360,26 @@ const Drafts = () => {
               >
                 <span className="text-white">{i.title!}</span>
                 <span
+                  dangerouslySetInnerHTML={{ __html: i.content! }}
                   className="h-[60%] hover:bg-[#292929] duration-200 cursor-pointer"
                   style={{
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                   }}
-                >
-                  {i.content!}
-                </span>
+                />
                 <div className="flex gap-x-2 items-center justify-end   mt-3">
                   <span> {formatRelativeTime(i.createdAt!)} </span>
 
                   <button
                     className="draft_actions"
-                    onClick={() => expandDraft(i.draft_id!)}
+                    onClick={() => deleteDraft(i.draft_id!)}
                   >
                     <AiOutlineDelete />
                   </button>
                   <button
                     className="draft_actions"
-                    onClick={() => deleteDraft(i.draft_id!)}
+                    onClick={() => expandDraft(i.draft_id!)}
                   >
                     <FaExpand />
                   </button>

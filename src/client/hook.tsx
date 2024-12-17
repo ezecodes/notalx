@@ -17,12 +17,14 @@ type IContext = {
   deleteDraft: (draft_id: number) => void;
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
+  draftCount: number;
 };
 const key = "drafts";
 
 const GlobalContext = createContext<IContext | null>(null);
 const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<Partial<IEditor>[] | null>([]);
+  const [draftCount, setDraftCount] = useState<number>(0);
 
   const [editor, setEditor] = useState<Partial<IEditor>>({
     title: "",
@@ -38,7 +40,10 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     const drafts = localStorage.getItem(key);
     if (drafts) {
       let parse = JSON.parse(drafts);
-      if (Array.isArray(parse)) setDrafts(parse);
+      if (Array.isArray(parse)) {
+        setDrafts(parse);
+        setDraftCount(parse.length);
+      }
     }
   };
 
@@ -49,6 +54,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     if (index !== -1) {
       parse.splice(index, 1);
       localStorage.setItem(key, JSON.stringify(parse));
+      setDrafts(parse);
     }
   };
 
@@ -91,6 +97,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     deleteDraft,
     expandDraft,
     loadDrafts,
+    draftCount,
   };
 
   return (
