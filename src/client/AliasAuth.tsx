@@ -31,7 +31,6 @@ const AliasAuth = () => {
   const getOTPExpiry = async () => {
     const f = await fetch("/api/otp/expiry");
     const response: IApiResponse<IOtpExpiry> = await f.json();
-    console.log(response);
     if (response.status === "ok") {
       setOtpExpiry(response.data!);
     } else {

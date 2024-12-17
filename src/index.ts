@@ -271,14 +271,6 @@ ApiRoute.post("/alias", async (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Alias created!" });
 });
 
-ApiRoute.get("/alias/:alias_id", async (req: Request, res: Response) => {
-  // const aliasId = req.params.alias_id;
-  // const data = await Alias.findByPk(aliasId, {
-  //   attributes: ["id", "name", "secret"],
-  // });
-  // res.json({ status: "ok", data: {} });
-});
-
 ApiRoute.get("/note", async (req: Request, res: Response) => {
   const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
@@ -337,8 +329,6 @@ ApiRoute.get(
   async (req: Request, res: Response) => {
     const aliasId = req.params.alias_id;
     const authAlias = await isAuthorizedAlias(req, aliasId);
-
-    console.log(authAlias);
 
     let clause: any = { alias_id: aliasId };
     if (!authAlias) {

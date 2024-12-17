@@ -12,6 +12,11 @@ const ViewNote: FC<IViewNote> = () => {
   useEffect(() => {
     params.note_slug &&
       fetchNote(params.note_slug).then((res) => {
+        if (res.status === "err") {
+          alert(res.message);
+          return;
+        }
+
         res.data && setNote(res.data);
       });
   }, []);
