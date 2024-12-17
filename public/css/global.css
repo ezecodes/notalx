@@ -16,6 +16,9 @@
   outline: none;
   border: none;
 }
+.add_bg {
+  background-color: var(--bg_color) !important;
+}
 body {
   /* background: var(--main-background); */
   background-color: var(--bg_color) !important;
@@ -34,14 +37,15 @@ body {
   white-space: nowrap;
   border: 1px solid #6f6f6f;
 }
-.input {
+.input,
+.add_border {
   border: 1px solid #555555;
 }
 .label_input {
   @apply flex flex-col items-start w-[300px];
 }
 .label_input > label {
-  @apply text-gray-200;
+  @apply text-gray-200 text-sm;
 }
 .modal {
   position: fixed;
@@ -53,4 +57,7 @@ body {
   background: #232323d4;
   backdrop-filter: blur(0.5px);
   overflow-y: scroll;
+}
+.draft_actions {
+  @apply rounded-full add_border flex items-center justify-center add_bg w-[25px] h-[25px];
 }

@@ -1,34 +1,24 @@
-import { FC, useState } from "react";
+import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { ImCancelCircle, ImInfo } from "react-icons/im";
-import { IoEyeOffOutline, IoPencilOutline } from "react-icons/io5";
+import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
 import { Link, useNavigate } from "react-router-dom";
-import { IAlias } from "../type";
+import { IAlias, IEditor } from "../type";
 import { CiLock } from "react-icons/ci";
+import { AiOutlineDelete } from "react-icons/ai";
+import { FaExpand } from "react-icons/fa";
+import { GlobalContext } from "./hook";
+import { formatRelativeTime } from "./utils";
 
-interface IEditor {
-  title: string;
-  content: string;
-  hidden: boolean;
-  willSelfDestroy: boolean;
-  selfDestoryTime: string;
-  isSaving: boolean;
-}
 const Editor = () => {
-  const [editor, setEditor] = useState<IEditor>({
-    title: "",
-    content: "",
-    hidden: false,
-    willSelfDestroy: false,
-    selfDestoryTime: "",
-    isSaving: false,
-  });
   const navigate = useNavigate();
+  const { editor, setEditor, saveToStore } = useContext(GlobalContext)!;
 
-  const updateEditor = (values: Partial<IEditor>) => {
+  const handleUpdate = (values: Partial<IEditor>) => {
     setEditor((prev) => ({ ...prev, ...values }));
+    saveToStore({ ...editor, ...values });
   };
 
   const handleNoteUpload = async ({
@@ -62,7 +52,7 @@ const Editor = () => {
 
   return (
     <>
-      <div className="modal animate__animated animate__slideInDown">
+      <div className="modal animate__animated animate__slideInDown relative">
         <form className="min-w-[300px] relative gap-y-3 flex flex-col shadow-md px-3 my-5 py-3">
           <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
 
@@ -80,16 +70,14 @@ const Editor = () => {
                 icon={<IoPencilOutline />}
                 placeholder="Enter note title"
                 type="text"
-                value={editor.title}
-                onChange={(value) => updateEditor({ title: value })}
+                value={editor.title!}
+                onChange={(value) => handleUpdate({ title: value })}
               />
             </div>
             <div>
               <NoteEditor
                 value={editor.content ?? ""}
-                onChange={(value) =>
-                  setEditor((prev) => ({ ...prev, content: value }))
-                }
+                onChange={(value) => handleUpdate({ content: value })}
               />
             </div>
           </fieldset>
@@ -99,10 +87,7 @@ const Editor = () => {
                 editor.willSelfDestroy ? "text-green-400" : "gray-300"
               } `}
               onClick={() =>
-                setEditor((prev) => ({
-                  ...prev,
-                  willSelfDestroy: !prev.willSelfDestroy,
-                }))
+                handleUpdate({ willSelfDestroy: !editor.willSelfDestroy })
               }
               type={"button"}
             >
@@ -113,12 +98,7 @@ const Editor = () => {
               className={`primary_button ${
                 editor.hidden ? "text-green-400" : "gray-300"
               } `}
-              onClick={() =>
-                setEditor((prev) => ({
-                  ...prev,
-                  hidden: !prev.hidden,
-                }))
-              }
+              onClick={() => handleUpdate({ hidden: !editor.hidden })}
               type={"button"}
             >
               Mark as hidden <CiLock />
@@ -132,12 +112,13 @@ const Editor = () => {
         </form>
       </div>
       <SaveModal
-        isOpen={editor.isSaving}
+        isOpen={editor.isSaving!}
         handleNoteUpload={handleNoteUpload}
-        isHidden={editor.hidden}
-        willSelfDestroy={editor.willSelfDestroy}
+        isHidden={editor.hidden!}
+        willSelfDestroy={editor.willSelfDestroy!}
         onClose={() => setEditor((prev) => ({ ...prev, isSaving: false }))}
       />{" "}
+      <Drafts />
     </>
   );
 };
@@ -309,5 +290,79 @@ const SaveModal: FC<ISaveModal> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+const Drafts = () => {
+  const { drafts, deleteDraft, loadDrafts, expandDraft } =
+    useContext(GlobalContext)!;
+  const hasCalled = useRef(false);
+
+  if (!drafts || drafts?.length === 0) return <></>;
+
+  useEffect(() => {
+    if (!hasCalled.current) {
+      loadDrafts();
+
+      hasCalled.current = true;
+    }
+  }, []);
+
+  return (
+    <aside className="z-[90] add_bg flex flex-col gap-y-4 absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[400px]  shadow-md add_border">
+      <div className="flex justify-between items-center">
+        <h3 className="font-[500]">Unsaved drafts</h3>
+        <Button text="Dismis" onClick={() => {}} />
+      </div>
+      <div className="text-gray-300 text-sm space-y-2">
+        <p>
+          You have an existing unsaved draft. This draft will remain saved for
+          you to revisit later unless you choose to delete it manually.
+        </p>
+
+        <div className="gap-y-2 my-3 flex flex-col">
+          {drafts!.map((i) => {
+            return (
+              <div
+                key={i.draft_id}
+                className="add_border h-[100px] flex flex-col gap-y-1 px-3 py-2"
+              >
+                <span className="text-white">{i.title!}</span>
+                <span
+                  className="h-[60%] hover:bg-[#292929] duration-200 cursor-pointer"
+                  style={{
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {i.content!}
+                </span>
+                <div className="flex gap-x-2 items-center justify-end   mt-3">
+                  <span> {formatRelativeTime(i.createdAt!)} </span>
+
+                  <button
+                    className="draft_actions"
+                    onClick={() => expandDraft(i.draft_id!)}
+                  >
+                    <AiOutlineDelete />
+                  </button>
+                  <button
+                    className="draft_actions"
+                    onClick={() => deleteDraft(i.draft_id!)}
+                  >
+                    <FaExpand />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p>
+          This ensures your progress is safe while giving you full control over
+          managing your notes.
+        </p>
+      </div>
+    </aside>
   );
 };

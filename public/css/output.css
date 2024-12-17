@@ -570,13 +570,30 @@ video {
   right: 10px;
 }
 
+.right-\[50px\] {
+  right: 50px;
+}
+
+.top-\[50px\] {
+  top: 50px;
+}
+
 .z-10 {
   z-index: 10;
+}
+
+.z-\[90\] {
+  z-index: 90;
 }
 
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+
+.my-3 {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .my-5 {
@@ -596,6 +613,10 @@ video {
   margin-top: 0.25rem;
 }
 
+.mt-3 {
+  margin-top: 0.75rem;
+}
+
 .mt-7 {
   margin-top: 1.75rem;
 }
@@ -608,12 +629,24 @@ video {
   display: none;
 }
 
+.h-\[100px\] {
+  height: 100px;
+}
+
 .h-\[200px\] {
   height: 200px;
 }
 
+.h-\[25px\] {
+  height: 25px;
+}
+
 .h-\[30px\] {
   height: 30px;
+}
+
+.h-\[60\%\] {
+  height: 60%;
 }
 
 .h-\[65\%\] {
@@ -624,8 +657,16 @@ video {
   width: 130px;
 }
 
+.w-\[25px\] {
+  width: 25px;
+}
+
 .w-\[300px\] {
   width: 300px;
+}
+
+.w-\[400px\] {
+  width: 400px;
 }
 
 .w-full {
@@ -693,6 +734,11 @@ video {
        column-gap: 0.25rem;
 }
 
+.gap-x-2 {
+  -moz-column-gap: 0.5rem;
+       column-gap: 0.5rem;
+}
+
 .gap-x-3 {
   -moz-column-gap: 0.75rem;
        column-gap: 0.75rem;
@@ -708,12 +754,20 @@ video {
        column-gap: 1.25rem;
 }
 
+.gap-y-1 {
+  row-gap: 0.25rem;
+}
+
 .gap-y-2 {
   row-gap: 0.5rem;
 }
 
 .gap-y-3 {
   row-gap: 0.75rem;
+}
+
+.gap-y-4 {
+  row-gap: 1rem;
 }
 
 .gap-y-5 {
@@ -837,6 +891,10 @@ video {
   line-height: 1.25rem;
 }
 
+.font-\[400\] {
+  font-weight: 400;
+}
+
 .font-\[500\] {
   font-weight: 500;
 }
@@ -870,6 +928,11 @@ video {
   color: rgb(74 222 128 / var(--tw-text-opacity, 1));
 }
 
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
 .underline {
   text-decoration-line: underline;
 }
@@ -896,6 +959,10 @@ video {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+.duration-200 {
+  transition-duration: 200ms;
+}
+
 .duration-300 {
   transition-duration: 300ms;
 }
@@ -916,6 +983,10 @@ video {
   box-sizing: border-box;
   outline: none;
   border: none;
+}
+
+.add_bg {
+  background-color: var(--bg_color) !important;
 }
 
 body {
@@ -955,7 +1026,8 @@ body {
   border: 1px solid #6f6f6f;
 }
 
-.input {
+.input,
+.add_border {
   border: 1px solid #555555;
 }
 
@@ -967,6 +1039,8 @@ body {
 }
 
 .label_input > label {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity, 1));
 }
@@ -982,6 +1056,17 @@ body {
   -webkit-backdrop-filter: blur(0.5px);
           backdrop-filter: blur(0.5px);
   overflow-y: scroll;
+}
+
+.draft_actions {
+  display: flex;
+  height: 25px;
+  width: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--bg_color);
+  border: 1px solid #555555;
 }
 
 .hover\:bg-\[\#292929\]:hover {

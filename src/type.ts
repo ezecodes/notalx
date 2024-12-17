@@ -36,3 +36,13 @@ export interface IPaginatedResponse<T>
     rows: T[];
     pagination: IPagination;
   }> {}
+export interface IEditor {
+  title: string;
+  content: string;
+  hidden: boolean;
+  willSelfDestroy: boolean;
+  selfDestoryTime: string;
+  isSaving: boolean;
+  draft_id: number | null;
+  createdAt: Date;
+}
