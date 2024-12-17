@@ -68,7 +68,7 @@ const Home = () => {
           {selectedAlias && (
             <TbPasswordUser
               onClick={() => navigate("/auth-with-alias")}
-              className="text-[30px]"
+              className="text-[40px] cursor-pointer"
             />
           )}
         </div>

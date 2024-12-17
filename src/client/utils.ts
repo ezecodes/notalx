@@ -1,5 +1,9 @@
 import { IAlias, IApiResponse, INote, IPaginatedResponse } from "../type";
-
+export function isSessionExpired(expiry: string): boolean {
+  const nowUTC = new Date();
+  const expiryDate = new Date(expiry);
+  return nowUTC > expiryDate;
+}
 export const parseUrl = (url: any) => {
   // Create a URL object
   const parsedUrl = new URL(url);

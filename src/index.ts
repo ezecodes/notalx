@@ -18,7 +18,6 @@ import { validate } from "uuid";
 import { createTransport } from "nodemailer";
 
 import dotenv from "dotenv";
-import Session from "./models/Session";
 import cookieParser from "cookie-parser";
 import memcachedService from "./memcache";
 dotenv.config();
@@ -48,6 +47,12 @@ declare global {
     }
   }
 }
+
+const CacheKeys = {
+  opt: (email: string) => `otp:${email}`,
+  session: (sessionId: string) => `session:${sessionId}`,
+};
+
 const validateAliasId = async (
   req: Request,
   res: Response,
@@ -70,22 +75,40 @@ const validateAliasId = async (
   return;
 };
 
-const isAuthenticated = async (req: Request) => {
-  const sessionId = req.signedCookies[sessionKey];
-  const aliasId = req.params.alias_id;
-  if (!sessionId) {
-    return false;
-  }
+interface IUserSession {
+  expiry: string;
+  ip_address: string;
+  user_agent: string;
+  alias_id: string;
+}
 
-  const session = await Session.findByPk(sessionId);
+const getSession = async (req: Request) => {
+  const sessionId = req.signedCookies[sessionKey];
+  const session: IUserSession | null = await memcachedService.get(
+    CacheKeys.session(sessionId)
+  );
+
+  return session;
+};
+export function isSessionExpired(expiry: string): boolean {
+  const nowUTC = new Date();
+  const expiryDate = new Date(expiry);
+  return nowUTC > expiryDate;
+}
+function setExpiryInUTC(hoursToAdd: number): string {
+  const now = new Date();
+  now.setUTCHours(now.getUTCHours() + hoursToAdd);
+  return now.toISOString();
+}
+const isAuthorizedAlias = async (req: Request, aliasId: string) => {
+  const session = await getSession(req);
   if (!session) {
     return false;
   }
-  if (session.dataValues.expiry < new Date()) {
+  if (session.alias_id !== aliasId) {
     return false;
   }
-
-  if (session.dataValues.alias_id !== aliasId) {
+  if (isSessionExpired(session.expiry)) {
     return false;
   }
 
@@ -103,24 +126,35 @@ ApiRoute.get("/alias", async (req: Request, res: Response) => {
   const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
   res.json({ status: "ok", data: { rows: all } });
 });
+
+const errMsg = "Email and alias combination is not valid";
 ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
   const { email, alias_id } = req.body;
+
+  if (!alias_id) {
+    res.status(400).json({
+      status: "err",
+      message: errMsg,
+    });
+    return;
+  }
+
   const user = await Alias.findOne({
     where: { email, id: alias_id },
     attributes: ["id", "name"],
   });
 
   if (!user) {
-    res.json({
+    res.status(400).json({
       status: "err",
-      message: "Email and alias combination is not valid",
+      message: errMsg,
     });
     return;
   }
 
   const code = randomBytes(2).toString("hex");
 
-  memcachedService.set(`opt:${email}`, hashSync(code, 10), 3600);
+  memcachedService.set(CacheKeys.opt(email), hashSync(code, 10), 3600);
 
   sendEmail({
     html: `Your code ${code}`,
@@ -143,7 +177,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     return;
   }
 
-  const otp = await memcachedService.get(`otp:${email}`);
+  const otp = await memcachedService.get(CacheKeys.opt(email));
 
   if (!otp) {
     res.status(400).json({ status: "err", message: "Invalid Otp code" });
@@ -155,8 +189,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     res.status(400).json({ status: "err", message: "Invalid Otp code" });
     return;
   }
-  const expiry = new Date();
-  expiry.setHours(expiry.getHours() + 1);
+  const expiry = setExpiryInUTC(1);
 
   const sessionObj = {
     expiry,
@@ -167,7 +200,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
   };
   const id = randomBytes(10).toString("hex");
 
-  memcachedService.set(id, sessionObj, 3600);
+  memcachedService.set(CacheKeys.session(id), sessionObj, 3600);
 
   const cookieOpts: CookieOptions = {
     httpOnly: true,
@@ -179,8 +212,33 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
 
   res.cookie(sessionKey, id, cookieOpts);
 
-  res.json({ status: "ok", message: "OTP sent to email" });
+  res.json({ status: "ok", message: "OTP verified" });
 });
+
+ApiRoute.delete("/otp/invalidate", async (req: Request, res: Response) => {
+  const sessionId = req.signedCookies[sessionKey];
+
+  memcachedService.delete(CacheKeys.session(sessionId));
+  res.json({ status: "ok", message: "OTP invalidated" });
+});
+ApiRoute.get("/otp/expiry", async (req: Request, res: Response) => {
+  const session = await getSession(req);
+  if (!session) {
+    res.status(400).json({ status: "err", message: "Invalid session" });
+    return;
+  }
+  const find = await Alias.findByPk(session.alias_id, { attributes: ["name"] });
+  res.json({
+    status: "ok",
+    message: "OPT expiration retrieved",
+    data: {
+      expiry: session.expiry,
+      alias_id: session.alias_id,
+      name: find?.dataValues.name,
+    },
+  });
+});
+
 ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
   const name = req.query.name;
   const data = await Alias.findAll({
@@ -225,10 +283,10 @@ ApiRoute.get("/note", async (req: Request, res: Response) => {
   const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
 });
-
+const authErrMsg = "Action not permitted";
 ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const slug = req.params.note_slug;
-  const isAuth = isAuthenticated(req);
+
   const authHeader = req.headers.authorization;
   const secret = authHeader?.split(" ")[1];
 
@@ -247,18 +305,17 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
     res.status(400).json({ status: "err", message: "Note not found" });
     return;
   }
+  const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
+
   if (find?.dataValues.is_hidden) {
-    if (authHeader && secret) {
-      const valid = compareSync(secret, find?.dataValues.secret);
-      if (!valid) {
-        res
-          .status(400)
-          .json({ status: "err", message: "Action not permitted" });
-        return;
-      }
+    if (!authAlias && !secret) {
+      res.status(400).json({ status: "err", message: authErrMsg });
+      return;
     }
-    if (!isAuth) {
-      res.status(400).json({ status: "err", message: "Action not permitted" });
+    const valid = compareSync(secret!, find?.dataValues.secret);
+
+    if (!authAlias && !valid) {
+      res.status(400).json({ status: "err", message: authErrMsg });
       return;
     }
   }
@@ -279,10 +336,12 @@ ApiRoute.get(
   validateAliasId as any,
   async (req: Request, res: Response) => {
     const aliasId = req.params.alias_id;
-    const isAuth = isAuthenticated(req);
+    const authAlias = await isAuthorizedAlias(req, aliasId);
+
+    console.log(authAlias);
 
     let clause: any = { alias_id: aliasId };
-    if (!isAuth) {
+    if (!authAlias) {
       clause = {
         ...clause,
         [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any],
@@ -300,7 +359,7 @@ ApiRoute.get(
 
     const all = await Note.findAll({
       where: clause,
-      attributes: ["title", "content", "createdAt", "slug"],
+      attributes: ["is_hidden", "title", "content", "createdAt", "slug"],
     });
     res.json({ status: "ok", data: { rows: all ?? [] } });
   }
@@ -420,6 +479,7 @@ const validTimeRegex =
   /^\d+\s*(second|seconds|minute|minutes|day|days|year|years)$/i;
 
 export function validateSelfDestroyTime(input: string): boolean {
+  if (input.split(" ").length !== 2) return false;
   return validTimeRegex.test(input);
 }
 export function parseSelfDestroyTimeToDate(input: string): Date | null {
