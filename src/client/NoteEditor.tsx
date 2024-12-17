@@ -10,12 +10,10 @@ import { IoIosTimer } from "react-icons/io";
 import { FaRegEyeSlash } from "react-icons/fa";
 import ReactQuill from "react-quill";
 import { _Alias } from "../type";
+import { useNavigate } from "react-router-dom";
 
-interface IEditor {
-  onClose: () => void;
-  isOpen: boolean;
-}
-const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
+interface IEditor {}
+const Editor: FC<IEditor> = () => {
   const [editor, setEditor] = useState({
     title: "",
     content: "",
@@ -23,6 +21,7 @@ const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
     selfDestruct: false,
     isSaving: false,
   });
+  const navigate = useNavigate();
 
   const handleNoteUpload = async ({
     alias_id,
@@ -47,13 +46,7 @@ const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
     });
     const response = await f.json();
     alert(response.message);
-
-    if (response.status === "ok") {
-      onClose();
-    }
   };
-
-  if (!isOpen) return <></>;
 
   return (
     <>
@@ -62,7 +55,11 @@ const Editor: FC<IEditor> = ({ onClose, isOpen }) => {
           <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
 
           <div className="absolute right-0">
-            <Button text="Close" icon={<ImCancelCircle />} onClick={onClose} />
+            <Button
+              text="Close"
+              icon={<ImCancelCircle />}
+              onClick={() => navigate("/")}
+            />
           </div>
 
           <fieldset className="flex flex-col gap-y-3">

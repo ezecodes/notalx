@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, Router } from "express";
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
@@ -28,12 +28,15 @@ server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
 server.use(morgan("tiny"));
 
-server.get("/alias", async (req: Request, res: Response) => {
+const ApiRoute = Router();
+server.use("/api", ApiRoute);
+
+ApiRoute.get("/alias", async (req: Request, res: Response) => {
   const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
   res.json({ status: "ok", data: { rows: all } });
 });
 
-server.get("/alias/search", async (req: Request, res: Response) => {
+ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
   const name = req.query.name;
   const data = await Alias.findAll({
     where: {
@@ -45,7 +48,7 @@ server.get("/alias/search", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: data } });
 });
 
-server.post("/alias", async (req: Request, res: Response) => {
+ApiRoute.post("/alias", async (req: Request, res: Response) => {
   const body: ICreateAlias = req.body;
   const { name, email, secret } = body;
 
@@ -61,7 +64,7 @@ server.post("/alias", async (req: Request, res: Response) => {
   res.json({ status: "ok" });
 });
 
-server.get("/alias/:alias_id", async (req: Request, res: Response) => {
+ApiRoute.get("/alias/:alias_id", async (req: Request, res: Response) => {
   const aliasId = req.params.alias_id;
 
   const all = await Alias.findByPk(aliasId, {
@@ -70,12 +73,12 @@ server.get("/alias/:alias_id", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: all } });
 });
 
-server.get("/note", async (req: Request, res: Response) => {
+ApiRoute.get("/note", async (req: Request, res: Response) => {
   const all = await Note.findAll({ where: { hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
 });
 
-server.get("/note/:note_id", async (req: Request, res: Response) => {
+ApiRoute.get("/note/:note_id", async (req: Request, res: Response) => {
   const noteId = req.params.note_id;
 
   const data = await Note.findByPk(noteId, {
@@ -83,7 +86,7 @@ server.get("/note/:note_id", async (req: Request, res: Response) => {
   });
   res.json({ status: "ok", data });
 });
-server.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
+ApiRoute.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
   const aliasId = req.params.alias_id;
 
   const all = await Note.findAll({
@@ -94,7 +97,7 @@ server.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
   });
   res.json({ status: "ok", data: { rows: all ?? [] } });
 });
-server.post("/note", async (req: Request, res: Response) => {
+ApiRoute.post("/note", async (req: Request, res: Response) => {
   const { alias_id, content, hidden, secret, title }: ICreateNote = req.body;
   console.log(req.body);
 
@@ -123,6 +126,9 @@ server.get("/", (req, res) => {
     title: "Hushboard", // Dynamic title for the page
     publicPath: "/public", // Path to the public directory
   });
+});
+server.get("/edit", (req, res) => {
+  res.redirect(`/?rroot=${encodeURIComponent(req.originalUrl)}`);
 });
 
 server.listen(4000, () => {

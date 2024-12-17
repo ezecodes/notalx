@@ -2,7 +2,7 @@ const path = require("path");
 
 module.exports = {
   entry: {
-    index: "./src/client/index.tsx",
+    main: "./src/client/main.tsx",
   },
   output: {
     path: path.resolve(__dirname, "public/js"), // Place the bundled file in a public folder

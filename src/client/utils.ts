@@ -1,3 +1,4 @@
+import { URL } from "url";
 import {
   _Alias,
   IAlias,
@@ -6,6 +7,20 @@ import {
   IPaginatedResponse,
 } from "../type";
 
+export const parseUrl = (url: Location) => {
+  // Create a URL object
+  const parsedUrl = new URL(url);
+
+  // Extract query parameters using URLSearchParams
+  const queryParams = new URLSearchParams(parsedUrl.search);
+
+  const requestQuery: Record<string, string> = {};
+  queryParams.forEach((value, key) => {
+    requestQuery[key] = value;
+  });
+
+  return { parsedUrl, requestQuery };
+};
 export const fetchAllAlias = async () => {
   const f = await fetch("/alias");
   return (await f.json()) as IPaginatedResponse<Omit<IAlias, "secret">>;

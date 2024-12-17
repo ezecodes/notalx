@@ -1,7 +1,3 @@
-import "react-quill/dist/quill.snow.css";
-import "choices.js/public/assets/styles/choices.min.css";
-import "react-toastify/dist/ReactToastify.css";
-
 import { FC, useEffect, useState } from "react";
 import {
   IoCreateOutline,
@@ -13,14 +9,23 @@ import { ImCancelCircle, ImInfo } from "react-icons/im";
 import { _Alias, INote } from "../type";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
-import { fetchAliasNotes, formatRelativeTime } from "./utils";
+import { fetchAliasNotes, formatRelativeTime, parseUrl } from "./utils";
 
-const Page = () => {
+const Home = () => {
   const navigate = useNavigate();
 
   const [isCreateAliasModalVisible, setCreateAliasModalVisibility] =
     useState(false);
-
+  useEffect(() => {
+    try {
+      const url = parseUrl(document.location);
+      if (url.requestQuery.rroot) {
+        navigate(decodeURIComponent(url.requestQuery.rroot));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
   const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
   const [selectedNote, setSelectedNote] = useState<INote | null>(null);
   const [selectedNotes, setSelectedNotes] = useState<{
@@ -48,7 +53,9 @@ const Page = () => {
           <Button
             text="Create note"
             icon={<IoCreateOutline />}
-            onClick={() => navigate("/edit")}
+            onClick={() => {
+              navigate("/edit");
+            }}
           />
           <form className="w-full flex justify-center">
             <div className="flex items-center gap-x-3">
@@ -75,6 +82,7 @@ const Page = () => {
                 <div
                   className="shadow-md py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
                   style={{ border: "1px solid #555555" }}
+                  key={i.id}
                 >
                   <div className="flex justify-between px-4">
                     <span className="font-[500] text-[1.1rem]">{i.title}</span>
@@ -105,7 +113,7 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default Home;
 
 interface ICreateAlias {
   onClose: () => void;
@@ -192,7 +200,9 @@ const CreateAlias: FC<ICreateAlias> = ({ onClose, isOpen }) => {
           </div>
         </div>
 
-        <Button text="Create" onClick={send} />
+        <div className="flex w-full justify-end">
+          <Button text="Create" onClick={send} />
+        </div>
       </div>
     </div>
   );
