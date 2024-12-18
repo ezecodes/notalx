@@ -1,42 +1,30 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { Button, InputWithIcon } from "./component";
+import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { useNavigate } from "react-router-dom";
 import { GlobalContext } from "./hook";
 import { IoArrowBackOutline } from "react-icons/io5";
-import { IApiResponse } from "../type";
-import { isSessionExpired } from "./utils";
-
-interface IOtpExpiry {
-  expiry: string;
-  alias_id: string;
-  name: string;
-}
+import { _IAlias, IApiResponse, IOtpExpiry } from "../type";
+import { encodeToBase62, getOTPExpiry, isSessionExpired } from "./utils";
 
 const AliasAuth = () => {
   const [info, setInfo] = useState({ otp: "", email: "" });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
 
-  const { selectedAlias } = useContext(GlobalContext)!;
+  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
   const hasCalled = useRef(false);
 
   useEffect(() => {
     if (!hasCalled.current) {
-      getOTPExpiry();
+      getOTPExpiry().then((res) => {
+        if (res && res !== undefined) {
+          setOtpExpiry(res);
+        }
+      });
 
       hasCalled.current = true;
     }
   }, []);
-
-  const getOTPExpiry = async () => {
-    const f = await fetch("/api/otp/expiry");
-    const response: IApiResponse<IOtpExpiry> = await f.json();
-    if (response.status === "ok") {
-      setOtpExpiry(response.data!);
-    } else {
-      setOtpExpiry(null);
-    }
-  };
 
   const navigate = useNavigate();
 
@@ -62,7 +50,7 @@ const AliasAuth = () => {
     const response = await f.json();
     alert(response.message);
     if (response.status === "ok") {
-      location.href = "/?alias=" + selectedAlias?.name;
+      location.href = "/?alias=" + encodeToBase62(selectedAlias!.id!);
     }
   };
   const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
@@ -141,18 +129,15 @@ const AliasAuth = () => {
 
             <div className="flex flex-col gap-y-3">
               <div className="label_input">
-                <label>Selected Alias</label>
-                <InputWithIcon
-                  placeholder=""
-                  type="text"
-                  value={selectedAlias?.name ? selectedAlias?.name : "N/A"}
-                  onChange={(value) => {}}
-                  disabled={true}
+                <label>Select alias</label>
+                <SearchDropdown
+                  onClick={(value) => setSelectedAlias(value)}
+                  selected={selectedAlias}
                 />
               </div>
               <div className="flex items-end gap-x-3">
                 <div className="label_input">
-                  <label>Enter you email</label>
+                  <label>Enter your email</label>
                   <InputWithIcon
                     placeholder=""
                     type="text"
@@ -166,7 +151,7 @@ const AliasAuth = () => {
               </div>
 
               <div className="label_input">
-                <label>OPT</label>
+                <label>OTP</label>
                 <InputWithIcon
                   placeholder=""
                   type="text"

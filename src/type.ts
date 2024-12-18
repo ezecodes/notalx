@@ -66,3 +66,8 @@ export interface IEditor {
   draft_id: number | null;
   createdAt: Date;
 }
+export interface IOtpExpiry {
+  expiry: string;
+  alias_id: string;
+  name: string;
+}

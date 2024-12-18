@@ -5,7 +5,7 @@ import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
 import { Link, useNavigate } from "react-router-dom";
-import { IAlias, IEditor } from "../type";
+import { _IAlias, IAlias, IEditor } from "../type";
 import { CiLock } from "react-icons/ci";
 import { AiOutlineDelete } from "react-icons/ai";
 import { FaExpand } from "react-icons/fa";
@@ -214,12 +214,10 @@ const SaveModal: FC<ISaveModal> = ({
   willSelfDestroy,
 }) => {
   const [info, setInfo] = useState({ secret: "", selfDestroyTime: "" });
-  const [selectedAlias, setSelectedAlias] = useState<Partial<IAlias> | null>(
-    null
-  );
+  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
   const [secretInputType, setSecretInputType] = useState("text");
 
-  const handleSelection = (option: Partial<IAlias> | null) => {
+  const handleSelection = (option: _IAlias | null) => {
     setSelectedAlias(option);
   };
 

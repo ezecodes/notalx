@@ -2,9 +2,9 @@ import baseX from "base-x";
 
 import {
   _IAlias,
-  IAlias,
   IApiResponse,
   INote,
+  IOtpExpiry,
   IPaginatedResponse,
 } from "../type";
 
@@ -29,7 +29,7 @@ export const parseUrl = (url: any) => {
 };
 export const fetchAllAlias = async () => {
   const f = await fetch("/api/alias");
-  return (await f.json()) as IPaginatedResponse<Omit<IAlias, "secret">>;
+  return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
 
 export const fetchAliasNotes = async (id: string) => {
@@ -38,7 +38,7 @@ export const fetchAliasNotes = async (id: string) => {
 };
 export const searchAliasByName = async (name: string) => {
   const f = await fetch("/api/alias/search?name=" + name);
-  return (await f.json()) as IPaginatedResponse<Partial<IAlias>>;
+  return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
 export const fetchNote = async (slug: string) => {
   const f = await fetch("/api/note/" + slug);
@@ -46,7 +46,17 @@ export const fetchNote = async (slug: string) => {
 };
 export const fetchAlias = async (id: string) => {
   const f = await fetch("/api/alias/" + id);
-  return (await f.json()) as IApiResponse<Omit<Partial<IAlias>, "secret">>;
+  return (await f.json()) as IApiResponse<_IAlias>;
+};
+
+export const getOTPExpiry = async () => {
+  const f = await fetch("/api/otp/expiry");
+  const response: IApiResponse<IOtpExpiry> = await f.json();
+  if (response.status === "ok") {
+    return response.data;
+  } else {
+    return null;
+  }
 };
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();

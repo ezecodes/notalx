@@ -18,8 +18,8 @@ type IContext = {
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
   draftCount: number;
-  selectedAlias: Partial<_IAlias> | null;
-  setSelectedAlias: Dispatch<React.SetStateAction<Partial<_IAlias> | null>>;
+  selectedAlias: _IAlias | null;
+  setSelectedAlias: Dispatch<React.SetStateAction<_IAlias | null>>;
 };
 const key = "drafts";
 
@@ -37,9 +37,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     draft_id: null,
   });
 
-  const [selectedAlias, setSelectedAlias] = useState<Partial<_IAlias> | null>(
-    null
-  );
+  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
   const loadDrafts = () => {
     const drafts = localStorage.getItem(key);
@@ -58,12 +56,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     const index = parse.findIndex((i) => (i.draft_id as number) === draft_id);
 
     if (index !== -1) {
-      const e = prompt("Are u sure? Enter title to confirm:");
-
-      if (e !== parse[index].title) {
-        alert("Aborted");
-        return;
-      }
       parse.splice(index, 1);
       localStorage.setItem(key, JSON.stringify(parse));
       setDrafts(parse);

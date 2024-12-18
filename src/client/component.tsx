@@ -67,8 +67,8 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
 };
 
 interface SearchDropdownProps {
-  onClick: (selected: Partial<_IAlias> | null) => void;
-  selected: Partial<_IAlias> | null;
+  onClick: (selected: _IAlias | null) => void;
+  selected: _IAlias | null;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -76,7 +76,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   selected,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [options, setOptions] = useState<Partial<_IAlias>[]>([]);
+  const [options, setOptions] = useState<_IAlias[]>([]);
   const [input, setInput] = useState<string>("");
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     });
   };
 
-  const handleOptionClick = (option: Partial<_IAlias>) => {
+  const handleOptionClick = (option: _IAlias) => {
     onClick(option);
     handleBlur();
   };
@@ -107,20 +107,20 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     <div className="relative  w-[300px] ">
       <div className="w-full px-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
-          <Link
-            to={"/?alias=" + encodeToBase62(selected.id!)}
-            className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center"
-          >
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+          <button className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">
+            <Link
+              to={"/?alias=" + encodeToBase62(selected.id!)}
+              style={{ textOverflow: "ellipsis", overflow: "hidden" }}
+            >
               {selected.name}
-            </span>
+            </Link>
             <ImCancelCircle
               className="text-sm"
               onClick={() => {
                 onClick(null);
               }}
             />
-          </Link>
+          </button>
         )}
         <input
           type="text"

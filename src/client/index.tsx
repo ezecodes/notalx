@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
-import { INote } from "../type";
+import { INote, IOtpExpiry } from "../type";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, SearchDropdown } from "./component";
 import {
@@ -8,15 +8,18 @@ import {
   encodeToBase62,
   fetchAliasNotes,
   formatRelativeTime,
+  getOTPExpiry,
   parseUrl,
 } from "./utils";
 import { GlobalContext } from "./hook";
 import { BsPersonCheck } from "react-icons/bs";
+import { isSessionExpired } from "./utils";
 
 const Home = () => {
   const navigate = useNavigate();
   const { selectedAlias, setSelectedAlias } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
+  const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
 
   const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
 
@@ -40,13 +43,18 @@ const Home = () => {
       if (alias) {
         fetchNotes(decodeFromBase62(alias));
       }
+      getOTPExpiry().then((res) => {
+        if (res && res !== undefined) {
+          setOtpExpiry(res);
+        }
+      });
     } catch (err) {
       console.error(err);
     }
   }, []);
 
   useEffect(() => {
-    // fetchNotes(selectedAlias?.id);
+    fetchNotes(selectedAlias?.id);
     selectedAlias && navigate("/?alias=" + encodeToBase62(selectedAlias.id!));
   }, [selectedAlias?.id]);
 
@@ -66,21 +74,28 @@ const Home = () => {
               navigate("/newnote");
             }}
           />
-          <form className="w-full flex justify-center">
+          <form className="w-full flex items-center gap-x-2 justify-center">
             <div className="flex items-center gap-x-3">
               <SearchDropdown
                 onClick={(value) => setSelectedAlias(value)}
                 selected={selectedAlias}
               />
             </div>
-          </form>
 
-          {selectedAlias && (
-            <BsPersonCheck
+            <div
               onClick={() => navigate("/auth-with-alias")}
-              className="text-[40px] cursor-pointer"
-            />
-          )}
+              className="flex cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2  hover:bg-[rgba(0,0,0,.1)] duration-300"
+            >
+              <BsPersonCheck
+                className={` ${
+                  otpExpiry && !isSessionExpired(otpExpiry.expiry)
+                    ? "text-green-400"
+                    : "text-white"
+                } text-[25px]   `}
+              />
+              <span className="subtext text-sm">{otpExpiry?.name}</span>
+            </div>
+          </form>
         </div>
       </header>
 
