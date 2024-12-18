@@ -54,13 +54,6 @@ const AliasAuth = () => {
     }
   };
   const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
-    const e = prompt("Are u sure? Enter alias to confirm:");
-
-    if (e !== otpExpiry?.name) {
-      alert("Aborted");
-      return;
-    }
-
     const f = await fetch("/api/otp/invalidate", {
       method: "delete",
     });

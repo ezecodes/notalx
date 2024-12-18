@@ -8,7 +8,7 @@ import express, {
 import path from "path";
 import Alias from "./models/Alias";
 import Note from "./models/Note";
-import { IAlias, IApiResponse, INote } from "./type";
+import { ErrorCodes, IAlias, INote } from "./type";
 import { connectDb } from "./sequelize";
 import { compareSync, hashSync } from "bcrypt";
 import morgan from "morgan";
@@ -24,7 +24,7 @@ dotenv.config();
 
 const server = express();
 const sessionKey = "s-tkn";
-const Brand = "Hush thoughts";
+const Brand = "NotalX";
 
 const mailConfig = {
   user: process.env.MAIL_USER,
@@ -33,88 +33,11 @@ const mailConfig = {
   port: process.env.MAIL_PORT,
 };
 
-declare module "express" {
-  interface Response {
-    json<DataType = any>(body: IApiResponse<DataType>): this;
-  }
-}
-declare global {
-  namespace Express {
-    export interface Request {
-      alias?: {
-        isCorrectSecret: boolean;
-      };
-    }
-  }
-}
-
 const CacheKeys = {
-  opt: (email: string) => `otp:${email}`,
+  otp: (email: string) => `otp:${email}`,
   session: (sessionId: string) => `session:${sessionId}`,
 };
 
-const validateAliasId = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const aliasId = req.params.alias_id;
-  if (!validate(aliasId)) {
-    return res
-      .status(400)
-      .json({ status: "err", message: "Alias ID is invalid" });
-  }
-  const find = await Alias.findByPk(aliasId, { attributes: ["id"] });
-  if (!find) {
-    return res
-      .status(400)
-      .json({ status: "err", message: "Alias ID is invalid" });
-  }
-
-  next();
-  return;
-};
-
-interface IUserSession {
-  expiry: string;
-  ip_address: string;
-  user_agent: string;
-  alias_id: string;
-}
-
-const getSession = async (req: Request) => {
-  const sessionId = req.signedCookies[sessionKey];
-  const session: IUserSession | null = await memcachedService.get(
-    CacheKeys.session(sessionId)
-  );
-
-  return session;
-};
-export function isSessionExpired(expiry: string): boolean {
-  const nowUTC = new Date();
-  const expiryDate = new Date(expiry);
-  return nowUTC > expiryDate;
-}
-function setExpiryInUTC(hoursToAdd: number): string {
-  const now = new Date();
-  now.setUTCHours(now.getUTCHours() + hoursToAdd);
-  return now.toISOString();
-}
-const isAuthorizedAlias = async (req: Request, aliasId: string) => {
-  const session = await getSession(req);
-  console.log(session, aliasId);
-  if (!session) {
-    return false;
-  }
-  if (session.alias_id !== aliasId) {
-    return false;
-  }
-  if (isSessionExpired(session.expiry)) {
-    return false;
-  }
-
-  return true;
-};
 server.use(cookieParser(process.env.COOKIE_SECRET));
 server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
@@ -155,7 +78,7 @@ ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
 
   const code = randomBytes(2).toString("hex");
 
-  memcachedService.set(CacheKeys.opt(email), hashSync(code, 10), 3600);
+  memcachedService.set(CacheKeys.otp(email), hashSync(code, 10), 3600);
 
   sendEmail({
     html: `Your code ${code}`,
@@ -178,7 +101,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
     return;
   }
 
-  const otp = await memcachedService.get(CacheKeys.opt(email));
+  const otp = await memcachedService.get(CacheKeys.otp(email));
 
   if (!otp) {
     res.status(400).json({ status: "err", message: "Invalid Otp code" });
@@ -220,10 +143,12 @@ ApiRoute.delete("/otp/invalidate", async (req: Request, res: Response) => {
   const sessionId = req.signedCookies[sessionKey];
 
   memcachedService.delete(CacheKeys.session(sessionId));
+  res.clearCookie(sessionKey);
   res.json({ status: "ok", message: "OTP invalidated" });
 });
 ApiRoute.get("/otp/expiry", async (req: Request, res: Response) => {
   const session = await getSession(req);
+  console.log(session);
   if (!session) {
     res.status(400).json({ status: "err", message: "Invalid session" });
     return;
@@ -231,7 +156,7 @@ ApiRoute.get("/otp/expiry", async (req: Request, res: Response) => {
   const find = await Alias.findByPk(session.alias_id, { attributes: ["name"] });
   res.json({
     status: "ok",
-    message: "OPT expiration retrieved",
+    message: "OTP expiration retrieved",
     data: {
       expiry: session.expiry,
       alias_id: session.alias_id,
@@ -254,7 +179,7 @@ ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
 
 ApiRoute.post("/alias", async (req: Request, res: Response) => {
   const body: Partial<IAlias> = req.body;
-  const { name, email } = body;
+  let { name, email } = body;
   if (!name || !email) {
     res.json({
       status: "err",
@@ -262,12 +187,28 @@ ApiRoute.post("/alias", async (req: Request, res: Response) => {
     });
     return;
   }
+  name = name.toLowerCase();
+
+  const valid = validateUsername(name);
+  if (!valid.isValid) {
+    res.json({
+      status: "err",
+      message: valid.error,
+      error_code: ErrorCodes.VALIDATION_ERROR,
+    });
+    return;
+  }
+
   const count = await Alias.count({ where: { name } });
   if (count > 0) {
     res.json({ status: "err", message: "Alias already exists" });
     return;
   }
-
+  const countEmail = await Alias.count({ where: { email } });
+  if (countEmail > 0) {
+    res.json({ status: "err", message: "Email already exists" });
+    return;
+  }
   Alias.create({ name, email: (email as string) ?? null });
   res.json({ status: "ok", message: "Alias created!" });
 });
@@ -276,11 +217,12 @@ ApiRoute.get("/note", async (req: Request, res: Response) => {
   const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
 });
+
 const authErrMsg = "Action not permitted";
 ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const slug = req.params.note_slug;
 
-  const authHeader = req.headers.authorization;
+  const authHeader = req.get("Authorization");
   const secret = authHeader?.split(" ")[1];
 
   const find = await Note.findOne({
@@ -305,14 +247,22 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
 
   if (find?.dataValues.is_hidden) {
     if (!authAlias && !secret) {
-      res.status(400).json({ status: "err", message: authErrMsg });
+      res.status(400).json({
+        status: "err",
+        message: authErrMsg,
+        error_code: ErrorCodes.UNAUTHORIZED,
+      });
       return;
     }
 
     if (secret && !authAlias) {
       const valid = compareSync(secret!, find?.dataValues.secret);
       if (!valid) {
-        res.status(400).json({ status: "err", message: authErrMsg });
+        res.status(400).json({
+          status: "err",
+          message: authErrMsg,
+          error_code: ErrorCodes.UNAUTHORIZED,
+        });
         return;
       }
     }
@@ -444,9 +394,7 @@ server.get("/", (req, res) => {
     publicPath: "/public", // Path to the public directory
   });
 });
-server.get("/edit", (req, res) => {
-  res.redirect(`/?r=${encodeURIComponent(req.originalUrl)}`);
-});
+
 server.use("/", (req, res) => {
   res.redirect(`/?r=${encodeURIComponent(req.originalUrl)}`);
 });
@@ -550,4 +498,128 @@ async function sendEmail(options: IEmailOptions) {
   } catch (err) {
     console.error(err);
   }
+}
+
+async function validateAliasId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const aliasId = req.params.alias_id;
+  if (!validate(aliasId)) {
+    return res
+      .status(400)
+      .json({ status: "err", message: "Alias ID is invalid" });
+  }
+  const find = await Alias.findByPk(aliasId, { attributes: ["id"] });
+  if (!find) {
+    return res
+      .status(400)
+      .json({ status: "err", message: "Alias ID is invalid" });
+  }
+
+  next();
+  return;
+}
+
+interface IUserSession {
+  expiry: string;
+  ip_address: string;
+  user_agent: string;
+  alias_id: string;
+}
+
+async function getSession(req: Request) {
+  const sessionId = req.signedCookies[sessionKey];
+  const session: IUserSession | null = await memcachedService.get(
+    CacheKeys.session(sessionId)
+  );
+
+  return session;
+}
+export function isSessionExpired(expiry: string): boolean {
+  const nowUTC = new Date();
+  const expiryDate = new Date(expiry);
+  return nowUTC > expiryDate;
+}
+function setExpiryInUTC(hoursToAdd: number): string {
+  const now = new Date();
+  now.setUTCHours(now.getUTCHours() + hoursToAdd);
+  return now.toISOString();
+}
+async function isAuthorizedAlias(req: Request, aliasId: string) {
+  const session = await getSession(req);
+  if (!session) {
+    return false;
+  }
+  if (session.alias_id !== aliasId) {
+    return false;
+  }
+  if (isSessionExpired(session.expiry)) {
+    return false;
+  }
+
+  return true;
+}
+function validateUsername(username: string): {
+  isValid: boolean;
+  error?: string;
+} {
+  const minLength = 3;
+  const maxLength = 20;
+
+  // Check length
+  if (username.length < minLength || username.length > maxLength) {
+    return {
+      isValid: false,
+      error: `Username must be between ${minLength} and ${maxLength} characters.`,
+    };
+  }
+
+  // Check for invalid characters
+  const validPattern = /^[a-zA-Z0-9_.]+$/;
+  if (!validPattern.test(username)) {
+    return {
+      isValid: false,
+      error:
+        "Alias can only contain letters, numbers, underscores, and periods.",
+    };
+  }
+
+  // Check for special characters at the start or end
+  const startsOrEndsWithSpecialChar = /^[_.]|[_.]$/;
+  if (startsOrEndsWithSpecialChar.test(username)) {
+    return {
+      isValid: false,
+      error: "Alias cannot start or end with an underscore or period.",
+    };
+  }
+
+  // Check for consecutive special characters
+  const consecutiveSpecialChars = /[_.]{2,}/;
+  if (consecutiveSpecialChars.test(username)) {
+    return {
+      isValid: false,
+      error: "Alias cannot contain consecutive underscores or periods.",
+    };
+  }
+
+  // Check for spaces
+  if (/\s/.test(username)) {
+    return {
+      isValid: false,
+      error: "Alias cannot contain spaces.",
+    };
+  }
+
+  // Optional: Check for restricted words (e.g., profanity)
+  const restrictedWords = ["admin", "root", "moderator", Brand.toLowerCase()];
+  if (restrictedWords.some((word) => username.toLowerCase().includes(word))) {
+    return {
+      isValid: false,
+      error: "Alias contains restricted words.",
+    };
+  }
+
+  return { isValid: true };
 }

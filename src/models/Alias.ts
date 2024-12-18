@@ -14,7 +14,7 @@ Alias.init(
       defaultValue: DataTypes.UUIDV4,
     },
     name: { type: DataTypes.STRING, unique: true, allowNull: false },
-    email: { type: DataTypes.STRING, allowNull: true },
+    email: { type: DataTypes.STRING, unique: true, allowNull: true },
   },
   { sequelize, modelName: "Alias" }
 );

@@ -49,7 +49,7 @@ export type IApiResponse<T> = {
   status: "ok" | "err";
   data?: T;
   message?: string;
-  errors?: { field: string; code: string; message?: string }[];
+  error_code?: ErrorCodes;
 };
 
 export interface IPaginatedResponse<T>
@@ -70,4 +70,26 @@ export interface IOtpExpiry {
   expiry: string;
   alias_id: string;
   name: string;
+}
+declare module "express" {
+  interface Response {
+    json<DataType = any>(body: IApiResponse<DataType>): this;
+  }
+}
+declare global {
+  namespace Express {
+    export interface Request {
+      alias?: {
+        isCorrectSecret: boolean;
+      };
+    }
+  }
+}
+export enum ErrorCodes {
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  CONFLICT = "CONFLICT",
 }

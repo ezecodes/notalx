@@ -1,6 +1,6 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import { ImCancelCircle } from "react-icons/im";
-import { INote } from "../type";
+import { ErrorCodes, INote } from "../type";
 import { Link, useParams } from "react-router-dom";
 import { fetchNote } from "./utils";
 
@@ -8,17 +8,27 @@ interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
   const params = useParams<{ note_slug: string }>();
   const [note, setNote] = useState<INote | null>(null);
+  const retries = useRef(0);
+
+  function handleNoteFetch(slug: string, secret?: string) {
+    if (retries.current === 2) return;
+    fetchNote(slug, secret as string).then((res) => {
+      retries.current = retries.current + 1;
+      if (res.status === "err") {
+        if (res.error_code === ErrorCodes.UNAUTHORIZED) {
+          const handler = prompt("Note is locked. Enter secret to proceed");
+          handleNoteFetch(slug, handler as string);
+        } else {
+          alert(res.message);
+        }
+      }
+
+      res.data && setNote(res.data);
+    });
+  }
 
   useEffect(() => {
-    params.note_slug &&
-      fetchNote(params.note_slug).then((res) => {
-        if (res.status === "err") {
-          alert(res.message);
-          return;
-        }
-
-        res.data && setNote(res.data);
-      });
+    params.note_slug && handleNoteFetch(params.note_slug);
   }, []);
 
   if (!note) return <></>;

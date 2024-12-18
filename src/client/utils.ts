@@ -40,8 +40,13 @@ export const searchAliasByName = async (name: string) => {
   const f = await fetch("/api/alias/search?name=" + name);
   return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
-export const fetchNote = async (slug: string) => {
-  const f = await fetch("/api/note/" + slug);
+export const fetchNote = async (slug: string, secret: string) => {
+  const f = await fetch("/api/note/" + slug, {
+    headers: {
+      Authorization: "Bearer " + secret,
+      Accept: "application/json",
+    },
+  });
   return (await f.json()) as IApiResponse<INote>;
 };
 export const fetchAlias = async (id: string) => {
