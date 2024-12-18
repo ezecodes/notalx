@@ -148,7 +148,6 @@ ApiRoute.delete("/otp/invalidate", async (req: Request, res: Response) => {
 });
 ApiRoute.get("/otp/expiry", async (req: Request, res: Response) => {
   const session = await getSession(req);
-  console.log(session);
   if (!session) {
     res.status(400).json({ status: "err", message: "Invalid session" });
     return;
@@ -238,20 +237,15 @@ ApiRoute.put(
   validateNoteId,
   async (req: Request, res: Response) => {
     const note_id = req.params["note_id"];
-    const note: Partial<INote> = req.body;
-
-    const valid = validateIncomingNote(note);
-    if (!valid.isValid) {
-      res.status(400).json({
-        status: "err",
-        message: valid.error,
-        error_code: ErrorCodes.VALIDATION_ERROR,
-      });
+    const note: Partial<{ title: string; content: string }> = req.body;
+    if (!note.title && !note.content) {
+      res.status(400).json({ status: "err", message: "No data to update" });
+      return;
     }
 
     const find = await Note.findByPk(note_id, {
       attributes: ["alias_id"],
-    }); //Find must exist bcus note has already been validated but another request maybe called to modify or get this same note
+    });
 
     if (!find) {
       res.status(400).json({ status: "err", message: "Note not found " });
@@ -268,7 +262,16 @@ ApiRoute.put(
       return;
     }
 
-    Note.update(note, { where: { id: note_id } });
+    const data: any = {};
+
+    if (note.title) {
+      data.title = note.title;
+    }
+    if (note.content) {
+      data.content = note.content;
+    }
+
+    Note.update(data, { where: { id: note_id } });
     res.json({ status: "ok", message: "Note updated" });
   }
 );
@@ -283,9 +286,10 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
     attributes: [
       "id",
       "title",
-      "secret",
       "slug",
       "is_hidden",
+      "will_self_destroy",
+      "self_destroy_time",
       "content",
       "createdAt",
       "alias_id",
@@ -330,6 +334,11 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
       content: find?.dataValues.content,
       createdAt: find?.dataValues.createdAt,
       slug: find?.dataValues.slug,
+      is_hidden: find.dataValues.is_hidden,
+      will_self_destroy: find.dataValues.will_self_destroy,
+      self_destroy_time: find.dataValues.self_destroy_time,
+      alias_id: find.dataValues.alias_id,
+      id: find.dataValues.id,
     },
   });
 });

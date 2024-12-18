@@ -13,14 +13,16 @@ import { GlobalContext } from "./hook";
 import { encodeToBase62, formatRelativeTime } from "./utils";
 import { RiDraftLine } from "react-icons/ri";
 import { MdRadioButtonUnchecked } from "react-icons/md";
+import { VscLock } from "react-icons/vsc";
+import { TfiTimer } from "react-icons/tfi";
+import { BsUnlock } from "react-icons/bs";
 
 const Editor = () => {
   const navigate = useNavigate();
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
-
-  const [isSaveModalOpen, setSaveModal] = useState(false);
+  const [secretInputType, setSecretInputType] = useState("text");
 
   const handleUpdate = (values: Partial<INoteEditor>) => {
     const data = { ...editor, ...values };
@@ -40,8 +42,7 @@ const Editor = () => {
       willSelfDestroy: response.data!.will_self_destroy,
       createdAt: response.data!.createdAt,
       id: response.data!.id,
-      secret: "",
-      selfDestroyTime: "",
+      selfDestroyTime: response.data!.self_destroy_time,
     });
   };
 
@@ -63,7 +64,6 @@ const Editor = () => {
         title: editor.title,
         will_self_destroy: editor.willSelfDestroy,
         self_destroy_time: editor.selfDestroyTime,
-        secret: editor.secret,
       }),
     });
     const response: IApiResponse<null> = await f.json();
@@ -104,62 +104,94 @@ const Editor = () => {
                   />
                 </div>
               </fieldset>
-              <fieldset>
-                <div className="grid grid-cols-2">
-                  <InputWithIcon
-                    icon={<IoPencilOutline />}
-                    placeholder="Enter note secret"
-                    type="text"
-                    value={editor.secret!}
-                    onChange={(value) => handleUpdate({ secret: value })}
-                  />
-                  <InputWithIcon
-                    icon={<IoPencilOutline />}
-                    placeholder="Enter timer e.g 2 seconds "
-                    type="text"
-                    value={editor.selfDestroyTime!}
-                    onChange={(value) =>
-                      handleUpdate({ selfDestroyTime: value })
-                    }
-                  />
-                </div>
-              </fieldset>
-              <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end ">
-                <button
-                  className={`primary_button ${
-                    editor.willSelfDestroy ? "success_text" : "gray-300"
-                  } `}
-                  onClick={() =>
-                    handleUpdate({ willSelfDestroy: !editor.willSelfDestroy })
-                  }
-                  type={"button"}
-                >
-                  Self destruct{" "}
-                  {editor.willSelfDestroy ? (
-                    <FaCheck />
-                  ) : (
-                    <MdRadioButtonUnchecked />
-                  )}
-                </button>
 
-                <button
-                  className={`primary_button ${
-                    editor.hidden ? "success_text" : "gray-300"
-                  } `}
-                  onClick={() => handleUpdate({ hidden: !editor.hidden })}
-                  type={"button"}
-                >
-                  Mark as hidden{" "}
-                  {editor.hidden ? <FaCheck /> : <MdRadioButtonUnchecked />}
-                </button>
+              <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
+                {editor.willSelfDestroy ? (
+                  <button
+                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
+                    type={"button"}
+                    disabled
+                  >
+                    {new Date(editor.selfDestroyTime).toLocaleDateString()}
+                    <TfiTimer />
+                  </button>
+                ) : (
+                  <button
+                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
+                    type={"button"}
+                    disabled
+                  >
+                    No expiration
+                    <TfiTimer />
+                  </button>
+                )}
 
+                {editor.hidden ? (
+                  <button
+                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
+                    type={"button"}
+                    disabled
+                  >
+                    Hidden
+                    <VscLock />
+                  </button>
+                ) : (
+                  <button
+                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
+                    type={"button"}
+                    disabled
+                  >
+                    Public
+                    <BsUnlock />
+                  </button>
+                )}
                 <Button
-                  text="Publish"
-                  onClick={() => {
-                    handleNoteUpload(editor.id);
-                  }}
+                  text="Save note"
+                  onClick={() => handleNoteUpload(editor.id)}
                 />
               </fieldset>
+
+              {/* <fieldset
+                className="mt-4 pt-4 block"
+                style={{ borderTop: "1px solid #3d3d3d" }}
+              >
+                <div className="flex flex-col gap-y-3   ">
+                  <div className="grid sm:grid-cols-2 gap-x-6">
+                    {editor.hidden && (
+                      <div className="label_input">
+                        <label className="text-gray-400">
+                          Enter a secret for this note
+                        </label>
+                        <InputWithIcon
+                          icon={<CiLock />}
+                          focusListener={() => setSecretInputType("text")}
+                          blurListener={() => setSecretInputType("password")}
+                          placeholder="Enter a secret"
+                          type={secretInputType}
+                          value={editor.secret ?? ""}
+                          onChange={(value) => handleUpdate({ secret: value })}
+                        />
+                      </div>
+                    )}
+                    {editor.willSelfDestroy && (
+                      <div className="label_input">
+                        <label className="text-gray-400">
+                          Enter a time for deleting the note
+                        </label>
+                        <InputWithIcon
+                          icon={<IoIosTimer />}
+                          placeholder="e.g 2 seconds"
+                          type="text"
+                          value={editor.selfDestroyTime ?? ""}
+                          onChange={(value) =>
+                            handleUpdate({ selfDestroyTime: value })
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </fieldset> */}
             </>
           ) : (
             <></>

@@ -75,7 +75,6 @@ export interface INoteEditor {
   content: string;
   hidden: boolean;
   willSelfDestroy: boolean;
-  secret: string;
   selfDestroyTime: string;
   createdAt: Date;
 }

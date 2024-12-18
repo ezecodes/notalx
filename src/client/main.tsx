@@ -26,7 +26,7 @@ const route = createBrowserRouter([
         element: <CreateAlias />,
       },
       {
-        path: "edit/:note_id",
+        path: "edit/:note_slug",
         element: <NoteEditor />,
       },
       {
