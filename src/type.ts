@@ -57,13 +57,26 @@ export interface IPaginatedResponse<T>
     rows: T[];
     pagination: IPagination;
   }> {}
-export interface IEditor {
+
+export interface INoteCreator {
   title: string;
   content: string;
   hidden: boolean;
   willSelfDestroy: boolean;
-  isSaving: boolean;
+  secret: string;
+  selfDestroyTime: string;
   draft_id: number | null;
+  createdAt: Date;
+}
+
+export interface INoteEditor {
+  id: string;
+  title: string;
+  content: string;
+  hidden: boolean;
+  willSelfDestroy: boolean;
+  secret: string;
+  selfDestroyTime: string;
   createdAt: Date;
 }
 export interface IOtpExpiry {

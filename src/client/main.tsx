@@ -7,7 +7,8 @@ import Home from "./index";
 import { Provider } from "./hook";
 import { createRoot } from "react-dom/client";
 import ViewNote from "./ViewNote";
-import Editor from "./NoteEditor";
+import NoteCreator from "./NoteCreator";
+import NoteEditor from "./NoteEditor";
 import CreateAlias from "./AliasCreator";
 import AliasAuth from "./AliasAuth";
 
@@ -18,11 +19,15 @@ const route = createBrowserRouter([
     children: [
       {
         path: "newnote",
-        element: <Editor />,
+        element: <NoteCreator />,
       },
       {
         path: "newalias",
         element: <CreateAlias />,
+      },
+      {
+        path: "edit/:note_id",
+        element: <NoteEditor />,
       },
       {
         path: "auth-with-alias",

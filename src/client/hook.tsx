@@ -7,13 +7,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { _IAlias, IEditor } from "../type";
+import { _IAlias, INoteCreator } from "../type";
 
 type IContext = {
-  editor: Partial<IEditor>;
-  setEditor: Dispatch<React.SetStateAction<Partial<IEditor>>>;
-  saveToStore: (values: Partial<IEditor>) => void;
-  drafts: Partial<IEditor>[] | null;
+  editor: Partial<INoteCreator>;
+  setEditor: Dispatch<React.SetStateAction<Partial<INoteCreator>>>;
+  saveToStore: (values: Partial<INoteCreator>) => void;
+  drafts: Partial<INoteCreator>[] | null;
   deleteDraft: (draft_id: number) => void;
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
@@ -25,15 +25,14 @@ const key = "drafts";
 
 const GlobalContext = createContext<IContext | null>(null);
 const Provider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [drafts, setDrafts] = useState<Partial<IEditor>[] | null>([]);
+  const [drafts, setDrafts] = useState<Partial<INoteCreator>[] | null>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
 
-  const [editor, setEditor] = useState<Partial<IEditor>>({
+  const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
     content: "",
     hidden: false,
     willSelfDestroy: false,
-    isSaving: false,
     draft_id: null,
   });
 
@@ -52,7 +51,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const deleteDraft = (draft_id: number) => {
     const drafts = localStorage.getItem(key);
-    let parse: Partial<IEditor>[] = JSON.parse(drafts!);
+    let parse: Partial<INoteCreator>[] = JSON.parse(drafts!);
     const index = parse.findIndex((i) => (i.draft_id as number) === draft_id);
 
     if (index !== -1) {
@@ -64,14 +63,14 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const expandDraft = (draft_id: number) => {
     const drafts = localStorage.getItem(key);
-    let parse: Partial<IEditor>[] = JSON.parse(drafts!);
+    let parse: Partial<INoteCreator>[] = JSON.parse(drafts!);
     const index = parse.findIndex((i) => (i.draft_id as number) === draft_id);
     if (index !== -1) {
       setEditor(parse[index]);
     }
   };
 
-  const saveToStore = (values: Partial<IEditor>) => {
+  const saveToStore = (values: Partial<INoteCreator>) => {
     if (!values.title) return;
     const drafts = localStorage.getItem(key);
     if (!drafts) {

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
-import { INote, IOtpExpiry } from "../type";
+import { IApiResponse, INote, IOtpExpiry } from "../type";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, SearchDropdown } from "./component";
 import {
@@ -14,6 +14,8 @@ import {
 import { GlobalContext } from "./hook";
 import { BsPersonCheck } from "react-icons/bs";
 import { isSessionExpired } from "./utils";
+import { MdDeleteOutline } from "react-icons/md";
+import { VscLock } from "react-icons/vsc";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -31,6 +33,25 @@ const Home = () => {
         setSelectedAlias(res.data.alias);
       }
     });
+  };
+
+  const deleteNote = async (id: string) => {
+    const e = prompt(
+      "Are you sure ? Type the note title and click yes to confirm"
+    );
+    if (!e) return;
+
+    const f = await fetch("/api/note/delete", { method: "delete" });
+    const response: IApiResponse<null> = await f.json();
+
+    alert(response.message);
+
+    if (response.status === "ok") {
+      const notes = selectedNotes;
+      const index = selectedNotes.findIndex((i) => i.id === id);
+      notes.splice(index, 1);
+      setSelectedNotes(notes);
+    }
   };
 
   useEffect(() => {
@@ -114,6 +135,7 @@ const Home = () => {
                 >
                   <div className="flex justify-between px-4">
                     <span className="font-[500] text-[1.1rem]">{i.title}</span>
+                    {i.is_hidden && <VscLock className="text-[#a7a7a7]" />}
                   </div>
 
                   <Link
@@ -126,11 +148,20 @@ const Home = () => {
                     ></span>
                   </Link>
 
-                  <div className="flex  px-4 items-center justify-end gap-x-5">
-                    <span className="text-gray-400 text-sm">
-                      {formatRelativeTime(i.createdAt)}{" "}
+                  <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-end gap-x-2">
+                    <span className="text-sm">
+                      {new Date(i.createdAt).toLocaleDateString()}
                     </span>
-                    <IoCreateOutline />
+                    {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+                      <>
+                        <MdDeleteOutline onClick={() => deleteNote(i.id)} />
+                        <IoCreateOutline
+                          onClick={() => navigate("/edit/" + i.slug)}
+                        />
+                      </>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                 </div>
               );

@@ -217,8 +217,61 @@ ApiRoute.get("/note", async (req: Request, res: Response) => {
   const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });
 });
+ApiRoute.delete(
+  "/note/delete/:note_id",
+  async (req: Request, res: Response) => {
+    const note_id = req.params["note_id"];
 
+    if (!validate(note_id)) {
+      res.status(400).json({ status: "err", message: "Invalid Note" });
+      return;
+    }
+
+    Note.destroy({ where: { id: note_id } });
+    res.json({ status: "ok", message: "Note has been deleted " });
+  }
+);
 const authErrMsg = "Action not permitted";
+
+ApiRoute.put(
+  "/note/edit/:note_id",
+  validateNoteId,
+  async (req: Request, res: Response) => {
+    const note_id = req.params["note_id"];
+    const note: Partial<INote> = req.body;
+
+    const valid = validateIncomingNote(note);
+    if (!valid.isValid) {
+      res.status(400).json({
+        status: "err",
+        message: valid.error,
+        error_code: ErrorCodes.VALIDATION_ERROR,
+      });
+    }
+
+    const find = await Note.findByPk(note_id, {
+      attributes: ["alias_id"],
+    }); //Find must exist bcus note has already been validated but another request maybe called to modify or get this same note
+
+    if (!find) {
+      res.status(400).json({ status: "err", message: "Note not found " });
+      return;
+    }
+
+    const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
+    if (!authAlias) {
+      res.status(400).json({
+        status: "err",
+        error_code: ErrorCodes.UNAUTHORIZED,
+        message: authErrMsg,
+      });
+      return;
+    }
+
+    Note.update(note, { where: { id: note_id } });
+    res.json({ status: "ok", message: "Note updated" });
+  }
+);
 ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const slug = req.params.note_slug;
 
@@ -228,6 +281,7 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const find = await Note.findOne({
     where: { slug },
     attributes: [
+      "id",
       "title",
       "secret",
       "slug",
@@ -322,46 +376,15 @@ ApiRoute.get(
 ApiRoute.post("/note", async (req: Request, res: Response) => {
   const { alias_id, note }: { alias_id: string; note: Partial<INote> } =
     req.body;
-  const {
-    content,
-    title,
-    is_hidden,
-    secret,
-    self_destroy_time,
-    will_self_destroy,
-  } = note;
+  const { content, title, is_hidden, secret, self_destroy_time } = note;
 
-  if (!title || !content) {
-    res.json({ status: "err", message: "Note must have a title and content" });
-    return;
-  }
-
-  if (is_hidden && !secret) {
-    res.json({ status: "err", message: "Enter a secret for hidden note" });
-    return;
-  }
-  if (will_self_destroy && !self_destroy_time) {
-    res.json({ status: "err", message: "Enter a time for note deletion" });
-    return;
-  }
-
-  if (self_destroy_time) {
-    const valid = validateSelfDestroyTime(self_destroy_time);
-    if (!valid) {
-      res.json({
-        status: "err",
-        message: "Invalid timer. Please follow the format: <number> <unit>.",
-      });
-      return;
-    }
-  }
   const findAlias = await Alias.findByPk(alias_id);
 
   if (!findAlias) {
     res.json({ status: "err", message: "Alias not found" });
     return;
   }
-  const slug = generateSlug(title, 5, is_hidden ?? false);
+  const slug = generateSlug(title!, 5, is_hidden ?? false);
 
   const update: any = {
     title,
@@ -619,6 +642,58 @@ function validateUsername(username: string): {
       isValid: false,
       error: "Alias contains restricted words.",
     };
+  }
+
+  return { isValid: true };
+}
+
+async function validateNoteId(req: Request, res: Response, next: NextFunction) {
+  const note_id = req.params["note_id"];
+  if (!validate(note_id)) {
+    res.status(400).json({ status: "err", message: "Invalid Note" });
+    return;
+  }
+  const count = await Note.count({
+    where: { id: note_id },
+    attributes: ["alias_id"],
+  });
+
+  if (count === 0) {
+    res.status(400).json({ status: "err", message: "Note not found" });
+    return;
+  }
+  next();
+}
+
+function validateIncomingNote(note: Partial<INote>) {
+  const {
+    content,
+    title,
+    is_hidden,
+    secret,
+    self_destroy_time,
+    will_self_destroy,
+  } = note;
+
+  if (!title || !content) {
+    return { isValid: false, error: "Note must have a title and content" };
+  }
+
+  if (is_hidden && !secret) {
+    return { isValid: false, error: "Enter a secret for hidden note" };
+  }
+  if (will_self_destroy && !self_destroy_time) {
+    return { isValid: false, error: "Enter a time for note deletion" };
+  }
+
+  if (self_destroy_time) {
+    const valid = validateSelfDestroyTime(self_destroy_time);
+    if (!valid) {
+      return {
+        isValid: false,
+        error: "Invalid timer. Please follow the format: <number> <unit>.",
+      };
+    }
   }
 
   return { isValid: true };
