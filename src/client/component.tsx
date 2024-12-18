@@ -104,7 +104,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   };
 
   return (
-    <div className="relative  w-[300px] ">
+    <div className="relative  2micro:w-[300px] ">
       <div className="w-full px-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
           <button className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">

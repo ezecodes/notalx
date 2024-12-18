@@ -45,6 +45,10 @@ const CreateAlias: FC<ICreateAlias> = () => {
               Without an email, lost secrets cannot be retrieved, and your notes
               may become inaccessible.
             </li>
+            <li>
+              Lastly! Aliases are public, therefore do not use sensitive words
+              for an alias
+            </li>
           </ol>
         </div>
 

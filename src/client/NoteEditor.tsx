@@ -5,13 +5,14 @@ import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
 import { Link, useNavigate } from "react-router-dom";
-import { _IAlias, IAlias, IEditor } from "../type";
+import { _IAlias, IEditor } from "../type";
 import { CiLock } from "react-icons/ci";
 import { AiOutlineDelete } from "react-icons/ai";
-import { FaExpand } from "react-icons/fa";
+import { FaCheck, FaExpand } from "react-icons/fa";
 import { GlobalContext } from "./hook";
 import { formatRelativeTime } from "./utils";
 import { RiDraftLine } from "react-icons/ri";
+import { MdRadioButtonUnchecked } from "react-icons/md";
 
 const Editor = () => {
   const navigate = useNavigate();
@@ -119,24 +120,30 @@ const Editor = () => {
           <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end ">
             <button
               className={`primary_button ${
-                editor.willSelfDestroy ? "text-green-400" : "gray-300"
+                editor.willSelfDestroy ? "success_text" : "gray-300"
               } `}
               onClick={() =>
                 handleUpdate({ willSelfDestroy: !editor.willSelfDestroy })
               }
               type={"button"}
             >
-              Self destruct <IoIosTimer />
+              Self destruct{" "}
+              {editor.willSelfDestroy ? (
+                <FaCheck />
+              ) : (
+                <MdRadioButtonUnchecked />
+              )}
             </button>
 
             <button
               className={`primary_button ${
-                editor.hidden ? "text-green-400" : "gray-300"
+                editor.hidden ? "success_text" : "gray-300"
               } `}
               onClick={() => handleUpdate({ hidden: !editor.hidden })}
               type={"button"}
             >
-              Mark as hidden <CiLock />
+              Mark as hidden{" "}
+              {editor.hidden ? <FaCheck /> : <MdRadioButtonUnchecked />}
             </button>
 
             <Button

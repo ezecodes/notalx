@@ -74,8 +74,8 @@ const Home = () => {
               navigate("/newnote");
             }}
           />
-          <form className="w-full flex items-center gap-x-2 justify-center">
-            <div className="flex items-center gap-x-3">
+          <form className="w-full flex items-center gap-x-2 mt-3 sm:mt-0 justify-center  gap-y-2">
+            <div className="flex 3micro:w-[auto] w-[80%] items-center gap-x-3">
               <SearchDropdown
                 onClick={(value) => setSelectedAlias(value)}
                 selected={selectedAlias}
@@ -84,7 +84,7 @@ const Home = () => {
 
             <div
               onClick={() => navigate("/auth-with-alias")}
-              className="flex cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2  hover:bg-[rgba(0,0,0,.1)] duration-300"
+              className="flex w-[15%] 3micro:w-[auto] cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2  hover:bg-[rgba(0,0,0,.1)] duration-300"
             >
               <BsPersonCheck
                 className={` ${
@@ -93,7 +93,9 @@ const Home = () => {
                     : "text-white"
                 } text-[25px]   `}
               />
-              <span className="subtext text-sm">{otpExpiry?.name}</span>
+              <span className="subtext hidden 3micro:inline text-sm">
+                {otpExpiry?.name}
+              </span>
             </div>
           </form>
         </div>
@@ -102,12 +104,11 @@ const Home = () => {
       {selectedAlias && selectedNotes && selectedNotes.length > 0 && (
         <section className="w-full px-10 py-5 mb-3">
           {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             {selectedNotes.map((i, key) => {
               return (
                 <div
-                  className="shadow-md py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
-                  style={{ border: "1px solid #555555" }}
+                  className="shadow-sm w-full  py-2 h-[200px] 2micro:w-[300px] rounded-md gap-y-2 flex flex-col overflow-hidden"
                   key={i.id}
                 >
                   <div className="flex justify-between px-4">
@@ -119,6 +120,7 @@ const Home = () => {
                     className="hover:bg-[#292929] duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
                   >
                     <span
+                      className="text-sm"
                       dangerouslySetInnerHTML={{ __html: i.content }}
                     ></span>
                   </Link>

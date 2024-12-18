@@ -102,6 +102,7 @@ function setExpiryInUTC(hoursToAdd: number): string {
 }
 const isAuthorizedAlias = async (req: Request, aliasId: string) => {
   const session = await getSession(req);
+  console.log(session, aliasId);
   if (!session) {
     return false;
   }
@@ -291,12 +292,15 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
       "is_hidden",
       "content",
       "createdAt",
+      "alias_id",
     ],
   });
+
   if (!find) {
     res.status(400).json({ status: "err", message: "Note not found" });
     return;
   }
+
   const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
 
   if (find?.dataValues.is_hidden) {
@@ -304,11 +308,13 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
       res.status(400).json({ status: "err", message: authErrMsg });
       return;
     }
-    const valid = compareSync(secret!, find?.dataValues.secret);
 
-    if (!authAlias && !valid) {
-      res.status(400).json({ status: "err", message: authErrMsg });
-      return;
+    if (secret && !authAlias) {
+      const valid = compareSync(secret!, find?.dataValues.secret);
+      if (!valid) {
+        res.status(400).json({ status: "err", message: authErrMsg });
+        return;
+      }
     }
   }
 

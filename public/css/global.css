@@ -68,3 +68,6 @@ body {
 .subtext {
   @apply text-gray-300;
 }
+.success_text {
+  @apply text-green-400;
+}
