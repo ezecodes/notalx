@@ -61,12 +61,29 @@ const AliasAuth = () => {
     });
     const response = await f.json();
     alert(response.message);
+    if (response.status === "ok") {
+      location.href = "/?alias=" + selectedAlias?.name;
+    }
   };
-  const deleteAuth = async () => {
+  const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
+    const e = prompt("Are u sure? Enter alias to confirm:");
+
+    if (e !== otpExpiry?.name) {
+      alert("Aborted");
+      return;
+    }
+
     const f = await fetch("/api/otp/invalidate", {
       method: "delete",
     });
-    await f.json();
+    const response = await f.json();
+    if (response.status === "err") return;
+
+    if (refreshPath === "currentPage") {
+      document.location.href = document.location.href;
+    } else {
+      document.location.href = "/";
+    }
   };
 
   return (
@@ -99,19 +116,11 @@ const AliasAuth = () => {
               <div className="flex w-full gap-x-3 justify-end">
                 <Button
                   text="Delete Auth"
-                  onClick={() => {
-                    deleteAuth().then(() => {
-                      document.location.href = "/";
-                    });
-                  }}
+                  onClick={() => deleteAuth("homePage")}
                 />
                 <Button
                   text="Re authorise"
-                  onClick={() => {
-                    deleteAuth().then(() => {
-                      document.location.href = document.location.href;
-                    });
-                  }}
+                  onClick={() => deleteAuth("currentPage")}
                 />
               </div>
             </div>

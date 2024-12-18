@@ -99,7 +99,7 @@ const Editor = () => {
             />
           </div>
 
-          <fieldset className="flex flex-col gap-y-3">
+          <fieldset className="flex flex-col gap-y-3 mt-4">
             <div>
               <InputWithIcon
                 icon={<IoPencilOutline />}

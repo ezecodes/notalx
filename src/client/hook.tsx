@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IAlias, IEditor } from "../type";
+import { _IAlias, IEditor } from "../type";
 
 type IContext = {
   editor: Partial<IEditor>;
@@ -18,8 +18,8 @@ type IContext = {
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
   draftCount: number;
-  selectedAlias: Partial<IAlias> | null;
-  setSelectedAlias: Dispatch<React.SetStateAction<Partial<IAlias> | null>>;
+  selectedAlias: Partial<_IAlias> | null;
+  setSelectedAlias: Dispatch<React.SetStateAction<Partial<_IAlias> | null>>;
 };
 const key = "drafts";
 
@@ -37,7 +37,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     draft_id: null,
   });
 
-  const [selectedAlias, setSelectedAlias] = useState<Partial<IAlias> | null>(
+  const [selectedAlias, setSelectedAlias] = useState<Partial<_IAlias> | null>(
     null
   );
 
@@ -56,7 +56,14 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     const drafts = localStorage.getItem(key);
     let parse: Partial<IEditor>[] = JSON.parse(drafts!);
     const index = parse.findIndex((i) => (i.draft_id as number) === draft_id);
+
     if (index !== -1) {
+      const e = prompt("Are u sure? Enter title to confirm:");
+
+      if (e !== parse[index].title) {
+        alert("Aborted");
+        return;
+      }
       parse.splice(index, 1);
       localStorage.setItem(key, JSON.stringify(parse));
       setDrafts(parse);

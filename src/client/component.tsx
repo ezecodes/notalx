@@ -1,7 +1,8 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { fetchAllAlias, searchAliasByName } from "./utils";
+import { encodeToBase62, fetchAllAlias, searchAliasByName } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import { IAlias } from "../type";
+import { _IAlias } from "../type";
+import { Link } from "react-router-dom";
 
 export const Button = ({
   onClick,
@@ -66,8 +67,8 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
 };
 
 interface SearchDropdownProps {
-  onClick: (selected: Partial<IAlias> | null) => void;
-  selected: Partial<IAlias> | null;
+  onClick: (selected: Partial<_IAlias> | null) => void;
+  selected: Partial<_IAlias> | null;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -75,7 +76,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   selected,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [options, setOptions] = useState<Partial<IAlias>[]>([]);
+  const [options, setOptions] = useState<Partial<_IAlias>[]>([]);
   const [input, setInput] = useState<string>("");
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     });
   };
 
-  const handleOptionClick = (option: Partial<IAlias>) => {
+  const handleOptionClick = (option: Partial<_IAlias>) => {
     onClick(option);
     handleBlur();
   };
@@ -106,7 +107,10 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     <div className="relative  w-[300px] ">
       <div className="w-full px-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
-          <button className="bg-[#535ca3] px-3 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">
+          <Link
+            to={"/?alias=" + encodeToBase62(selected.id!)}
+            className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center"
+          >
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
               {selected.name}
             </span>
@@ -116,7 +120,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
                 onClick(null);
               }}
             />
-          </button>
+          </Link>
         )}
         <input
           type="text"

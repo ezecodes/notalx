@@ -621,6 +621,10 @@ video {
   margin-top: 1.75rem;
 }
 
+.mt-4 {
+  margin-top: 1rem;
+}
+
 .flex {
   display: flex;
 }
@@ -882,17 +886,13 @@ video {
   font-size: 1.3rem;
 }
 
-.text-\[30px\] {
-  font-size: 30px;
+.text-\[40px\] {
+  font-size: 40px;
 }
 
 .text-sm {
   font-size: 0.875rem;
   line-height: 1.25rem;
-}
-
-.text-\[40px\] {
-  font-size: 40px;
 }
 
 .font-\[500\] {
@@ -1075,14 +1075,7 @@ body {
 
 .modal_child,
 .ql-editor {
-  width: 100%;
-}
-
-@media (min-width: 425px) {
-  .modal_child,
-.ql-editor {
-    width: 400px;
-  }
+  width: 95%;
 }
 
 @media (min-width: 640px) {

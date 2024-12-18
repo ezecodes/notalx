@@ -1,43 +1,53 @@
-import { FC, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
+import { INote } from "../type";
+import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
+import { Button, SearchDropdown } from "./component";
 import {
-  IoCreateOutline,
-  IoEyeOffOutline,
-  IoMailOutline,
-  IoPersonAdd,
-} from "react-icons/io5";
-import { ImCancelCircle, ImInfo } from "react-icons/im";
-import { IAlias, INote } from "../type";
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { Button, InputWithIcon, SearchDropdown } from "./component";
-import { fetchAliasNotes, formatRelativeTime, parseUrl } from "./utils";
-import { TbPasswordUser } from "react-icons/tb";
+  decodeFromBase62,
+  encodeToBase62,
+  fetchAliasNotes,
+  formatRelativeTime,
+  parseUrl,
+} from "./utils";
 import { GlobalContext } from "./hook";
+import { BsPersonCheck } from "react-icons/bs";
 
 const Home = () => {
   const navigate = useNavigate();
   const { selectedAlias, setSelectedAlias } = useContext(GlobalContext)!;
+  const [searchParams] = useSearchParams();
+
+  const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
+
+  const fetchNotes = (aliasId?: string) => {
+    if (!aliasId || aliasId === undefined) return;
+    fetchAliasNotes(aliasId).then((res) => {
+      if (res.status === "ok" && res.data) {
+        setSelectedNotes(res.data.notes);
+        setSelectedAlias(res.data.alias);
+      }
+    });
+  };
+
   useEffect(() => {
     try {
       const url = parseUrl(document.location);
       if (url.requestQuery.r) {
         navigate(decodeURIComponent(url.requestQuery.r));
       }
+      const alias = searchParams.get("alias");
+      if (alias) {
+        fetchNotes(decodeFromBase62(alias));
+      }
     } catch (err) {
       console.error(err);
     }
   }, []);
 
-  const [selectedNotes, setSelectedNotes] = useState<{
-    id: string;
-    rows: INote[];
-  } | null>(null);
-
   useEffect(() => {
-    if (!selectedAlias) return;
-    fetchAliasNotes(selectedAlias.id!).then((res) => {
-      console.log(res);
-      res.data && setSelectedNotes({ id: "", rows: res.data.rows });
-    });
+    // fetchNotes(selectedAlias?.id);
+    selectedAlias && navigate("/?alias=" + encodeToBase62(selectedAlias.id!));
   }, [selectedAlias?.id]);
 
   return (
@@ -66,7 +76,7 @@ const Home = () => {
           </form>
 
           {selectedAlias && (
-            <TbPasswordUser
+            <BsPersonCheck
               onClick={() => navigate("/auth-with-alias")}
               className="text-[40px] cursor-pointer"
             />
@@ -74,11 +84,11 @@ const Home = () => {
         </div>
       </header>
 
-      {selectedAlias && selectedNotes && selectedNotes?.rows.length > 0 && (
+      {selectedAlias && selectedNotes && selectedNotes.length > 0 && (
         <section className="w-full px-10 py-5 mb-3">
           {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
           <div className="flex gap-4">
-            {selectedNotes?.rows.map((i, key) => {
+            {selectedNotes.map((i, key) => {
               return (
                 <div
                   className="shadow-md py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"

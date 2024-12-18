@@ -6,6 +6,11 @@ export type IAlias = {
   updatedAt: Date;
 };
 
+export type _IAlias = {
+  id: string;
+  name: string;
+};
+
 export type IOtp = {
   id: string;
   hash: string;

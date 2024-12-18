@@ -1,4 +1,13 @@
-import { IAlias, IApiResponse, INote, IPaginatedResponse } from "../type";
+import baseX from "base-x";
+
+import {
+  _IAlias,
+  IAlias,
+  IApiResponse,
+  INote,
+  IPaginatedResponse,
+} from "../type";
+
 export function isSessionExpired(expiry: string): boolean {
   const nowUTC = new Date();
   const expiryDate = new Date(expiry);
@@ -25,7 +34,7 @@ export const fetchAllAlias = async () => {
 
 export const fetchAliasNotes = async (id: string) => {
   const f = await fetch("/api/note/alias/" + id);
-  return (await f.json()) as IPaginatedResponse<INote>;
+  return (await f.json()) as IApiResponse<{ alias: _IAlias; notes: INote[] }>;
 };
 export const searchAliasByName = async (name: string) => {
   const f = await fetch("/api/alias/search?name=" + name);
@@ -61,4 +70,41 @@ export function formatRelativeTime(timestamp: string | Date): string {
   }
 
   return "just now";
+}
+
+const BASE62 = baseX(
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+);
+
+// Helper function to convert hex string to Uint8Array
+function hexToUint8Array(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+// Helper function to convert Uint8Array back to hex
+function uint8ArrayToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Encode UUID to Base62
+export function encodeToBase62(uuid: string): string {
+  const hex = uuid.replace(/-/g, ""); // Remove hyphens
+  const bytes = hexToUint8Array(hex);
+  return BASE62.encode(bytes);
+}
+
+// Decode Base62 back to UUID
+export function decodeFromBase62(base62: string): string {
+  const bytes = BASE62.decode(base62);
+  const hex = uint8ArrayToHex(bytes);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(
+    12,
+    16
+  )}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }

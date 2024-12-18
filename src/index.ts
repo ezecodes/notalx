@@ -347,11 +347,19 @@ ApiRoute.get(
       };
     }
 
-    const all = await Note.findAll({
+    const find = await Alias.findByPk(aliasId, { attributes: ["name"] });
+
+    let notes = await Note.findAll({
       where: clause,
       attributes: ["is_hidden", "title", "content", "createdAt", "slug"],
     });
-    res.json({ status: "ok", data: { rows: all ?? [] } });
+    res.json({
+      status: "ok",
+      data: {
+        alias: { id: aliasId, name: find?.dataValues.name },
+        notes: notes ?? [],
+      },
+    });
   }
 );
 
