@@ -63,7 +63,7 @@ body {
 }
 .modal_child,
 .ql-editor {
-  @apply w-[95%]  sm:w-[600px];
+  @apply w-[97%]  sm:w-[600px];
 }
 .subtext {
   @apply text-gray-300;

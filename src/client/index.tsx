@@ -109,6 +109,7 @@ const Home = () => {
               return (
                 <div
                   className="shadow-sm w-full  py-2 h-[200px] 2micro:w-[300px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+                  style={{ border: "1px solid #353535" }}
                   key={i.id}
                 >
                   <div className="flex justify-between px-4">

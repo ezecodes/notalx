@@ -31,7 +31,7 @@ const CreateAlias: FC<ICreateAlias> = () => {
     <div className="modal animate__animated animate__slideInDown">
       <div
         style={{ border: "1px solid #535353" }}
-        className="flex mt-7 flex-col gap-y-3 relative 3micro:w-[400px] sm:w-[600px] shadow-md px-5 py-5 rounded-md"
+        className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
       >
         <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
         <div className="flex items-start gap-x-3 ">
