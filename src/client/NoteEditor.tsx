@@ -1,18 +1,10 @@
-import { FC, useContext, useEffect, useRef, useState } from "react";
-import { Button, InputWithIcon, SearchDropdown } from "./component";
-import { ImCancelCircle, ImInfo } from "react-icons/im";
+import { useEffect, useRef, useState } from "react";
+import { Button, InputWithIcon } from "./component";
+import { ImCancelCircle } from "react-icons/im";
 import { IoPencilOutline } from "react-icons/io5";
-import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { _IAlias, IApiResponse, INote, INoteEditor } from "../type";
-import { CiLock } from "react-icons/ci";
-import { AiOutlineDelete } from "react-icons/ai";
-import { FaCheck, FaExpand } from "react-icons/fa";
-import { GlobalContext } from "./hook";
-import { encodeToBase62, formatRelativeTime } from "./utils";
-import { RiDraftLine } from "react-icons/ri";
-import { MdRadioButtonUnchecked } from "react-icons/md";
 import { VscLock } from "react-icons/vsc";
 import { TfiTimer } from "react-icons/tfi";
 import { BsUnlock } from "react-icons/bs";
@@ -22,7 +14,6 @@ const Editor = () => {
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
-  const [secretInputType, setSecretInputType] = useState("text");
 
   const handleUpdate = (values: Partial<INoteEditor>) => {
     const data = { ...editor, ...values };
@@ -58,12 +49,12 @@ const Editor = () => {
 
     const f = await fetch("/api/note/edit/" + id, {
       method: "put",
+      headers: {
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
         content: editor.content,
-        is_hidden: editor.hidden,
         title: editor.title,
-        will_self_destroy: editor.willSelfDestroy,
-        self_destroy_time: editor.selfDestroyTime,
       }),
     });
     const response: IApiResponse<null> = await f.json();

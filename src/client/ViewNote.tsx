@@ -1,14 +1,21 @@
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useContext, useEffect, useRef, useState } from "react";
 import { ImCancelCircle } from "react-icons/im";
 import { ErrorCodes, INote } from "../type";
-import { Link, useParams } from "react-router-dom";
-import { fetchNote } from "./utils";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { fetchNote, isSessionExpired } from "./utils";
+import { GlobalContext } from "./hook";
+import { MdDeleteOutline } from "react-icons/md";
+import { IoCreateOutline } from "react-icons/io5";
 
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
   const params = useParams<{ note_slug: string }>();
   const [note, setNote] = useState<INote | null>(null);
   const retries = useRef(0);
+  const hasCalled = useRef(false);
+  const { otpExpiry, getOTPExpiry, deleteNote } = useContext(GlobalContext)!;
+
+  const navigate = useNavigate();
 
   function handleNoteFetch(slug: string, secret?: string) {
     if (retries.current === 2) return;
@@ -16,7 +23,7 @@ const ViewNote: FC<IViewNote> = () => {
       retries.current = retries.current + 1;
       if (res.status === "err") {
         if (res.error_code === ErrorCodes.UNAUTHORIZED) {
-          const handler = prompt("Note is locked. Enter secret to proceed");
+          const handler = prompt("Note is locked. Enter secret to proceed:");
           handleNoteFetch(slug, handler as string);
         } else {
           alert(res.message);
@@ -29,6 +36,11 @@ const ViewNote: FC<IViewNote> = () => {
 
   useEffect(() => {
     params.note_slug && handleNoteFetch(params.note_slug);
+    if (!hasCalled.current) {
+      getOTPExpiry();
+
+      hasCalled.current = true;
+    }
   }, []);
 
   if (!note) return <></>;
@@ -41,6 +53,17 @@ const ViewNote: FC<IViewNote> = () => {
         </Link>
         <h4 className="font-[500] text-[1.1rem]">{note.title}</h4>
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
+
+        <div className="flex justify-end border_top">
+          {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+            <>
+              <MdDeleteOutline onClick={() => deleteNote(note.id)} />
+              <IoCreateOutline onClick={() => navigate("/edit/" + note.slug)} />
+            </>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     </div>
   );

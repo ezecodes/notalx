@@ -1,26 +1,21 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
 import { useNavigate } from "react-router-dom";
-import { GlobalContext } from "./hook";
 import { IoArrowBackOutline } from "react-icons/io5";
-import { _IAlias, IApiResponse, IOtpExpiry } from "../type";
-import { encodeToBase62, getOTPExpiry, isSessionExpired } from "./utils";
+import { _IAlias } from "../type";
+import { encodeToBase62, isSessionExpired } from "./utils";
+import { GlobalContext } from "./hook";
 
 const AliasAuth = () => {
   const [info, setInfo] = useState({ otp: "", email: "" });
-  const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
-
+  const { otpExpiry, getOTPExpiry } = useContext(GlobalContext)!;
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
   const hasCalled = useRef(false);
 
   useEffect(() => {
     if (!hasCalled.current) {
-      getOTPExpiry().then((res) => {
-        if (res && res !== undefined) {
-          setOtpExpiry(res);
-        }
-      });
+      getOTPExpiry();
 
       hasCalled.current = true;
     }

@@ -8,7 +8,6 @@ import {
   encodeToBase62,
   fetchAliasNotes,
   formatRelativeTime,
-  getOTPExpiry,
   parseUrl,
 } from "./utils";
 import { GlobalContext } from "./hook";
@@ -19,40 +18,16 @@ import { VscLock } from "react-icons/vsc";
 
 const Home = () => {
   const navigate = useNavigate();
-  const { selectedAlias, setSelectedAlias } = useContext(GlobalContext)!;
+  const {
+    selectedAlias,
+    setSelectedAlias,
+    otpExpiry,
+    getOTPExpiry,
+    fetchNotes,
+    selectedNotes,
+    deleteNote,
+  } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-  const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
-
-  const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
-
-  const fetchNotes = (aliasId?: string) => {
-    if (!aliasId || aliasId === undefined) return;
-    fetchAliasNotes(aliasId).then((res) => {
-      if (res.status === "ok" && res.data) {
-        setSelectedNotes(res.data.notes);
-        setSelectedAlias(res.data.alias);
-      }
-    });
-  };
-
-  const deleteNote = async (id: string) => {
-    const e = prompt(
-      "Are you sure ? Type the note title and click yes to confirm"
-    );
-    if (!e) return;
-
-    const f = await fetch("/api/note/delete", { method: "delete" });
-    const response: IApiResponse<null> = await f.json();
-
-    alert(response.message);
-
-    if (response.status === "ok") {
-      const notes = selectedNotes;
-      const index = selectedNotes.findIndex((i) => i.id === id);
-      notes.splice(index, 1);
-      setSelectedNotes(notes);
-    }
-  };
 
   useEffect(() => {
     try {
@@ -60,15 +35,13 @@ const Home = () => {
       if (url.requestQuery.r) {
         navigate(decodeURIComponent(url.requestQuery.r));
       }
-      const alias = searchParams.get("alias");
+      let alias = searchParams.get("alias");
       if (alias) {
-        fetchNotes(decodeFromBase62(alias));
+        alias = decodeFromBase62(alias);
+        fetchNotes();
       }
-      getOTPExpiry().then((res) => {
-        if (res && res !== undefined) {
-          setOtpExpiry(res);
-        }
-      });
+
+      getOTPExpiry();
     } catch (err) {
       console.error(err);
     }

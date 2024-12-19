@@ -11,6 +11,7 @@ import NoteCreator from "./NoteCreator";
 import NoteEditor from "./NoteEditor";
 import CreateAlias from "./AliasCreator";
 import AliasAuth from "./AliasAuth";
+import Faq from "./Faq";
 
 const route = createBrowserRouter([
   {
@@ -36,6 +37,10 @@ const route = createBrowserRouter([
       {
         path: ":note_slug",
         element: <ViewNote />,
+      },
+      {
+        path: "faq",
+        element: <Faq />,
       },
     ],
   },

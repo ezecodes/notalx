@@ -7,7 +7,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { _IAlias, INoteCreator } from "../type";
+import {
+  _IAlias,
+  IApiResponse,
+  INote,
+  INoteCreator,
+  IOtpExpiry,
+} from "../type";
+import { fetchAliasNotes } from "./utils";
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -20,6 +27,14 @@ type IContext = {
   draftCount: number;
   selectedAlias: _IAlias | null;
   setSelectedAlias: Dispatch<React.SetStateAction<_IAlias | null>>;
+  setOtpExpiry: Dispatch<React.SetStateAction<IOtpExpiry | null>>;
+  otpExpiry: IOtpExpiry | null;
+  getOTPExpiry: () => void;
+
+  selectedNotes: INote[];
+
+  fetchNotes: (aliasId?: string) => void;
+  deleteNote: (noteId: string) => void;
 };
 const key = "drafts";
 
@@ -27,6 +42,8 @@ const GlobalContext = createContext<IContext | null>(null);
 const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<Partial<INoteCreator>[] | null>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
+  const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
+  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
   const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
@@ -35,8 +52,36 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     willSelfDestroy: false,
     draft_id: null,
   });
+  const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
 
-  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
+  const deleteNote = async (id: string) => {
+    const e = prompt(
+      "Are you sure ? Type the note title and click yes to confirm"
+    );
+    if (!e) return;
+
+    const f = await fetch("/api/note/delete", { method: "delete" });
+    const response: IApiResponse<null> = await f.json();
+
+    alert(response.message);
+
+    if (response.status === "ok") {
+      const notes = selectedNotes;
+      const index = selectedNotes.findIndex((i) => i.id === id);
+      notes.splice(index, 1);
+      setSelectedNotes(notes);
+    }
+  };
+
+  const fetchNotes = (aliasId?: string) => {
+    if (!aliasId || aliasId === undefined) return;
+    fetchAliasNotes(aliasId).then((res) => {
+      if (res.status === "ok" && res.data) {
+        setSelectedNotes(res.data.notes);
+        setSelectedAlias(res.data.alias);
+      }
+    });
+  };
 
   const loadDrafts = () => {
     const drafts = localStorage.getItem(key);
@@ -92,7 +137,16 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       }
     }
   };
-
+  const getOTPExpiry = async () => {
+    const f = await fetch("/api/otp/expiry");
+    const response: IApiResponse<IOtpExpiry> = await f.json();
+    if (response.status === "ok") {
+      setOtpExpiry(response.data!);
+      return response.data;
+    } else {
+      return null;
+    }
+  };
   const contextValues = {
     editor,
     saveToStore,
@@ -104,6 +158,13 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     draftCount,
     setSelectedAlias,
     selectedAlias,
+    getOTPExpiry,
+
+    otpExpiry,
+    setOtpExpiry,
+    selectedNotes,
+    fetchNotes,
+    deleteNote,
   };
 
   return (

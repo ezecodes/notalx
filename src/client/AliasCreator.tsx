@@ -1,7 +1,6 @@
 import { FC, useState } from "react";
 import { ImCancelCircle, ImInfo } from "react-icons/im";
 import { Button, InputWithIcon } from "./component";
-import { IoMailOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
 interface ICreateAlias {}

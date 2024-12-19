@@ -43,7 +43,8 @@ export const searchAliasByName = async (name: string) => {
 export const fetchNote = async (slug: string, secret: string) => {
   const f = await fetch("/api/note/" + slug, {
     headers: {
-      Authorization: "Bearer " + secret,
+      "content-type": "application/json",
+      Authorization: secret,
       Accept: "application/json",
     },
   });
@@ -54,15 +55,6 @@ export const fetchAlias = async (id: string) => {
   return (await f.json()) as IApiResponse<_IAlias>;
 };
 
-export const getOTPExpiry = async () => {
-  const f = await fetch("/api/otp/expiry");
-  const response: IApiResponse<IOtpExpiry> = await f.json();
-  if (response.status === "ok") {
-    return response.data;
-  } else {
-    return null;
-  }
-};
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();
   const date = new Date(timestamp);

@@ -75,3 +75,6 @@ body {
 .success_text {
   @apply text-green-400;
 }
+.border_top {
+  border-top: 1px solid #3d3d3d;
+}

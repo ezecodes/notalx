@@ -150,6 +150,9 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
               {option.name}
             </li>
           ))}
+          <Link to={"/newalias"} className="text-sm px-4 flex justify-center">
+            New Alias
+          </Link>
         </ul>
       )}
     </div>

@@ -16,6 +16,7 @@ import { Op } from "sequelize";
 import { randomBytes } from "crypto";
 import { validate } from "uuid";
 import { createTransport } from "nodemailer";
+import cron from "node-cron";
 
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -24,7 +25,7 @@ dotenv.config();
 
 const server = express();
 const sessionKey = "s-tkn";
-const Brand = "NotalX";
+const Brand = "Notal X";
 
 const mailConfig = {
   user: process.env.MAIL_USER,
@@ -51,14 +52,14 @@ ApiRoute.get("/alias", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: all } });
 });
 
-const errMsg = "Email and alias combination is not valid";
+const invalidEmailAliasCombo = "Email and handle combination is not valid";
 ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
   const { email, alias_id } = req.body;
 
   if (!alias_id) {
     res.status(400).json({
       status: "err",
-      message: errMsg,
+      message: invalidEmailAliasCombo,
     });
     return;
   }
@@ -71,7 +72,7 @@ ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
   if (!user) {
     res.status(400).json({
       status: "err",
-      message: errMsg,
+      message: invalidEmailAliasCombo,
     });
     return;
   }
@@ -238,6 +239,7 @@ ApiRoute.put(
   async (req: Request, res: Response) => {
     const note_id = req.params["note_id"];
     const note: Partial<{ title: string; content: string }> = req.body;
+
     if (!note.title && !note.content) {
       res.status(400).json({ status: "err", message: "No data to update" });
       return;
@@ -278,8 +280,7 @@ ApiRoute.put(
 ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
   const slug = req.params.note_slug;
 
-  const authHeader = req.get("Authorization");
-  const secret = authHeader?.split(" ")[1];
+  const secret = req.get("Authorization");
 
   const find = await Note.findOne({
     where: { slug },
@@ -293,6 +294,7 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
       "content",
       "createdAt",
       "alias_id",
+      "secret",
     ],
   });
 
@@ -301,10 +303,28 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
     return;
   }
 
-  const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
+  const data = {
+    title: find?.dataValues.title,
+    content: find?.dataValues.content,
+    createdAt: find?.dataValues.createdAt,
+    slug: find?.dataValues.slug,
+    is_hidden: find.dataValues.is_hidden,
+    will_self_destroy: find.dataValues.will_self_destroy,
+    self_destroy_time: find.dataValues.self_destroy_time,
+    alias_id: find.dataValues.alias_id,
+    id: find.dataValues.id,
+  };
 
   if (find?.dataValues.is_hidden) {
-    if (!authAlias && !secret) {
+    const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
+    console.log(authAlias);
+    if (
+      !authAlias &&
+      (!secret ||
+        secret === undefined ||
+        typeof secret !== "string" ||
+        !compareSync(secret, find.dataValues.secret))
+    ) {
       res.status(400).json({
         status: "err",
         message: authErrMsg,
@@ -312,35 +332,13 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
       });
       return;
     }
-
-    if (secret && !authAlias) {
-      const valid = compareSync(secret!, find?.dataValues.secret);
-      if (!valid) {
-        res.status(400).json({
-          status: "err",
-          message: authErrMsg,
-          error_code: ErrorCodes.UNAUTHORIZED,
-        });
-        return;
-      }
-    }
   }
-
   res.json({
     status: "ok",
-    message: "Note retrived",
-    data: {
-      title: find?.dataValues.title,
-      content: find?.dataValues.content,
-      createdAt: find?.dataValues.createdAt,
-      slug: find?.dataValues.slug,
-      is_hidden: find.dataValues.is_hidden,
-      will_self_destroy: find.dataValues.will_self_destroy,
-      self_destroy_time: find.dataValues.self_destroy_time,
-      alias_id: find.dataValues.alias_id,
-      id: find.dataValues.id,
-    },
+    message: "Note retrieved",
+    data,
   });
+  return;
 });
 ApiRoute.get(
   "/note/alias/:alias_id",
@@ -387,12 +385,23 @@ ApiRoute.post("/note", async (req: Request, res: Response) => {
     req.body;
   const { content, title, is_hidden, secret, self_destroy_time } = note;
 
+  const valid = validateIncomingNote(note);
+  if (!valid.isValid) {
+    res.status(400).json({
+      status: "err",
+      error_code: ErrorCodes.VALIDATION_ERROR,
+      message: valid.error,
+    });
+    return;
+  }
+
   const findAlias = await Alias.findByPk(alias_id);
 
   if (!findAlias) {
-    res.json({ status: "err", message: "Alias not found" });
+    res.status(400).json({ status: "err", message: "Alias not found" });
     return;
   }
+
   const slug = generateSlug(title!, 5, is_hidden ?? false);
 
   const update: any = {
@@ -402,8 +411,12 @@ ApiRoute.post("/note", async (req: Request, res: Response) => {
     alias_id,
   };
   if (self_destroy_time) {
-    update.self_destroy_time = parseSelfDestroyTimeToDate(self_destroy_time);
-    update.will_self_destroy = true;
+    const time = parseSelfDestroyTimeToDate(self_destroy_time);
+    if (!time) {
+      res.status(400).json({ status: "err", message: "Invalid time" });
+      return;
+    }
+    update.self_destroy_time = update.will_self_destroy = true;
   }
   if (secret) {
     update.secret = hashSync(secret, 10);
@@ -442,7 +455,7 @@ function generateSlug(
   is_hidden: boolean
 ): string {
   if (is_hidden) {
-    return randomBytes(3).toString("base64url");
+    return randomBytes(9).toString("base64url");
   }
 
   const randomString = Math.random().toString(36).substring(2, 7); // Generate a 5-char random string
@@ -466,10 +479,9 @@ export function validateSelfDestroyTime(input: string): boolean {
   if (input.split(" ").length !== 2) return false;
   return validTimeRegex.test(input);
 }
-export function parseSelfDestroyTimeToDate(input: string): Date | null {
-  if (!validateSelfDestroyTime(input)) {
-    return null; // Invalid input
-  }
+export function parseSelfDestroyTimeToDate(input: string): Date | boolean {
+  if (input.split(" ").length !== 2 || !validTimeRegex.test(input))
+    return false;
 
   const [value, unit] = input.toLowerCase().split(/\s+/); // Split into number and unit
   const num = parseInt(value, 10);
@@ -492,8 +504,6 @@ export function parseSelfDestroyTimeToDate(input: string): Date | null {
     case "years":
       now.setFullYear(now.getFullYear() + num);
       break;
-    default:
-      return null; // Invalid unit (shouldn't happen due to regex)
   }
 
   return now;
@@ -707,3 +717,25 @@ function validateIncomingNote(note: Partial<INote>) {
 
   return { isValid: true };
 }
+
+async function deleteExpiredNotes() {
+  const now = new Date();
+  try {
+    // Find and delete all notes marked for self-destruction
+    const deletedCount = await Note.destroy({
+      where: {
+        will_self_destroy: true,
+        self_destroy_time: {
+          [Op.lte]: now, // Notes where autoDeleteAt <= current time
+        },
+      },
+    });
+    console.log(`${deletedCount} expired notes deleted.`);
+  } catch (error) {
+    console.error("Error deleting expired notes:", error);
+  }
+}
+
+cron.schedule("* * * * *", async () => {
+  await deleteExpiredNotes(); // Runs every minute
+});
