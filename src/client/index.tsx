@@ -125,7 +125,9 @@ const Home = () => {
                     <span className="text-sm">
                       {new Date(i.createdAt).toLocaleDateString()}
                     </span>
-                    {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+                    {otpExpiry &&
+                    !isSessionExpired(otpExpiry.expiry) &&
+                    otpExpiry.alias_id === selectedAlias.id ? (
                       <>
                         <MdDeleteOutline onClick={() => deleteNote(i.id)} />
                         <IoCreateOutline

@@ -1,8 +1,18 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { encodeToBase62, fetchAllAlias, searchAliasByName } from "./utils";
+import {
+  encodeToBase62,
+  fetchAllAlias,
+  formatRelativeTime,
+  searchAliasByName,
+} from "./utils";
 import { ImCancelCircle } from "react-icons/im";
 import { _IAlias } from "../type";
 import { Link } from "react-router-dom";
+import { TfiTimer } from "react-icons/tfi";
+import { BsUnlock } from "react-icons/bs";
+import { VscLock } from "react-icons/vsc";
+
+type Action = "delete" | "edit" | "view";
 
 export const Button = ({
   onClick,
@@ -14,16 +24,22 @@ export const Button = ({
   onClick: () => void;
   icon?: ReactNode;
   type?: "button" | "submit";
+  action?: Action;
 }) => {
   return (
     <button
-      className="primary_button "
+      className={`primary_button   `}
       onClick={onClick}
       type={type ?? "button"}
     >
       {text} {icon && icon}
     </button>
   );
+};
+
+const getActionStyle = (action: Action) => {
+  if (action === "delete") {
+  }
 };
 
 interface InputWithIconProps {
@@ -157,4 +173,69 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
       )}
     </div>
   );
+};
+
+interface IExInfo {
+  willSelfDestroy: boolean;
+  time: string;
+}
+
+export const ExpirationInfo: FC<IExInfo> = ({ willSelfDestroy, time }) => {
+  if (willSelfDestroy) {
+    return (
+      <button
+        className={`text-sm flex items-center gap-x-2 text-gray-300`}
+        type={"button"}
+        disabled
+      >
+        {new Date(time).toLocaleDateString()}
+        <TfiTimer />
+      </button>
+    );
+  }
+  return (
+    <button
+      className={`text-sm flex items-center gap-x-2 text-gray-300`}
+      type={"button"}
+      disabled
+    >
+      No expiration
+      <TfiTimer />
+    </button>
+  );
+};
+
+interface IHi {
+  hidden: boolean;
+}
+export const IsHiddenInfo: FC<IHi> = ({ hidden }) => {
+  if (hidden) {
+    return (
+      <button
+        className={`text-sm flex items-center gap-x-2 text-gray-300`}
+        type={"button"}
+        disabled
+      >
+        Hidden
+        <VscLock />
+      </button>
+    );
+  }
+  return (
+    <button
+      className={`text-sm flex items-center gap-x-2 text-gray-300`}
+      type={"button"}
+      disabled
+    >
+      Public
+      <BsUnlock />
+    </button>
+  );
+};
+
+interface IDc {
+  date: string | Date;
+}
+export const DisplayDateCreated: FC<IDc> = ({ date }) => {
+  return <span className="text-sm subtext">{formatRelativeTime(date)}</span>;
 };

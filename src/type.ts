@@ -82,6 +82,7 @@ export interface IOtpExpiry {
   expiry: string;
   alias_id: string;
   name: string;
+  is_valid_auth: boolean;
 }
 declare module "express" {
   interface Response {

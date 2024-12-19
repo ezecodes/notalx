@@ -52,7 +52,7 @@ ApiRoute.get("/alias", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: all } });
 });
 
-const invalidEmailAliasCombo = "Email and handle combination is not valid";
+const invalidEmailAliasCombo = "Email and alias combination is not valid";
 ApiRoute.post("/otp/send", async (req: Request, res: Response) => {
   const { email, alias_id } = req.body;
 
@@ -126,6 +126,7 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
   const id = randomBytes(10).toString("hex");
 
   memcachedService.set(CacheKeys.session(id), sessionObj, 3600);
+  memcachedService.delete(CacheKeys.otp(email));
 
   const cookieOpts: CookieOptions = {
     httpOnly: true,

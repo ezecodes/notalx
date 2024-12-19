@@ -4,8 +4,12 @@ import { ErrorCodes, INote } from "../type";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchNote, isSessionExpired } from "./utils";
 import { GlobalContext } from "./hook";
-import { MdDeleteOutline } from "react-icons/md";
-import { IoCreateOutline } from "react-icons/io5";
+import {
+  Button,
+  DisplayDateCreated,
+  ExpirationInfo,
+  IsHiddenInfo,
+} from "./component";
 
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
@@ -48,21 +52,38 @@ const ViewNote: FC<IViewNote> = () => {
   return (
     <div className="modal px-5 relative animate__animated animate__slideInDown">
       <div className="flex modal_child mt-7 flex-col gap-y-3  relative  px-5 py-5 rounded-md">
-        <Link to={"/"} className="absolute right-[10px]">
+        <button
+          onClick={() => history.back()}
+          className="absolute right-[10px]"
+        >
           <ImCancelCircle />
-        </Link>
-        <h4 className="font-[500] text-[1.1rem]">{note.title}</h4>
+        </button>
+        <h4 className="font-[500] text-[1.4rem]">{note.title}</h4>
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
 
-        <div className="flex justify-end border_top">
-          {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
-            <>
-              <MdDeleteOutline onClick={() => deleteNote(note.id)} />
-              <IoCreateOutline onClick={() => navigate("/edit/" + note.slug)} />
-            </>
-          ) : (
-            <></>
-          )}
+        <div className="flex flex-col gap-y-3 pt-4 items-end border_top">
+          <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
+            <ExpirationInfo
+              time={note.self_destroy_time}
+              willSelfDestroy={note.will_self_destroy}
+            />
+            <IsHiddenInfo hidden={note.is_hidden} />
+            <DisplayDateCreated date={note.createdAt} />
+          </div>
+
+          <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
+            {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+              <>
+                <Button text="Delete" onClick={() => deleteNote(note.id)} />
+                <Button
+                  text="Edit"
+                  onClick={() => navigate("/edit/" + note.slug)}
+                />
+              </>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       </div>
     </div>

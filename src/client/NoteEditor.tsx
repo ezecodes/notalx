@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, InputWithIcon } from "./component";
+import {
+  Button,
+  DisplayDateCreated,
+  ExpirationInfo,
+  InputWithIcon,
+  IsHiddenInfo,
+} from "./component";
 import { ImCancelCircle } from "react-icons/im";
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill from "react-quill";
@@ -96,50 +102,21 @@ const Editor = () => {
                 </div>
               </fieldset>
 
-              <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
-                {editor.willSelfDestroy ? (
-                  <button
-                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
-                    type={"button"}
-                    disabled
-                  >
-                    {new Date(editor.selfDestroyTime).toLocaleDateString()}
-                    <TfiTimer />
-                  </button>
-                ) : (
-                  <button
-                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
-                    type={"button"}
-                    disabled
-                  >
-                    No expiration
-                    <TfiTimer />
-                  </button>
-                )}
-
-                {editor.hidden ? (
-                  <button
-                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
-                    type={"button"}
-                    disabled
-                  >
-                    Hidden
-                    <VscLock />
-                  </button>
-                ) : (
-                  <button
-                    className={`text-sm flex items-center gap-x-2 text-gray-300`}
-                    type={"button"}
-                    disabled
-                  >
-                    Public
-                    <BsUnlock />
-                  </button>
-                )}
-                <Button
-                  text="Save note"
-                  onClick={() => handleNoteUpload(editor.id)}
-                />
+              <fieldset className="flex flex-col gap-y-3 items-end ">
+                <div className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
+                  <ExpirationInfo
+                    time={editor.selfDestroyTime}
+                    willSelfDestroy={editor.willSelfDestroy}
+                  />
+                  <IsHiddenInfo hidden={editor.hidden} />
+                  <DisplayDateCreated date={editor.createdAt} />
+                </div>
+                <div className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
+                  <Button
+                    text="Save note"
+                    onClick={() => handleNoteUpload(editor.id)}
+                  />
+                </div>
               </fieldset>
 
               {/* <fieldset
