@@ -2,7 +2,12 @@ import { useContext, useEffect, useState } from "react";
 import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
 import { IApiResponse, INote, IOtpExpiry } from "../type";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, DisplayDateCreated, SearchDropdown } from "./component";
+import {
+  AuthorisedInfo,
+  Button,
+  DisplayDateCreated,
+  SearchDropdown,
+} from "./component";
 import {
   decodeFromBase62,
   encodeToBase62,
@@ -79,19 +84,7 @@ const Home = () => {
               />
             </div>
 
-            <div
-              onClick={() => navigate("/auth-with-alias")}
-              className="flex w-[15%] 3micro:w-[auto] cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2  hover:bg-[rgba(0,0,0,.1)] duration-300"
-            >
-              <BsPersonCheck
-                className={` ${
-                  otpExpiry?.is_valid_auth ? "text-green-400" : "text-white"
-                } text-[25px]   `}
-              />
-              <span className="subtext hidden 3micro:inline text-sm">
-                {otpExpiry?.name}
-              </span>
-            </div>
+            <AuthorisedInfo clickUrl="/auth-with-alias" otpExpiry={otpExpiry} />
           </form>
         </div>
       </header>
