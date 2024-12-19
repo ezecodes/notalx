@@ -171,7 +171,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             <li
               key={option.id}
               onClick={() => handleOptionClick(option)}
-              className="px-4 py-2 cursor-pointer hover:bg-gray-[#777777] "
+              className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
               style={{ borderBottom: "1px solid #555555" }}
             >
               {option.name}
