@@ -57,7 +57,7 @@ button {
   @apply flex flex-col items-start w-full;
 }
 .label_input > label {
-  @apply text-gray-200 text-sm;
+  @apply text-gray-200  mb-1;
 }
 .modal {
   position: fixed;

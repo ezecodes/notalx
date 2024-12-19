@@ -164,15 +164,17 @@ const Editor = () => {
                   {!selectedAlias ||
                     (!Is_Selected_Alias_Authorised() &&
                     selectedAlias.id !== otpExpiry?.alias_id ? (
-                      <Button
-                        text="Authorise"
+                      <span
+                        className="text-sm subtext text-underline "
                         onClick={() =>
                           navigate(
                             "/auth-with-alias?alias=" +
                               encodeToBase62(selectedAlias.id)
                           )
                         }
-                      />
+                      >
+                        Authorise
+                      </span>
                     ) : (
                       <AuthorisedInfo
                         clickUrl="/auth-with-alias"
