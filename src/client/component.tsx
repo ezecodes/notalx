@@ -6,10 +6,10 @@ import {
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import { _IAlias } from "../type";
-import { Link } from "react-router-dom";
+import { _IAlias, IOtpExpiry } from "../type";
+import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
-import { BsUnlock } from "react-icons/bs";
+import { BsPersonCheck, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
 
 type Action = "delete" | "edit" | "view";
@@ -238,4 +238,28 @@ interface IDc {
 }
 export const DisplayDateCreated: FC<IDc> = ({ date }) => {
   return <span className="text-sm subtext">{formatRelativeTime(date)}</span>;
+};
+
+interface IAi {
+  onClick?: () => void;
+  clickUrl: any;
+  otpExpiry: IOtpExpiry | null;
+}
+export const AuthorisedInfo: FC<IAi> = ({ clickUrl, otpExpiry }) => {
+  const navigate = useNavigate();
+  return (
+    <div
+      onClick={() => navigate(clickUrl as any)}
+      className="flex cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2  hover:bg-[rgba(0,0,0,.1)] duration-300"
+    >
+      <BsPersonCheck
+        className={` ${
+          otpExpiry?.is_valid_auth ? "text-green-400" : "text-white"
+        } text-[25px]   `}
+      />
+      <span className="subtext hidden 3micro:inline text-sm">
+        {otpExpiry?.name}
+      </span>
+    </div>
+  );
 };

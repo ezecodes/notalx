@@ -1,5 +1,10 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { Button, InputWithIcon, SearchDropdown } from "./component";
+import {
+  AuthorisedInfo,
+  Button,
+  InputWithIcon,
+  SearchDropdown,
+} from "./component";
 import { ImCancelCircle } from "react-icons/im";
 import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
@@ -13,6 +18,7 @@ import { GlobalContext } from "./hook";
 import { encodeToBase62, formatRelativeTime } from "./utils";
 import { RiDraftLine } from "react-icons/ri";
 import { MdRadioButtonUnchecked } from "react-icons/md";
+import { BsPersonCheck } from "react-icons/bs";
 
 const Editor = () => {
   const navigate = useNavigate();
@@ -180,7 +186,10 @@ const Editor = () => {
                         }
                       />
                     ) : (
-                      <></>
+                      <AuthorisedInfo
+                        clickUrl="/auth-with-alias"
+                        otpExpiry={otpExpiry}
+                      />
                     ))}
                 </div>
               </div>

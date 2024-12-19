@@ -125,14 +125,14 @@ ApiRoute.post("/otp/verify", async (req: Request, res: Response) => {
   };
   const id = randomBytes(10).toString("hex");
 
-  memcachedService.set(CacheKeys.session(id), sessionObj, 3600);
+  memcachedService.set(CacheKeys.session(id), sessionObj, 86400);
   memcachedService.delete(CacheKeys.otp(email));
 
   const cookieOpts: CookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge: 60 * 60 * 1000, // 60 minutes
+    maxAge: 1440 * 60 * 1000, // 60 minutes
     signed: true,
   };
 
