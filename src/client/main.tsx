@@ -12,6 +12,7 @@ import NoteEditor from "./NoteEditor";
 import CreateAlias from "./AliasCreator";
 import AliasAuth from "./AliasAuth";
 import Faq from "./Faq";
+import { Slide, ToastContainer } from "react-toastify";
 
 const route = createBrowserRouter([
   {
@@ -49,5 +50,18 @@ const route = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
   <Provider>
     <RouterProvider router={route} />
+    <ToastContainer
+      position="top-right"
+      autoClose={5126}
+      hideProgressBar
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable={false}
+      pauseOnHover
+      theme="dark"
+      transition={Slide}
+    />
   </Provider>
 );

@@ -11,6 +11,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsPersonCheck, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
+import { IoArrowBackOutline } from "react-icons/io5";
 
 type Action = "delete" | "edit" | "view";
 
@@ -37,9 +38,19 @@ export const Button = ({
   );
 };
 
-const getActionStyle = (action: Action) => {
-  if (action === "delete") {
-  }
+interface IBb {
+  url: any;
+  text: string;
+}
+export const BackButton: FC<IBb> = ({ text, url }) => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col justify-start gap-y-3">
+      <IoArrowBackOutline onClick={() => navigate(url)} />
+
+      <h3 className="text-[1.1rem] font-[500]">{text}</h3>
+    </div>
+  );
 };
 
 interface InputWithIconProps {
@@ -121,7 +132,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
 
   return (
     <div className="relative w-full sm:w-[300px] ">
-      <div className="w-full px-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
+      <div className="w-full p-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
           <button className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">
             <Link

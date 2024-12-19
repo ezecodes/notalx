@@ -1,10 +1,10 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { Button, InputWithIcon, SearchDropdown } from "./component";
+import { BackButton, Button, InputWithIcon, SearchDropdown } from "./component";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { IoArrowBackOutline } from "react-icons/io5";
 import { _IAlias } from "../type";
-import { decodeFromBase62, encodeToBase62, fetchAlias } from "./utils";
+import { decodeFromBase62, fetchAlias } from "./utils";
 import { GlobalContext } from "./hook";
+import { toast } from "react-toastify";
 
 const AliasAuth = () => {
   const [info, setInfo] = useState({ otp: "", email: "" });
@@ -40,7 +40,7 @@ const AliasAuth = () => {
       },
     });
     const response = await f.json();
-    alert(response.message);
+    toast(response.message);
   };
   const verify = async () => {
     const f = await fetch("/api/otp/verify", {
@@ -51,7 +51,7 @@ const AliasAuth = () => {
       },
     });
     const response = await f.json();
-    alert(response.message);
+    toast(response.message);
     if (response.status === "ok") {
       if (searchParams.get("alias")) {
         getOTPExpiry();
@@ -76,23 +76,15 @@ const AliasAuth = () => {
 
   return (
     <div className="modal animate__animated animate__slideInDown">
-      <div
-        style={{ border: "1px solid #535353" }}
-        className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
-      >
+      <div className="flex mt-7 flex-col gap-y-3 relative modal_child px-5 py-5  ">
+        <BackButton
+          text={
+            isAuthorised() ? "You are authorised" : "Authorize alias with OTP"
+          }
+          url={-1}
+        />
         {isAuthorised() ? (
           <>
-            <div className="flex gap-x-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="  flex items-center cursor-pointer subtext gap-x-1 "
-              >
-                <IoArrowBackOutline />
-                Back
-              </button>
-              <h3 className="text-[1.1rem] font-[500]">You are authorised</h3>
-            </div>
-
             <div className="flex flex-col gap-y-3">
               <div className="label_input">
                 <label>Authorised Alias</label>
@@ -118,19 +110,6 @@ const AliasAuth = () => {
           </>
         ) : (
           <>
-            <div className="flex justify-between">
-              <h3 className="text-[1.2rem] font-[500]">
-                Authorize alias with OTP
-              </h3>
-              <button
-                onClick={() => navigate(-1)}
-                className="  flex items-center cursor-pointer  subtext gap-x-1 "
-              >
-                <IoArrowBackOutline />
-                Back
-              </button>
-            </div>
-
             <div className="flex flex-col gap-y-3">
               <div className="label_input">
                 <label>Select alias</label>

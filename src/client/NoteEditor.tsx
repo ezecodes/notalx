@@ -1,23 +1,20 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import {
+  BackButton,
   Button,
   DisplayDateCreated,
   ExpirationInfo,
   InputWithIcon,
   IsHiddenInfo,
 } from "./component";
-import { ImCancelCircle } from "react-icons/im";
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill from "react-quill";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { _IAlias, IApiResponse, INote, INoteEditor } from "../type";
-import { VscLock } from "react-icons/vsc";
-import { TfiTimer } from "react-icons/tfi";
-import { BsUnlock } from "react-icons/bs";
 import { GlobalContext } from "./hook";
+import { toast } from "react-toastify";
 
 const Editor = () => {
-  const navigate = useNavigate();
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
@@ -66,24 +63,18 @@ const Editor = () => {
     });
     const response: IApiResponse<null> = await f.json();
 
-    alert(response.message);
+    toast(response.message);
   };
 
   if (!otpExpiry?.is_valid_auth) return <></>;
 
   return (
     <>
-      <div className="modal animate__animated animate__slideInDown relative">
-        <form className="modal_child relative gap-y-3 flex flex-col  px-3 my-5 py-3">
+      <div className="modal animate__animated animate__slideInDown  ">
+        <form className="modal_child    gap-y-3 flex flex-col  px-3 my-5 py-3">
           <h3 className="text-[1.3rem] font-[500]">Editing note</h3>
 
-          <div className="absolute right-0">
-            <Button
-              text="Close"
-              icon={<ImCancelCircle />}
-              onClick={() => history.back()}
-            />
-          </div>
+          <BackButton text={"Editing note"} url={-1} />
 
           {editor ? (
             <>

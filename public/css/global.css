@@ -30,6 +30,12 @@ body {
 .primary_button {
   @apply rounded-md  gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center;
 }
+input {
+  height: 33px;
+}
+button {
+  height: 40px;
+}
 .ql-editor > * {
   color: var(--text_color) !important;
 }
@@ -63,6 +69,11 @@ body {
   background: #232323;
   overflow-y: scroll;
 }
+
+.primary_button svg {
+  @apply text-gray-300;
+}
+
 .draft_actions,
 .header_actions {
   @apply rounded-full add_border flex items-center justify-center add_bg w-[25px] h-[25px];

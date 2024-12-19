@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
-import { IApiResponse, INote, IOtpExpiry } from "../type";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AuthorisedInfo,
@@ -8,16 +7,8 @@ import {
   DisplayDateCreated,
   SearchDropdown,
 } from "./component";
-import {
-  decodeFromBase62,
-  encodeToBase62,
-  fetchAliasNotes,
-  formatRelativeTime,
-  parseUrl,
-} from "./utils";
+import { decodeFromBase62, encodeToBase62 } from "./utils";
 import { GlobalContext } from "./hook";
-import { BsPersonCheck } from "react-icons/bs";
-import { isSessionExpired } from "./utils";
 import { MdDeleteOutline } from "react-icons/md";
 import { VscLock } from "react-icons/vsc";
 

@@ -1,15 +1,16 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { ImCancelCircle } from "react-icons/im";
 import { ErrorCodes, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
 import {
+  BackButton,
   Button,
   DisplayDateCreated,
   ExpirationInfo,
   IsHiddenInfo,
 } from "./component";
+import { toast } from "react-toastify";
 
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
@@ -31,7 +32,7 @@ const ViewNote: FC<IViewNote> = () => {
           const handler = prompt("Note is locked. Enter secret to proceed:");
           handleNoteFetch(slug, handler as string);
         } else {
-          alert(res.message);
+          toast(res.message);
         }
       }
 
@@ -52,16 +53,9 @@ const ViewNote: FC<IViewNote> = () => {
 
   return (
     <div className="modal top_space relative animate__animated animate__slideInDown">
-      <div className="flex modal_child mt-7 flex-col gap-y-3  relative    py-5 rounded-md">
-        <div className="flex justify-between">
-          <h4 className="font-[500] text-[1.4rem]">{note.title}</h4>
-          <button
-            onClick={() => history.back()}
-            className="absolute right-[10px]"
-          >
-            <ImCancelCircle />
-          </button>
-        </div>
+      <div className="flex modal_child mt-7 flex-col gap-y-3       py-5">
+        <BackButton text={note.title} url={-1} />
+
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
 
         <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">

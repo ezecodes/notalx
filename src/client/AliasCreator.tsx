@@ -1,7 +1,8 @@
 import { FC, useState } from "react";
-import { ImCancelCircle, ImInfo } from "react-icons/im";
-import { Button, InputWithIcon } from "./component";
+import { ImInfo } from "react-icons/im";
+import { BackButton, Button, InputWithIcon } from "./component";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 interface ICreateAlias {}
 
@@ -19,7 +20,7 @@ const CreateAlias: FC<ICreateAlias> = () => {
       },
     });
     const response = await f.json();
-    alert(response.message);
+    toast(response.message);
 
     if (response.status === "ok") {
       navigate("/");
@@ -28,14 +29,8 @@ const CreateAlias: FC<ICreateAlias> = () => {
 
   return (
     <div className="modal animate__animated animate__slideInDown">
-      <div
-        style={{ border: "1px solid #535353" }}
-        className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
-      >
-        <div className="flex justify-between">
-          <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
-          <ImCancelCircle onClick={() => navigate("/")} />
-        </div>
+      <div className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md">
+        <BackButton text={"Create an alias"} url={-1} />
         <div className="flex items-start gap-x-3 ">
           <ImInfo />
           <ol className="text-gray-300 text-sm list-decimal pl-4">

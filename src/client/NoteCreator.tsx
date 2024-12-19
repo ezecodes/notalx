@@ -1,11 +1,11 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import {
   AuthorisedInfo,
+  BackButton,
   Button,
   InputWithIcon,
   SearchDropdown,
 } from "./component";
-import { ImCancelCircle } from "react-icons/im";
 import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
@@ -16,9 +16,8 @@ import { AiOutlineDelete } from "react-icons/ai";
 import { FaCheck, FaExpand } from "react-icons/fa";
 import { GlobalContext } from "./hook";
 import { encodeToBase62, formatRelativeTime } from "./utils";
-import { RiDraftLine } from "react-icons/ri";
 import { MdRadioButtonUnchecked } from "react-icons/md";
-import { BsPersonCheck } from "react-icons/bs";
+import { toast } from "react-toastify";
 
 const Editor = () => {
   const navigate = useNavigate();
@@ -36,7 +35,7 @@ const Editor = () => {
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
   const [secretInputType, setSecretInputType] = useState("text");
 
-  const [isDraftModalOpen, setDraftModal] = useState(true);
+  const [isDraftModalOpen, setDraftModal] = useState(false);
 
   useEffect(() => {
     if (!hasCalled.current) {
@@ -75,7 +74,7 @@ const Editor = () => {
       },
     });
     const response: IApiResponse<null> = await f.json();
-    alert(response.message);
+    toast(response.message);
     if (response.status === "ok") {
       deleteDraft(editor.draft_id!);
       setEditor({
@@ -92,24 +91,14 @@ const Editor = () => {
   return (
     <>
       <div className="modal  relative">
-        <header className="absolute  top-[50px] right-[50px]">
-          {draftCount > 0 && !isDraftModalOpen && (
-            <Button
-              text="Draft"
-              icon={<RiDraftLine />}
-              onClick={() => setDraftModal(true)}
-            />
-          )}
-        </header>
         <form className="modal_child relative gap-y-3 flex flex-col  px-3 my-5 py-3">
-          <div className="flex justify-between">
-            <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
-            <Button
-              text="Close"
-              icon={<ImCancelCircle />}
-              onClick={() => navigate("/")}
-            />
-          </div>
+          <BackButton text={"Creating note"} url={-1} />
+          <span
+            onClick={() => setDraftModal(true)}
+            className="tex-sm subtext text-underline text-right"
+          >
+            Open saved drafts
+          </span>
 
           <fieldset className="flex flex-col gap-y-3 mt-4">
             <div>
@@ -132,7 +121,7 @@ const Editor = () => {
           <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
             <button
               className={`primary_button ${
-                editor.willSelfDestroy ? "success_text" : "gray-300"
+                editor.willSelfDestroy ? "success_text" : "subtext"
               } `}
               onClick={() =>
                 handleUpdate({ willSelfDestroy: !editor.willSelfDestroy })
@@ -149,7 +138,7 @@ const Editor = () => {
 
             <button
               className={`primary_button ${
-                editor.hidden ? "success_text" : "gray-300"
+                editor.hidden ? "success_text" : "subtext"
               } `}
               onClick={() => handleUpdate({ hidden: !editor.hidden })}
               type={"button"}
@@ -165,7 +154,7 @@ const Editor = () => {
           >
             <div className="flex flex-col gap-y-3   ">
               <div className="label_input flex-wrap">
-                <label className="text-gray-400">Find your alias</label>
+                <label className="subtext">Find your alias</label>
                 <div className="flex gap-x-3 w-full">
                   <SearchDropdown
                     onClick={(value) => setSelectedAlias(value)}
@@ -196,7 +185,7 @@ const Editor = () => {
               <div className="grid sm:grid-cols-2 gap-y-3 gap-x-6">
                 {editor.hidden && (
                   <div className="label_input">
-                    <label className="text-gray-400">
+                    <label className="subtext">
                       Enter a secret for this note
                     </label>
                     <InputWithIcon
@@ -212,7 +201,7 @@ const Editor = () => {
                 )}
                 {editor.willSelfDestroy && (
                   <div className="label_input">
-                    <label className="text-gray-400">
+                    <label className="subtext">
                       Enter a time for deleting the note
                     </label>
                     <InputWithIcon
