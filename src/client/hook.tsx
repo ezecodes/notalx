@@ -35,6 +35,9 @@ type IContext = {
 
   fetchNotes: (aliasId?: string) => void;
   deleteNote: (noteId: string) => void;
+
+  Is_Selected_Alias_Authorised: () => boolean;
+  isAuthorised: () => boolean;
 };
 const key = "drafts";
 
@@ -55,10 +58,12 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
 
   const deleteNote = async (id: string) => {
-    const e = prompt(
-      "Are you sure ? Type the note title and click yes to confirm"
-    );
-    if (!e) return;
+    const e = prompt("Are you sure ? Type yes to confirm");
+    console.log(e);
+    if (!e || e !== "yes") {
+      alert("Aborted");
+      return;
+    }
 
     const f = await fetch("/api/note/delete", { method: "delete" });
     const response: IApiResponse<null> = await f.json();
@@ -147,6 +152,18 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       return null;
     }
   };
+
+  const Is_Selected_Alias_Authorised = () => {
+    if (otpExpiry?.is_valid_auth && selectedAlias?.id === otpExpiry.alias_id)
+      return true;
+    return false;
+  };
+
+  const isAuthorised = () => {
+    if (otpExpiry?.is_valid_auth) return true;
+    return false;
+  };
+
   const contextValues = {
     editor,
     saveToStore,
@@ -159,6 +176,8 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     setSelectedAlias,
     selectedAlias,
     getOTPExpiry,
+    Is_Selected_Alias_Authorised,
+    isAuthorised,
 
     otpExpiry,
     setOtpExpiry,

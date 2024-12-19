@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
   Button,
   DisplayDateCreated,
@@ -14,13 +14,14 @@ import { _IAlias, IApiResponse, INote, INoteEditor } from "../type";
 import { VscLock } from "react-icons/vsc";
 import { TfiTimer } from "react-icons/tfi";
 import { BsUnlock } from "react-icons/bs";
+import { GlobalContext } from "./hook";
 
 const Editor = () => {
   const navigate = useNavigate();
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
-
+  const { otpExpiry } = useContext(GlobalContext)!;
   const handleUpdate = (values: Partial<INoteEditor>) => {
     const data = { ...editor, ...values };
 
@@ -68,6 +69,8 @@ const Editor = () => {
     alert(response.message);
   };
 
+  if (!otpExpiry?.is_valid_auth) return <></>;
+
   return (
     <>
       <div className="modal animate__animated animate__slideInDown relative">
@@ -78,7 +81,7 @@ const Editor = () => {
             <Button
               text="Close"
               icon={<ImCancelCircle />}
-              onClick={() => navigate("/")}
+              onClick={() => history.back()}
             />
           </div>
 

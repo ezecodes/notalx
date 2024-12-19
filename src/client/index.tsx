@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
 import { IApiResponse, INote, IOtpExpiry } from "../type";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, SearchDropdown } from "./component";
+import { Button, DisplayDateCreated, SearchDropdown } from "./component";
 import {
   decodeFromBase62,
   encodeToBase62,
@@ -26,15 +26,18 @@ const Home = () => {
     fetchNotes,
     selectedNotes,
     deleteNote,
+    Is_Selected_Alias_Authorised,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
     try {
-      const url = parseUrl(document.location);
-      if (url.requestQuery.r) {
-        navigate(decodeURIComponent(url.requestQuery.r));
+      let redirect = searchParams.get("r");
+
+      if (redirect) {
+        navigate(decodeURIComponent(redirect));
       }
+
       let alias = searchParams.get("alias");
       if (alias) {
         alias = decodeFromBase62(alias);
@@ -82,9 +85,7 @@ const Home = () => {
             >
               <BsPersonCheck
                 className={` ${
-                  otpExpiry && !isSessionExpired(otpExpiry.expiry)
-                    ? "text-green-400"
-                    : "text-white"
+                  otpExpiry?.is_valid_auth ? "text-green-400" : "text-white"
                 } text-[25px]   `}
               />
               <span className="subtext hidden 3micro:inline text-sm">
@@ -122,12 +123,8 @@ const Home = () => {
                   </Link>
 
                   <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-end gap-x-2">
-                    <span className="text-sm">
-                      {new Date(i.createdAt).toLocaleDateString()}
-                    </span>
-                    {otpExpiry &&
-                    !isSessionExpired(otpExpiry.expiry) &&
-                    otpExpiry.alias_id === selectedAlias.id ? (
+                    <DisplayDateCreated date={i.createdAt} />
+                    {Is_Selected_Alias_Authorised() ? (
                       <>
                         <MdDeleteOutline onClick={() => deleteNote(i.id)} />
                         <IoCreateOutline

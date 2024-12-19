@@ -9,6 +9,7 @@ export type IAlias = {
 export type _IAlias = {
   id: string;
   name: string;
+  email?: string;
 };
 
 export type IOtp = {

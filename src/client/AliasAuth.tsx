@@ -1,20 +1,28 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Button, InputWithIcon, SearchDropdown } from "./component";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { IoArrowBackOutline } from "react-icons/io5";
 import { _IAlias } from "../type";
-import { encodeToBase62, isSessionExpired } from "./utils";
+import { decodeFromBase62, encodeToBase62, fetchAlias } from "./utils";
 import { GlobalContext } from "./hook";
 
 const AliasAuth = () => {
   const [info, setInfo] = useState({ otp: "", email: "" });
-  const { otpExpiry, getOTPExpiry } = useContext(GlobalContext)!;
+  const { otpExpiry, getOTPExpiry, isAuthorised } = useContext(GlobalContext)!;
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
   const hasCalled = useRef(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (!hasCalled.current) {
+      let alias = searchParams.get("alias");
+      if (alias) {
+        fetchAlias(decodeFromBase62(alias)).then((res) => {
+          res.status === "ok" && setSelectedAlias(res.data!);
+        });
+      }
+
       getOTPExpiry();
 
       hasCalled.current = true;
@@ -45,7 +53,11 @@ const AliasAuth = () => {
     const response = await f.json();
     alert(response.message);
     if (response.status === "ok") {
-      location.href = "/?alias=" + encodeToBase62(selectedAlias!.id!);
+      if (searchParams.get("alias")) {
+        getOTPExpiry();
+        navigate(-1);
+      }
+      // location.href = "/?alias=" + encodeToBase62(selectedAlias!.id!);
     }
   };
   const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
@@ -68,11 +80,11 @@ const AliasAuth = () => {
         style={{ border: "1px solid #535353" }}
         className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
       >
-        {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+        {isAuthorised() ? (
           <>
             <h3 className="text-[1.1rem] font-[500]">You are authorised</h3>
             <div
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
               className="absolute flex items-center cursor-pointer text-sm subtext gap-x-1 right-[10px]"
             >
               <IoArrowBackOutline />
@@ -84,7 +96,7 @@ const AliasAuth = () => {
                 <InputWithIcon
                   placeholder=""
                   type="text"
-                  value={otpExpiry.name}
+                  value={otpExpiry!.name}
                   onChange={(value) => {}}
                   disabled={true}
                 />
@@ -108,7 +120,7 @@ const AliasAuth = () => {
             </h3>
 
             <div
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
               className="absolute flex items-center cursor-pointer text-sm subtext gap-x-1 right-[10px]"
             >
               <IoArrowBackOutline />
@@ -135,7 +147,7 @@ const AliasAuth = () => {
                     }
                   />
                 </div>
-                {info.email !== "" && <Button text="Send" onClick={send} />}
+                {info.email !== "" && <Button text="Send OTP" onClick={send} />}
               </div>
 
               <div className="label_input">

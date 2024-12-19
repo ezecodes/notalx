@@ -10,7 +10,7 @@ import { CiLock } from "react-icons/ci";
 import { AiOutlineDelete } from "react-icons/ai";
 import { FaCheck, FaExpand } from "react-icons/fa";
 import { GlobalContext } from "./hook";
-import { formatRelativeTime } from "./utils";
+import { encodeToBase62, formatRelativeTime } from "./utils";
 import { RiDraftLine } from "react-icons/ri";
 import { MdRadioButtonUnchecked } from "react-icons/md";
 
@@ -23,6 +23,8 @@ const Editor = () => {
     draftCount,
     loadDrafts,
     deleteDraft,
+    Is_Selected_Alias_Authorised,
+    otpExpiry,
   } = useContext(GlobalContext)!;
   const hasCalled = useRef(false);
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
@@ -159,10 +161,28 @@ const Editor = () => {
             <div className="flex flex-col gap-y-3   ">
               <div className="label_input">
                 <label className="text-gray-400">Find your alias</label>
-                <SearchDropdown
-                  onClick={(value) => setSelectedAlias(value)}
-                  selected={selectedAlias}
-                />
+                <div className="flex gap-x-3">
+                  <SearchDropdown
+                    onClick={(value) => setSelectedAlias(value)}
+                    selected={selectedAlias}
+                  />
+
+                  {!selectedAlias ||
+                    (!Is_Selected_Alias_Authorised() &&
+                    selectedAlias.id !== otpExpiry?.alias_id ? (
+                      <Button
+                        text="Authorise"
+                        onClick={() =>
+                          navigate(
+                            "/auth-with-alias?alias=" +
+                              encodeToBase62(selectedAlias.id)
+                          )
+                        }
+                      />
+                    ) : (
+                      <></>
+                    ))}
+                </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-x-6">

@@ -1,8 +1,8 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { ImCancelCircle } from "react-icons/im";
 import { ErrorCodes, INote } from "../type";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { fetchNote, isSessionExpired } from "./utils";
+import { useNavigate, useParams } from "react-router-dom";
+import { fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
 import {
   Button,
@@ -17,7 +17,8 @@ const ViewNote: FC<IViewNote> = () => {
   const [note, setNote] = useState<INote | null>(null);
   const retries = useRef(0);
   const hasCalled = useRef(false);
-  const { otpExpiry, getOTPExpiry, deleteNote } = useContext(GlobalContext)!;
+  const { Is_Selected_Alias_Authorised, getOTPExpiry, deleteNote } =
+    useContext(GlobalContext)!;
 
   const navigate = useNavigate();
 
@@ -72,7 +73,7 @@ const ViewNote: FC<IViewNote> = () => {
           </div>
 
           <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
-            {otpExpiry && !isSessionExpired(otpExpiry.expiry) ? (
+            {Is_Selected_Alias_Authorised() ? (
               <>
                 <Button text="Delete" onClick={() => deleteNote(note.id)} />
                 <Button

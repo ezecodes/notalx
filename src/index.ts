@@ -162,6 +162,7 @@ ApiRoute.get("/otp/expiry", async (req: Request, res: Response) => {
       expiry: session.expiry,
       alias_id: session.alias_id,
       name: find?.dataValues.name,
+      is_valid_auth: isSessionExpired(session.expiry) ? false : true,
     },
   });
 });
@@ -178,12 +179,41 @@ ApiRoute.get("/alias/search", async (req: Request, res: Response) => {
   res.json({ status: "ok", data: { rows: data } });
 });
 
+ApiRoute.get("/alias/:alias_id", async (req: Request, res: Response) => {
+  const aliasId = req.params["alias_id"];
+
+  const attrs = ["name"];
+  const authAlias = await isAuthorizedAlias(req, aliasId);
+  const find = await Alias.findByPk(aliasId, { attributes: attrs, raw: true });
+  if (authAlias) {
+    attrs.push("email");
+  }
+
+  if (!find) {
+    res.status(400).json({
+      status: "err",
+      error_code: ErrorCodes.RESOURCE_NOT_FOUND,
+      message: "Alias not found",
+    });
+    return;
+  }
+
+  res.json({
+    status: "ok",
+    data: {
+      ...find,
+      id: aliasId,
+    },
+  });
+});
+
 ApiRoute.post("/alias", async (req: Request, res: Response) => {
   const body: Partial<IAlias> = req.body;
   let { name, email } = body;
   if (!name || !email) {
-    res.json({
+    res.status(400).json({
       status: "err",
+      error_code: ErrorCodes.VALIDATION_ERROR,
       message: "Alias must have a name an a recovery email",
     });
     return;
@@ -318,7 +348,6 @@ ApiRoute.get("/note/:note_slug", async (req: Request, res: Response) => {
 
   if (find?.dataValues.is_hidden) {
     const authAlias = await isAuthorizedAlias(req, find.dataValues.alias_id);
-    console.log(authAlias);
     if (
       !authAlias &&
       (!secret ||
@@ -385,6 +414,16 @@ ApiRoute.post("/note", async (req: Request, res: Response) => {
   const { alias_id, note }: { alias_id: string; note: Partial<INote> } =
     req.body;
   const { content, title, is_hidden, secret, self_destroy_time } = note;
+  const authAlias = await isAuthorizedAlias(req, alias_id);
+
+  if (!authAlias) {
+    res.status(400).json({
+      status: "err",
+      message: authErrMsg + ". Authorise your alias to continue",
+      error_code: ErrorCodes.UNAUTHORIZED,
+    });
+    return;
+  }
 
   const valid = validateIncomingNote(note);
   if (!valid.isValid) {
