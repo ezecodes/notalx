@@ -32,7 +32,10 @@ const CreateAlias: FC<ICreateAlias> = () => {
         style={{ border: "1px solid #535353" }}
         className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md"
       >
-        <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
+        <div className="flex justify-between">
+          <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
+          <ImCancelCircle onClick={() => navigate("/")} />
+        </div>
         <div className="flex items-start gap-x-3 ">
           <ImInfo />
           <ol className="text-gray-300 text-sm list-decimal pl-4">
@@ -49,10 +52,6 @@ const CreateAlias: FC<ICreateAlias> = () => {
               for an alias
             </li>
           </ol>
-        </div>
-
-        <div className="absolute right-[10px]">
-          <ImCancelCircle onClick={() => navigate("/")} />
         </div>
 
         <div className="flex flex-col gap-y-3">

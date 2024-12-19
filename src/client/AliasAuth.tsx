@@ -82,14 +82,17 @@ const AliasAuth = () => {
       >
         {isAuthorised() ? (
           <>
-            <h3 className="text-[1.1rem] font-[500]">You are authorised</h3>
-            <div
-              onClick={() => navigate(-1)}
-              className="absolute flex items-center cursor-pointer text-sm subtext gap-x-1 right-[10px]"
-            >
-              <IoArrowBackOutline />
-              Back
+            <div className="flex gap-x-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="  flex items-center cursor-pointer subtext gap-x-1 "
+              >
+                <IoArrowBackOutline />
+                Back
+              </button>
+              <h3 className="text-[1.1rem] font-[500]">You are authorised</h3>
             </div>
+
             <div className="flex flex-col gap-y-3">
               <div className="label_input">
                 <label>Authorised Alias</label>
@@ -115,16 +118,17 @@ const AliasAuth = () => {
           </>
         ) : (
           <>
-            <h3 className="text-[1.1rem] font-[500]">
-              Authorize alias with OTP
-            </h3>
-
-            <div
-              onClick={() => navigate(-1)}
-              className="absolute flex items-center cursor-pointer text-sm subtext gap-x-1 right-[10px]"
-            >
-              <IoArrowBackOutline />
-              Back
+            <div className="flex justify-between">
+              <h3 className="text-[1.2rem] font-[500]">
+                Authorize alias with OTP
+              </h3>
+              <button
+                onClick={() => navigate(-1)}
+                className="  flex items-center cursor-pointer  subtext gap-x-1 "
+              >
+                <IoArrowBackOutline />
+                Back
+              </button>
             </div>
 
             <div className="flex flex-col gap-y-3">

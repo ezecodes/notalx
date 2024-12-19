@@ -62,7 +62,7 @@ const Home = () => {
 
   return (
     <section className="flex flex-col justify-center items-center w-full">
-      <header className="flex flex-col py-4 gap-y-5 w-full items-center px-3">
+      <header className="flex flex-col py-4 gap-y-5 w-full items-center top_space">
         <div className="flex flex-row gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
           <Button
             text="New alias"
@@ -76,27 +76,25 @@ const Home = () => {
               navigate("/newnote");
             }}
           />
-          <form className="w-full flex items-center gap-x-2 mt-3 sm:mt-0 justify-center  gap-y-2">
-            <div className="flex 3micro:w-[auto] w-[80%] items-center gap-x-3">
-              <SearchDropdown
-                onClick={(value) => setSelectedAlias(value)}
-                selected={selectedAlias}
-              />
-            </div>
+          <AuthorisedInfo clickUrl="/auth-with-alias" otpExpiry={otpExpiry} />
 
-            <AuthorisedInfo clickUrl="/auth-with-alias" otpExpiry={otpExpiry} />
-          </form>
+          <div className="flex w-full items-center gap-x-3">
+            <SearchDropdown
+              onClick={(value) => setSelectedAlias(value)}
+              selected={selectedAlias}
+            />
+          </div>
         </div>
       </header>
 
       {selectedAlias && selectedNotes && selectedNotes.length > 0 && (
-        <section className="w-full px-10 py-5 mb-3">
+        <section className="w-full top_space py-5 mb-3">
           {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
           <div className="flex gap-4 flex-wrap">
             {selectedNotes.map((i, key) => {
               return (
                 <div
-                  className="shadow-sm w-full  py-2 h-[200px] 2micro:w-[300px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+                  className="shadow-sm w-full  py-2 h-[200px] 3micro:w-[420px] rounded-md gap-y-2 flex flex-col overflow-hidden"
                   style={{ border: "1px solid #353535" }}
                   key={i.id}
                 >

@@ -59,7 +59,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const deleteNote = async (id: string) => {
     const e = prompt("Are you sure ? Type yes to confirm");
-    console.log(e);
     if (!e || e !== "yes") {
       alert("Aborted");
       return;

@@ -51,19 +51,21 @@ const ViewNote: FC<IViewNote> = () => {
   if (!note) return <></>;
 
   return (
-    <div className="modal px-5 relative animate__animated animate__slideInDown">
-      <div className="flex modal_child mt-7 flex-col gap-y-3  relative  px-5 py-5 rounded-md">
-        <button
-          onClick={() => history.back()}
-          className="absolute right-[10px]"
-        >
-          <ImCancelCircle />
-        </button>
-        <h4 className="font-[500] text-[1.4rem]">{note.title}</h4>
+    <div className="modal top_space relative animate__animated animate__slideInDown">
+      <div className="flex modal_child mt-7 flex-col gap-y-3  relative    py-5 rounded-md">
+        <div className="flex justify-between">
+          <h4 className="font-[500] text-[1.4rem]">{note.title}</h4>
+          <button
+            onClick={() => history.back()}
+            className="absolute right-[10px]"
+          >
+            <ImCancelCircle />
+          </button>
+        </div>
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
 
-        <div className="flex flex-col gap-y-3 pt-4 items-end border_top">
-          <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
+        <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">
+          <div className="flex text-md gap-x-3 gap-y-3 flex-wrap  justify-end ">
             <ExpirationInfo
               time={note.self_destroy_time}
               willSelfDestroy={note.will_self_destroy}

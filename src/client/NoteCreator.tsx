@@ -102,9 +102,8 @@ const Editor = () => {
           )}
         </header>
         <form className="modal_child relative gap-y-3 flex flex-col  px-3 my-5 py-3">
-          <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
-
-          <div className="absolute right-0">
+          <div className="flex justify-between">
+            <h3 className="text-[1.3rem] font-[500]">Creating note</h3>
             <Button
               text="Close"
               icon={<ImCancelCircle />}
@@ -165,9 +164,9 @@ const Editor = () => {
             style={{ borderTop: "1px solid #3d3d3d" }}
           >
             <div className="flex flex-col gap-y-3   ">
-              <div className="label_input">
+              <div className="label_input flex-wrap">
                 <label className="text-gray-400">Find your alias</label>
-                <div className="flex gap-x-3">
+                <div className="flex gap-x-3 w-full">
                   <SearchDropdown
                     onClick={(value) => setSelectedAlias(value)}
                     selected={selectedAlias}
@@ -194,7 +193,7 @@ const Editor = () => {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-x-6">
+              <div className="grid sm:grid-cols-2 gap-y-3 gap-x-6">
                 {editor.hidden && (
                   <div className="label_input">
                     <label className="text-gray-400">
