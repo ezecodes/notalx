@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/src/index.js",
     "dev": "concurrently \"npm run dev:client \" \"npm run dev:server \" \"npm run dev:css\" ",
-    "build": "concurrently \"npm run build:css\" \"npm run build:client\" \"npm run build:server\" && cpx 'public/**/*' dist/public && cpx 'src/views/**/*' dist/src/views",
+    "build": "npm run build:css && npm run build:client && npm run build:server && cpx 'public/**/*' dist/public && cpx 'src/views/**/*' dist/src/views",
     "dev:server": "ts-node-dev --respawn ./src/index.ts",
     "dev:client": "npx webpack --mode=development --watch",
     "build:client": "npx webpack --mode=production",

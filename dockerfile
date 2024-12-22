@@ -14,6 +14,8 @@ COPY . .
 # Compile TypeScript to JavaScript
 RUN npm run build
 
+RUN npx sequelize-cli db:migrate
+
 # Expose the application port
 EXPOSE 4000
 
