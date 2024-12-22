@@ -1,22 +1,21 @@
 const path = require("path");
 
-const DATABASE = {
-  dialect: "sqlite",
-  storage: path.resolve(__dirname, "..", "database.sqlite"),
-  logging: false,
-};
-
 module.exports = {
   development: {
-    ...DATABASE,
+    dialect: "sqlite",
+    storage:
+      process.env.DATABASE_URL ||
+      path.resolve(__dirname, "..", "data", "sqlite.db"),
     logging: console.log,
   },
   test: {
-    ...DATABASE,
-    storage: path.resolve(__dirname, "..", "test-database.sqlite"),
+    dialect: "sqlite",
+    storage: path.resolve(__dirname, "..", "data", "test-database.sqlite"),
+    logging: false,
   },
   production: {
-    ...DATABASE,
+    dialect: "sqlite",
+    storage: process.env.DATABASE_URL || "/data/sqlite.db", // Use persistent disk path on Render
     logging: false,
   },
 };
