@@ -7,8 +7,8 @@ module.exports = {
         allowNull: false,
         primaryKey: true,
       },
-      name: { type: DataTypes.STRING, unique: true, allowNull: false },
-      email: { type: DataTypes.STRING, unique: true, allowNull: true },
+      name: { type: Sequelize.STRING, unique: true, allowNull: false },
+      email: { type: Sequelize.STRING, unique: true, allowNull: true },
     });
   },
 

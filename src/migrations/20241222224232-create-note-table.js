@@ -8,25 +8,25 @@ module.exports = {
         primaryKey: true,
       },
       alias_id: {
-        type: DataTypes.UUID,
+        type: Sequelize.UUID,
         allowNull: false,
       },
-      slug: { type: DataTypes.STRING, unique: true, allowNull: false },
-      content: { type: DataTypes.STRING, allowNull: false },
-      title: { type: DataTypes.STRING, allowNull: false },
+      slug: { type: Sequelize.STRING, unique: true, allowNull: false },
+      content: { type: Sequelize.STRING, allowNull: false },
+      title: { type: Sequelize.STRING, allowNull: false },
       is_hidden: {
-        type: DataTypes.BOOLEAN,
+        type: Sequelize.BOOLEAN,
         allowNull: true,
         defaultValue: false,
       },
       will_self_destroy: {
-        type: DataTypes.BOOLEAN,
+        type: Sequelize.BOOLEAN,
         allowNull: true,
         defaultValue: false,
       },
-      secret: { type: DataTypes.STRING, allowNull: true },
+      secret: { type: Sequelize.STRING, allowNull: true },
       self_destroy_time: {
-        type: DataTypes.STRING,
+        type: Sequelize.STRING,
         allowNull: true,
       },
     });
