@@ -59,7 +59,7 @@ const ViewNote: FC<IViewNote> = () => {
         <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
 
         <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">
-          <div className="flex text-md gap-x-3 gap-y-3 flex-wrap  justify-end ">
+          <div className="flex text-md gap-x-3 gap-y-3 flex-wrap items-center  justify-end ">
             <ExpirationInfo
               time={note.self_destroy_time}
               willSelfDestroy={note.will_self_destroy}

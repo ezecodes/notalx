@@ -1,6 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import Memcached from "memcached";
 
-const MEMCACHED_SERVERS = ["127.0.0.1:11211"];
+const MEMCACHED_SERVERS = process.env.MEMCACHED_SERVERS?.split(",")!;
 
 // Options for Memcached
 const MEMCACHED_OPTIONS: Memcached.options = {

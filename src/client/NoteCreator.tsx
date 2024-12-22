@@ -95,7 +95,7 @@ const Editor = () => {
           <BackButton text={"Creating note"} url={-1} />
           <span
             onClick={() => setDraftModal(true)}
-            className="tex-sm subtext text-underline text-right"
+            className="tex-sm subtext cursor-pointer text-underline text-right"
           >
             Open saved drafts
           </span>
@@ -165,7 +165,7 @@ const Editor = () => {
                     (!Is_Selected_Alias_Authorised() &&
                     selectedAlias.id !== otpExpiry?.alias_id ? (
                       <span
-                        className="text-sm subtext text-underline "
+                        className="text-sm subtext cursor-pointer text-underline "
                         onClick={() =>
                           navigate(
                             "/auth-with-alias?alias=" +

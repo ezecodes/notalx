@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notespace
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      MEMCACHED_HOST: memcached
+      MEMCACHED_PORT: 11212
+      DATABASE_URL: file:/data/sqlite.db
+    volumes:
+      - ./data:/data
+    depends_on:
+      - memcached
+    networks:
+      - app-network
+
+  memcached:
+    image: memcached:latest
+    container_name: memcached
+    ports:
+      - "11212:11212"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

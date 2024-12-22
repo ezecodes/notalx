@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, {
   CookieOptions,
   NextFunction,
@@ -18,10 +21,8 @@ import { validate } from "uuid";
 import { createTransport } from "nodemailer";
 import cron from "node-cron";
 
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import memcachedService from "./memcache";
-dotenv.config();
 
 const server = express();
 const sessionKey = "s-tkn";
