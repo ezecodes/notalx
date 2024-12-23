@@ -10,9 +10,8 @@ services:
       NODE_ENV: development
       MEMCACHED_HOST: memcached
       MEMCACHED_PORT: 11212
-      DATABASE_URL: file:/data/sqlite.db
     volumes:
-      - ./data:/data
+      - ./database.sqlite:/database.sqlite
     depends_on:
       - memcached
     networks:

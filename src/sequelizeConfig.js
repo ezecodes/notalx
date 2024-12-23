@@ -1,21 +1,22 @@
 const path = require("path");
+const dotenv = require("dotenv");
+dotenv.config();
 
+const dbPath = path.join(__dirname, "..", "./database.sqlite");
 module.exports = {
   development: {
     dialect: "sqlite",
-    storage:
-      process.env.DATABASE_URL ||
-      path.resolve(__dirname, "..", "data", "sqlite.db"),
+    storage: dbPath,
     logging: console.log,
   },
   test: {
     dialect: "sqlite",
-    storage: path.resolve(__dirname, "..", "data", "test-database.sqlite"),
+    storage: path.join(__dirname, "..", "data", "test-database.sqlite"),
     logging: false,
   },
   production: {
     dialect: "sqlite",
-    storage: process.env.DATABASE_URL || "/data/sqlite.db", // Use persistent disk path on Render
+    storage: dbPath,
     logging: false,
   },
 };
