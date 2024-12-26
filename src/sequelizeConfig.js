@@ -2,7 +2,7 @@ const path = require("path");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const dbPath = path.join(__dirname, "..", "./database.sqlite");
+const dbPath = path.join(__dirname, "../", "database.sqlite");
 module.exports = {
   development: {
     dialect: "sqlite",
@@ -11,7 +11,7 @@ module.exports = {
   },
   test: {
     dialect: "sqlite",
-    storage: path.join(__dirname, "..", "data", "test-database.sqlite"),
+    storage: path.join(__dirname, "..", "test-database.sqlite"),
     logging: false,
   },
   production: {

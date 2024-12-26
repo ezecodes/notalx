@@ -32,14 +32,24 @@ export const fetchAllAlias = async () => {
   return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
 
-export const fetchAliasNotes = async (id: string) => {
-  const f = await fetch("/api/note/alias/" + id);
+export const fetchAliasPublicAndPrivateNotes = async () => {
+  const f = await fetch(`/api/note`);
+  return (await f.json()) as IApiResponse<{ notes: INote[] }>;
+};
+
+export const fetchAliasPublicNotes = async (id: string) => {
+  const f = await fetch(`/api/alias/${id}/note`);
   return (await f.json()) as IApiResponse<{ alias: _IAlias; notes: INote[] }>;
 };
 export const searchAliasByName = async (name: string) => {
   const f = await fetch("/api/alias/search?name=" + name);
   return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
+export const fetchAllPublicNotes = async () => {
+  const f = await fetch("/api/note/");
+  return (await f.json()) as IApiResponse<{ alias: _IAlias; notes: INote[] }>;
+};
+
 export const fetchNote = async (slug: string, secret: string) => {
   const f = await fetch("/api/note/" + slug, {
     headers: {

@@ -68,7 +68,21 @@ export interface INoteCreator {
   selfDestroyTime: string;
   draft_id: number | null;
   createdAt: Date;
+  selectedAlias: _IAlias;
 }
+
+export type IOtpSession = {
+  expiry: string | Date;
+  alias_id: string;
+  auth_code_hash: string;
+};
+
+export type IAuthSession = {
+  expiry: Date | string;
+  ip_address: string;
+  user_agent: string;
+  alias_id: string;
+};
 
 export interface INoteEditor {
   id: string;
@@ -79,12 +93,12 @@ export interface INoteEditor {
   selfDestroyTime: string;
   createdAt: Date;
 }
-export interface IOtpExpiry {
+export type IOtpExpiry = {
   expiry: string;
   alias_id: string;
   name: string;
   is_valid_auth: boolean;
-}
+};
 declare module "express" {
   interface Response {
     json<DataType = any>(body: IApiResponse<DataType>): this;
@@ -94,7 +108,7 @@ declare global {
   namespace Express {
     export interface Request {
       alias?: {
-        isCorrectSecret: boolean;
+        id: string;
       };
     }
   }

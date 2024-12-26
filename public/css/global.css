@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 :root {
-  --bg_color: #232323;
+  --bg_color: #212121;
   --text_color: #fff;
   --border_color: #555555;
   --top_gap: 10px;
@@ -28,7 +28,14 @@ body {
   color: var(--text_color);
 }
 .primary_button {
-  @apply rounded-md  gap-x-2 max-w-[180px] button px-3 py-2  flex items-center justify-center;
+  @apply rounded-md  gap-x-2 max-w-[180px] h-[35px] px-2  flex items-center justify-center;
+}
+.sub_button {
+  @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm button flex items-center justify-center;
+}
+
+.sub_button svg {
+  @apply text-[.8rem];
 }
 input {
   height: 33px;
@@ -59,6 +66,10 @@ button {
 .label_input > label {
   @apply text-gray-200  mb-1;
 }
+
+label {
+  @apply text-sm;
+}
 .modal {
   position: fixed;
   inset: 0px;
@@ -66,7 +77,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #232323;
+  background: var(--bg_color);
   overflow-y: scroll;
 }
 

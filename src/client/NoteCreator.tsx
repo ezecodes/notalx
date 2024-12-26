@@ -25,14 +25,12 @@ const Editor = () => {
     editor,
     setEditor,
     saveToStore,
-    draftCount,
     loadDrafts,
     deleteDraft,
-    Is_Selected_Alias_Authorised,
     otpExpiry,
+    Is_Authorised_Alias_Same_As_Selected_Alias,
   } = useContext(GlobalContext)!;
   const hasCalled = useRef(false);
-  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
   const [secretInputType, setSecretInputType] = useState("text");
 
   const [isDraftModalOpen, setDraftModal] = useState(false);
@@ -67,7 +65,7 @@ const Editor = () => {
           secret: editor.secret,
         },
 
-        alias_id: selectedAlias?.id,
+        alias_id: editor.selectedAlias?.id,
       }),
       headers: {
         "content-type": "application/json",
@@ -77,14 +75,7 @@ const Editor = () => {
     toast(response.message);
     if (response.status === "ok") {
       deleteDraft(editor.draft_id!);
-      setEditor({
-        title: "",
-        content: "",
-        draft_id: null,
-        hidden: false,
-        secret: "",
-        willSelfDestroy: false,
-      });
+      navigate("/?alias=" + encodeToBase62(editor.selectedAlias?.id!));
     }
   };
 
@@ -120,7 +111,7 @@ const Editor = () => {
 
           <fieldset className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
             <button
-              className={`primary_button ${
+              className={`sub_button ${
                 editor.willSelfDestroy ? "success_text" : "subtext"
               } `}
               onClick={() =>
@@ -137,7 +128,7 @@ const Editor = () => {
             </button>
 
             <button
-              className={`primary_button ${
+              className={`sub_button ${
                 editor.hidden ? "success_text" : "subtext"
               } `}
               onClick={() => handleUpdate({ hidden: !editor.hidden })}
@@ -154,22 +145,27 @@ const Editor = () => {
           >
             <div className="flex flex-col gap-y-3   ">
               <div className="label_input flex-wrap">
-                <label className="subtext">Find your alias</label>
+                <label className="subtext">
+                  {Is_Authorised_Alias_Same_As_Selected_Alias()
+                    ? "Your alias"
+                    : "Find your alias"}
+                </label>
                 <div className="flex gap-x-3 w-full">
                   <SearchDropdown
-                    onClick={(value) => setSelectedAlias(value)}
-                    selected={selectedAlias}
+                    onClick={(value) => handleUpdate({ selectedAlias: value! })}
+                    selected={editor.selectedAlias ?? null}
                   />
 
-                  {!selectedAlias ||
-                    (!Is_Selected_Alias_Authorised() &&
-                    selectedAlias.id !== otpExpiry?.alias_id ? (
+                  {!editor.selectedAlias ||
+                    (!Is_Authorised_Alias_Same_As_Selected_Alias(
+                      editor.selectedAlias.id
+                    ) ? (
                       <span
                         className="text-sm subtext cursor-pointer text-underline "
                         onClick={() =>
                           navigate(
                             "/auth-with-alias?alias=" +
-                              encodeToBase62(selectedAlias.id)
+                              encodeToBase62(editor.selectedAlias!.id)
                           )
                         }
                       >
@@ -286,7 +282,7 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
         <Button text="Dismis" onClick={() => closeModal()} />
       </div>
       <div className="text-gray-300 text-sm space-y-2">
-        <p>
+        <p className=" text-sm ">
           You have an existing unsaved draft. This draft will remain saved for
           you to revisit later unless you choose to delete it manually.
         </p>
@@ -328,7 +324,7 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
             );
           })}
         </div>
-        <p>
+        <p className="text-sm ">
           This ensures your progress is safe while giving you full control over
           managing your notes.
         </p>

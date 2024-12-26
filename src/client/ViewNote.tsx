@@ -18,7 +18,7 @@ const ViewNote: FC<IViewNote> = () => {
   const [note, setNote] = useState<INote | null>(null);
   const retries = useRef(0);
   const hasCalled = useRef(false);
-  const { Is_Selected_Alias_Authorised, getOTPExpiry, deleteNote } =
+  const { Is_Authorised_Alias_Same_As_Note_Alias, getOTPExpiry, deleteNote } =
     useContext(GlobalContext)!;
 
   const navigate = useNavigate();
@@ -69,7 +69,7 @@ const ViewNote: FC<IViewNote> = () => {
           </div>
 
           <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
-            {Is_Selected_Alias_Authorised() ? (
+            {Is_Authorised_Alias_Same_As_Note_Alias(note.alias_id) ? (
               <>
                 <Button text="Delete" onClick={() => deleteNote(note.id)} />
                 <Button

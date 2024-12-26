@@ -29,9 +29,9 @@ const CreateAlias: FC<ICreateAlias> = () => {
 
   return (
     <div className="modal animate__animated animate__slideInDown">
-      <div className="flex mt-7 flex-col gap-y-3 relative modal_child shadow-md px-5 py-5 rounded-md">
+      <div className="flex mt-7 flex-col gap-y-3 relative modal_child px-5 py-5 rounded-md">
         <BackButton text={"Create an alias"} url={-1} />
-        <div className="flex items-start gap-x-3 ">
+        {/* <div className="flex items-start gap-x-3 ">
           <ImInfo />
           <ol className="text-gray-300 text-sm list-decimal pl-4">
             <li>
@@ -47,7 +47,7 @@ const CreateAlias: FC<ICreateAlias> = () => {
               for an alias
             </li>
           </ol>
-        </div>
+        </div> */}
 
         <div className="flex flex-col gap-y-3">
           <div className="label_input">

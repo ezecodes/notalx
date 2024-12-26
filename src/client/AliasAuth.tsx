@@ -7,7 +7,7 @@ import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 
 const AliasAuth = () => {
-  const [info, setInfo] = useState({ otp: "", email: "" });
+  const [info, setInfo] = useState({ otp: "" });
   const { otpExpiry, getOTPExpiry, isAuthorised } = useContext(GlobalContext)!;
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
 
@@ -34,7 +34,7 @@ const AliasAuth = () => {
   const send = async () => {
     const f = await fetch("/api/otp/send", {
       method: "post",
-      body: JSON.stringify({ email: info.email, alias_id: selectedAlias?.id }),
+      body: JSON.stringify({ alias_id: selectedAlias?.id }),
       headers: {
         "content-type": "application/json",
       },
@@ -45,7 +45,7 @@ const AliasAuth = () => {
   const verify = async () => {
     const f = await fetch("/api/otp/verify", {
       method: "post",
-      body: JSON.stringify({ email: info.email, code: info.otp }),
+      body: JSON.stringify({ alias_id: selectedAlias?.id, code: info.otp }),
       headers: {
         "content-type": "application/json",
       },
@@ -108,43 +108,31 @@ const AliasAuth = () => {
         ) : (
           <>
             <div className="flex flex-col gap-y-3">
-              <div className="label_input">
-                <label>Select alias</label>
-                <SearchDropdown
-                  onClick={(value) => setSelectedAlias(value)}
-                  selected={selectedAlias}
-                />
-              </div>
               <div className="flex items-end gap-x-3">
                 <div className="label_input">
-                  <label>Enter your email</label>
+                  <label>Select alias</label>
+                  <SearchDropdown
+                    onClick={(value) => setSelectedAlias(value)}
+                    selected={selectedAlias}
+                  />
+                </div>
+                {selectedAlias && <Button text="Send OTP" onClick={send} />}
+              </div>
+
+              <div className="flex items-end gap-x-3">
+                <div className="label_input">
+                  <label>OTP</label>
                   <InputWithIcon
                     placeholder=""
                     type="text"
-                    value={info.email}
+                    value={info.otp}
                     onChange={(value) =>
-                      setInfo((prev) => ({ ...prev, email: value }))
+                      setInfo((prev) => ({ ...prev, otp: value }))
                     }
                   />
                 </div>
-                {info.email !== "" && <Button text="Send OTP" onClick={send} />}
+                <Button text="Verify OTP" onClick={verify} />
               </div>
-
-              <div className="label_input">
-                <label>OTP</label>
-                <InputWithIcon
-                  placeholder=""
-                  type="text"
-                  value={info.otp}
-                  onChange={(value) =>
-                    setInfo((prev) => ({ ...prev, otp: value }))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="flex w-full justify-end">
-              <Button text="Verify OTP" onClick={verify} />
             </div>
           </>
         )}

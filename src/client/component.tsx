@@ -251,12 +251,15 @@ export const DisplayDateCreated: FC<IDc> = ({ date }) => {
   return <span className="text-sm subtext">{formatRelativeTime(date)}</span>;
 };
 
-interface IAi {
+interface IAuthorisedInfo {
   onClick?: () => void;
   clickUrl: any;
   otpExpiry: IOtpExpiry | null;
 }
-export const AuthorisedInfo: FC<IAi> = ({ clickUrl, otpExpiry }) => {
+export const AuthorisedInfo: FC<IAuthorisedInfo> = ({
+  clickUrl,
+  otpExpiry,
+}) => {
   const navigate = useNavigate();
   return (
     <div

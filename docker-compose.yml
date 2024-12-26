@@ -11,7 +11,7 @@ services:
       MEMCACHED_HOST: memcached
       MEMCACHED_PORT: 11212
     volumes:
-      - ./database.sqlite:/database.sqlite
+      - ./database.sqlite:./database.sqlite
     depends_on:
       - memcached
     networks:

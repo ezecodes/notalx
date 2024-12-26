@@ -14,7 +14,11 @@ import {
   INoteCreator,
   IOtpExpiry,
 } from "../type";
-import { fetchAliasNotes } from "./utils";
+import {
+  fetchAllPublicNotes,
+  fetchAliasPublicNotes,
+  fetchAliasPublicAndPrivateNotes,
+} from "./utils";
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -36,8 +40,9 @@ type IContext = {
   fetchNotes: (aliasId?: string) => void;
   deleteNote: (noteId: string) => void;
 
-  Is_Selected_Alias_Authorised: () => boolean;
+  Is_Authorised_Alias_Same_As_Note_Alias: (alias_id: string) => boolean;
   isAuthorised: () => boolean;
+  Is_Authorised_Alias_Same_As_Selected_Alias: (alias_id?: string) => boolean;
 };
 const key = "drafts";
 
@@ -64,7 +69,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       return;
     }
 
-    const f = await fetch("/api/note/delete", { method: "delete" });
+    const f = await fetch(`/api/note/${id}/delete`, { method: "delete" });
     const response: IApiResponse<null> = await f.json();
 
     alert(response.message);
@@ -78,13 +83,19 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const fetchNotes = (aliasId?: string) => {
-    if (!aliasId || aliasId === undefined) return;
-    fetchAliasNotes(aliasId).then((res) => {
-      if (res.status === "ok" && res.data) {
-        setSelectedNotes(res.data.notes);
-        setSelectedAlias(res.data.alias);
-      }
-    });
+    if (aliasId) {
+      fetchAliasPublicNotes(aliasId).then((res) => {
+        if (res.status === "ok" && res.data) {
+          setSelectedNotes(res.data.notes);
+        }
+      });
+    } else {
+      fetchAliasPublicAndPrivateNotes().then((res) => {
+        if (res.status === "ok" && res.data) {
+          setSelectedNotes(res.data.notes);
+        }
+      });
+    }
   };
 
   const loadDrafts = () => {
@@ -152,8 +163,16 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
-  const Is_Selected_Alias_Authorised = () => {
-    if (otpExpiry?.is_valid_auth && selectedAlias?.id === otpExpiry.alias_id)
+  const Is_Authorised_Alias_Same_As_Note_Alias = (alias_id: string) => {
+    if (otpExpiry?.is_valid_auth && alias_id === otpExpiry.alias_id)
+      return true;
+    return false;
+  };
+
+  const Is_Authorised_Alias_Same_As_Selected_Alias = (alias_id?: string) => {
+    if (!alias_id && !selectedAlias) return false;
+    let aliasToUse = alias_id ?? selectedAlias!.id!;
+    if (otpExpiry?.is_valid_auth && aliasToUse === otpExpiry.alias_id)
       return true;
     return false;
   };
@@ -175,7 +194,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     setSelectedAlias,
     selectedAlias,
     getOTPExpiry,
-    Is_Selected_Alias_Authorised,
+    Is_Authorised_Alias_Same_As_Note_Alias,
     isAuthorised,
 
     otpExpiry,
@@ -183,6 +202,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     selectedNotes,
     fetchNotes,
     deleteNote,
+    Is_Authorised_Alias_Same_As_Selected_Alias,
   };
 
   return (

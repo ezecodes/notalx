@@ -7,7 +7,7 @@ import {
   DisplayDateCreated,
   SearchDropdown,
 } from "./component";
-import { decodeFromBase62, encodeToBase62 } from "./utils";
+import { encodeToBase62 } from "./utils";
 import { GlobalContext } from "./hook";
 import { MdDeleteOutline } from "react-icons/md";
 import { VscLock } from "react-icons/vsc";
@@ -22,33 +22,30 @@ const Home = () => {
     fetchNotes,
     selectedNotes,
     deleteNote,
-    Is_Selected_Alias_Authorised,
+    Is_Authorised_Alias_Same_As_Note_Alias,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
     try {
-      let redirect = searchParams.get("r");
+      const redirect = searchParams.get("r");
 
       if (redirect) {
-        navigate(decodeURIComponent(redirect));
+        navigate(decodeURIComponent(redirect), { replace: true });
       }
 
-      let alias = searchParams.get("alias");
-      if (alias) {
-        alias = decodeFromBase62(alias);
-        fetchNotes();
-      }
+      fetchNotes();
 
       getOTPExpiry();
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [navigate, searchParams]);
 
   useEffect(() => {
-    fetchNotes(selectedAlias?.id);
-    selectedAlias && navigate("/?alias=" + encodeToBase62(selectedAlias.id!));
+    if (selectedAlias) {
+      fetchNotes(selectedAlias?.id);
+    }
   }, [selectedAlias?.id]);
 
   return (
@@ -78,7 +75,7 @@ const Home = () => {
         </div>
       </header>
 
-      {selectedAlias && selectedNotes && selectedNotes.length > 0 && (
+      {selectedNotes && selectedNotes.length > 0 && (
         <section className="w-full top_space py-5 mb-3">
           {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
           <div className="flex gap-4 flex-wrap">
@@ -106,7 +103,7 @@ const Home = () => {
 
                   <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-end gap-x-2">
                     <DisplayDateCreated date={i.createdAt} />
-                    {Is_Selected_Alias_Authorised() ? (
+                    {Is_Authorised_Alias_Same_As_Note_Alias(i.alias_id) ? (
                       <>
                         <MdDeleteOutline onClick={() => deleteNote(i.id)} />
                         <IoCreateOutline

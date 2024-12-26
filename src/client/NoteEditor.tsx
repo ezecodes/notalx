@@ -72,8 +72,6 @@ const Editor = () => {
     <>
       <div className="modal animate__animated animate__slideInDown  ">
         <form className="modal_child    gap-y-3 flex flex-col  px-3 my-5 py-3">
-          <h3 className="text-[1.3rem] font-[500]">Editing note</h3>
-
           <BackButton text={"Editing note"} url={-1} />
 
           {editor ? (
