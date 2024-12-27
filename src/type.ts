@@ -6,10 +6,6 @@ export type IAlias = {
   updatedAt: Date;
 };
 
-export type INoteHistory = {
-  note_id: string;
-};
-
 export type _IAlias = {
   id: string;
   name: string;
