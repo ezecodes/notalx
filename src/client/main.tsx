@@ -17,30 +17,31 @@ import AuthorisedAliasNotes from "./AuthorisedAliasNotes";
 
 const route = createBrowserRouter([
   {
+    path: "newnote",
+    element: <NoteCreator />,
+  },
+  {
+    path: "edit/:note_slug",
+    element: <NoteEditor />,
+  },
+  {
+    path: ":note_slug",
+    element: <ViewNote />,
+  },
+  {
     path: "/",
     element: <Home />,
     children: [
-      {
-        path: "newnote",
-        element: <NoteCreator />,
-      },
       {
         path: "newalias",
         element: <CreateAlias />,
       },
 
       {
-        path: "edit/:note_slug",
-        element: <NoteEditor />,
-      },
-      {
         path: "auth-with-alias",
         element: <AliasAuth />,
       },
-      {
-        path: ":note_slug",
-        element: <ViewNote />,
-      },
+
       {
         path: "faq",
         element: <Faq />,

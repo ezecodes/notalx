@@ -1,6 +1,11 @@
 import { Router } from "express";
 import * as Controller from "./controller";
-import { authoriseAlias, validateAliasId, validateNoteId } from "./middlewares";
+import {
+  authoriseAlias,
+  authoriseAliasForNote,
+  validateAliasId,
+  validateNoteId,
+} from "./middlewares";
 
 const router = Router();
 const otpRouter = Router();
@@ -32,8 +37,18 @@ router
 
 router
   .route("/note/:note_id")
-  .delete(authoriseAlias, Controller.deleteNote)
+  .delete(authoriseAlias, authoriseAliasForNote, Controller.deleteNote)
   .put(authoriseAlias, Controller.editNote);
+
+router
+  .route("/note/:note_id/collaborators")
+  .get(authoriseAlias, Controller.getNoteCollaborators)
+  .post(authoriseAlias, authoriseAliasForNote, Controller.addNoteCollaborators)
+  .delete(
+    authoriseAlias,
+    authoriseAliasForNote,
+    Controller.deleteNoteCollaborator
+  );
 
 router.route("/note/:note_slug").get(Controller.getNoteBySlug);
 

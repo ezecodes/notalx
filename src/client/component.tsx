@@ -27,9 +27,15 @@ export const CollaboratorsModal: FC<{
   note_id: string;
   onClose: () => void;
 }> = ({ note_id, onClose }) => {
-  const { getNoteCollaborators, collaborators, setCollaborators } =
-    useContext(GlobalContext)!;
+  const [collaborators, setCollaborators] = useState<_IAlias[]>([]);
+  const [newCollaborators, setNewCollaborators] = useState<_IAlias[]>([]);
 
+  async function getNoteCollaborators(note_id: string) {
+    const f = await fetch(`/api/note/${note_id}/collaborators`);
+    const response: IApiResponse<{ rows: _IAlias[] }> = await f.json();
+
+    response.status === "ok" && setCollaborators(response.data!.rows);
+  }
   useEffect(() => {
     getNoteCollaborators(note_id);
   }, []);
@@ -39,14 +45,24 @@ export const CollaboratorsModal: FC<{
   function handleCollabUpdate(collab: _IAlias | null) {
     setSelected(collab);
     if (!collab) return;
-    let items = collaborators?.collaborators;
+    let items = newCollaborators;
     if (!items) {
       items = [collab];
-      setCollaborators({ note_id, collaborators: items });
+      setNewCollaborators(items);
     } else {
+      if (items.find((i) => i.id === collab.id)) return;
       items.push(collab);
-      setCollaborators({ note_id, collaborators: items });
+      setNewCollaborators(items);
     }
+  }
+
+  function handleCollabDelete(alias_id: string) {
+    if (selected?.id === alias_id) {
+      setSelected(null);
+    }
+    setNewCollaborators((prev) =>
+      prev.filter((alias) => alias.id !== alias_id)
+    );
   }
 
   async function sendRemove(alias_id: string) {
@@ -60,6 +76,7 @@ export const CollaboratorsModal: FC<{
     const response: IApiResponse<null> = await f.json();
     if (response.status === "err") toast.error(response.message);
     else {
+      setCollaborators((prev) => prev.filter((alias) => alias.id !== alias_id));
       toast.success(response.message);
     }
   }
@@ -70,7 +87,7 @@ export const CollaboratorsModal: FC<{
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ collaborators: collaborators?.collaborators }),
+      body: JSON.stringify({ collaborators: newCollaborators }),
     });
     const response: IApiResponse<null> = await f.json();
     if (response.status === "err") toast.error(response.message);
@@ -88,12 +105,26 @@ export const CollaboratorsModal: FC<{
         <br />
         <SearchDropdown selected={selected} onClick={handleCollabUpdate} />
 
-        <div className="flex flex-col gap-y-2 pt-2">
-          {collaborators &&
-            collaborators?.collaborators.map((i) => {
+        <div className="flex flex-col gap-y-2 pt-2 ">
+          {newCollaborators.length > 0 &&
+            newCollaborators.map((i) => {
               return (
                 <li className="dropdown_item relative">
-                  {i.name}{" "}
+                  {i.name}
+                  <MdDeleteOutline
+                    onClick={() => handleCollabDelete(i.id)}
+                    className="delete_ico absolute right-[5px]"
+                  />
+                </li>
+              );
+            })}
+        </div>
+        <div className="flex flex-col gap-y-2 pt-2 border_top mt-2">
+          {collaborators.length > 0 &&
+            collaborators.map((i) => {
+              return (
+                <li className="dropdown_item relative">
+                  {i.name}
                   <span
                     onClick={() => sendRemove(i.id)}
                     className="absolute right-[5px] hidden text-sm"
@@ -210,6 +241,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [options, setOptions] = useState<_IAlias[]>([]);
   const [input, setInput] = useState<string>("");
+  const { otpExpiry } = useContext(GlobalContext)!;
 
   useEffect(() => {
     fetchAllAlias().then((res) => {
@@ -272,16 +304,18 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
           style={{ borderTop: "1px solid #555555" }}
           className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10"
         >
-          {options.map((option) => (
-            <li
-              key={option.id}
-              onClick={() => handleOptionClick(option)}
-              className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
-              style={{ borderBottom: "1px solid #555555" }}
-            >
-              {option.name}
-            </li>
-          ))}
+          {options
+            .filter((i) => i.id !== otpExpiry?.alias_id)
+            .map((option) => (
+              <li
+                key={option.id}
+                onClick={() => handleOptionClick(option)}
+                className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
+                style={{ borderBottom: "1px solid #555555" }}
+              >
+                {option.name}
+              </li>
+            ))}
           <Link to={"/newalias"} className="text-sm px-4 flex justify-center">
             New Alias
           </Link>

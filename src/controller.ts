@@ -83,7 +83,7 @@ export async function requestOtp(
     expiry,
     auth_code_hash,
   };
-
+  console.log(code);
   memcachedService.set(CacheKeys.otp(otpSessionSlug), cache, 3600);
 
   sendEmail({
@@ -471,16 +471,27 @@ export async function getNoteCollaborators(
   res: Response,
   next: NextFunction
 ) {
-  const { note_id, alias_id } = req.body;
+  const note_id = req.params.note_id;
 
   const find = await NoteCollaborator.findAll({
     where: { note_id },
-    include: {
-      model: Alias,
-    },
   });
+
+  const rows = await Promise.all(
+    find.map(
+      async (i) =>
+        await Alias.findByPk(i.dataValues.alias_id, {
+          attributes: ["id", "name"],
+          raw: true,
+        })
+    )
+  );
+
   res.json({
     status: "ok",
+    data: {
+      rows,
+    },
   });
 }
 
@@ -490,16 +501,42 @@ export async function addNoteCollaborators(
   next: NextFunction
 ) {
   const { collaborators } = req.body;
+  const note_id = req.params.note_id;
 
-  collaborators.forEach(({ note_id, alias_id }: any) => {
-    NoteCollaborator.findOrCreate({
-      where: { note_id, alias_id },
-      defaults: { note_id, alias_id },
-    });
-  });
+  if (
+    !collaborators ||
+    !Array.isArray(collaborators) ||
+    collaborators.some((i) => !validate(i.id)) ||
+    collaborators.length === 0
+  ) {
+    next(
+      ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid collaborators list")
+    );
+    return;
+  }
+
+  if (collaborators.some((i) => i.id === req.alias!.id)) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "You are already a default collaborator and cannot be added again."
+      )
+    );
+    return;
+  }
+
+  await Promise.all(
+    collaborators.map(async ({ id }: any) => {
+      await NoteCollaborator.findOrCreate({
+        where: { note_id, alias_id: id },
+        defaults: { note_id, alias_id: id },
+      });
+    })
+  );
 
   res.json({
     status: "ok",
+    message: "Collaborators added successfully",
   });
 }
 
@@ -510,9 +547,22 @@ export async function deleteNoteCollaborator(
 ) {
   const { note_id, alias_id } = req.body;
 
+  const find = await Note.findByPk(note_id, { attributes: ["alias_id"] });
+
+  if (find && find.dataValues.alias_id === alias_id) {
+    next(
+      ApiError.error(
+        ErrorCodes.FORBIDDEN,
+        "You cannot delete the default collaborator"
+      )
+    );
+    return;
+  }
+
   NoteCollaborator.destroy({ where: { note_id, alias_id } });
   res.json({
     status: "ok",
+    message: "Collaborator deleted",
   });
 }
 
