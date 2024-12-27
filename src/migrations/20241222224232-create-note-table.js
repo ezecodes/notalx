@@ -26,7 +26,7 @@ module.exports = {
       },
       secret: { type: Sequelize.STRING, allowNull: true },
       self_destroy_time: {
-        type: Sequelize.STRING,
+        type: Sequelize.DATE,
         allowNull: true,
       },
     });

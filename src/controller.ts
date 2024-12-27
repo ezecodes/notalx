@@ -14,7 +14,7 @@ import {
   validateIncomingNote,
   validateUsername,
 } from "./helpers";
-import { ErrorCodes, IAlias, INote, IOtpSession } from "./type";
+import { ErrorCodes, IAlias, IncomingNote, INote, IOtpSession } from "./type";
 import {
   NoteAttributes,
   CacheKeys,
@@ -26,6 +26,7 @@ import { randomBytes } from "crypto";
 import { compareSync, hashSync } from "bcrypt";
 import Note from "./models/Note";
 import { Op } from "sequelize";
+import NoteCollaborator from "./models/NoteCollaborator";
 
 ("----- getAllAlias ------");
 export async function getAllAlias(
@@ -296,7 +297,7 @@ export async function deleteNote(
 ) {
   const note_id = req.params["note_id"];
 
-  Note.destroy({ where: { id: note_id } });
+  Note.destroy({ where: { alias_id: req.alias?.id, id: note_id } });
   res.json({ status: "ok", message: "Note has been deleted " });
 }
 
@@ -465,14 +466,71 @@ export async function getAliasNotes(
   });
 }
 
+export async function getNoteCollaborators(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { note_id, alias_id } = req.body;
+
+  const find = await NoteCollaborator.findAll({
+    where: { note_id },
+    include: {
+      model: Alias,
+    },
+  });
+  res.json({
+    status: "ok",
+  });
+}
+
+export async function addNoteCollaborators(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { collaborators } = req.body;
+
+  collaborators.forEach(({ note_id, alias_id }: any) => {
+    NoteCollaborator.findOrCreate({
+      where: { note_id, alias_id },
+      defaults: { note_id, alias_id },
+    });
+  });
+
+  res.json({
+    status: "ok",
+  });
+}
+
+export async function deleteNoteCollaborator(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { note_id, alias_id } = req.body;
+
+  NoteCollaborator.destroy({ where: { note_id, alias_id } });
+  res.json({
+    status: "ok",
+  });
+}
+
 ("----- createNote ------");
 export async function createNote(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const { note }: { alias_id: string; note: Partial<INote> } = req.body;
-  const { content, title, is_hidden, secret, self_destroy_time } = note;
+  const { note }: { alias_id: string; note: IncomingNote } = req.body;
+  const {
+    content,
+    title,
+    is_hidden,
+    secret,
+    self_destroy_time,
+    will_self_destroy,
+  } = note;
 
   const valid = validateIncomingNote(note);
   if (!valid.isValid) {
@@ -496,15 +554,16 @@ export async function createNote(
     slug,
     alias_id: req.alias?.id!,
   };
-  if (self_destroy_time) {
-    const time = parseSelfDestroyTimeToDate(self_destroy_time);
+  if (will_self_destroy && self_destroy_time) {
+    const time = parseSelfDestroyTimeToDate(self_destroy_time) as Date;
     if (!time) {
-      res.status(400).json({ status: "err", message: "Invalid time" });
+      next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid time"));
       return;
     }
-    update.self_destroy_time = update.will_self_destroy = true;
+    update.self_destroy_time = time;
+    update.will_self_destroy = true;
   }
-  if (secret) {
+  if (is_hidden && secret) {
     update.secret = hashSync(secret, 10);
     update.is_hidden = true;
   }

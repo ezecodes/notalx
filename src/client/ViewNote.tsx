@@ -24,7 +24,9 @@ const ViewNote: FC<IViewNote> = () => {
   const navigate = useNavigate();
 
   function handleNoteFetch(slug: string, secret?: string) {
-    if (retries.current === 2) return;
+    if (retries.current === 2) {
+      document.location.href = "/";
+    }
     fetchNote(slug, secret as string).then((res) => {
       retries.current = retries.current + 1;
       if (res.status === "err") {

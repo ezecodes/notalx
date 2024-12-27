@@ -33,7 +33,7 @@ export const fetchAllAlias = async () => {
 };
 
 export const fetchAliasPublicAndPrivateNotes = async () => {
-  const f = await fetch(`/api/note`);
+  const f = await fetch(`/api/alias/note`);
   return (await f.json()) as IApiResponse<{ notes: INote[] }>;
 };
 
@@ -88,7 +88,18 @@ export function formatRelativeTime(timestamp: string | Date): string {
 
   return "just now";
 }
+export const formatDate = (date: any) => {
+  console.log(date);
+  date = new Date(date);
+  const hours = date.getHours() % 12 || 12; // Convert to 12-hour format
+  const ampm = date.getHours() >= 12 ? "pm" : "am";
+  const minutes = date.getMinutes().toString().padStart(2, "0"); // Pad minutes if needed
+  const day = date.toLocaleString("en-US", { weekday: "short" }); // Abbreviated weekday
+  const dateNum = date.getDate(); // Day of the month
+  const month = date.toLocaleString("en-US", { month: "short" }); // Abbreviated month
 
+  return `${hours}:${ampm} ${day} ${dateNum} ${month}`;
+};
 const BASE62 = baseX(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 );

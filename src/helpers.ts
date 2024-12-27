@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import Note from "./models/Note";
-import { ErrorCodes, INote } from "./type";
+import { ErrorCodes, IncomingNote, INote } from "./type";
 import { randomBytes } from "crypto";
 import {
   Branding_NotalX,
@@ -80,6 +80,7 @@ interface IEmailOptions {
   subject: string;
   html: string;
 }
+
 export async function sendEmail(options: IEmailOptions) {
   try {
     const config: any = {
@@ -216,7 +217,8 @@ export async function deleteExpiredNotes() {
   const now = new Date();
   try {
     // Find and delete all notes marked for self-destruction
-    const deletedCount = await Note.destroy({
+
+    Note.destroy({
       where: {
         will_self_destroy: true,
         self_destroy_time: {
@@ -224,13 +226,12 @@ export async function deleteExpiredNotes() {
         },
       },
     });
-    console.log(`${deletedCount} expired notes deleted.`);
   } catch (error) {
     console.error("Error deleting expired notes:", error);
   }
 }
 
-export function validateIncomingNote(note: Partial<INote>) {
+export function validateIncomingNote(note: IncomingNote) {
   const {
     content,
     title,
@@ -252,7 +253,7 @@ export function validateIncomingNote(note: Partial<INote>) {
   }
 
   if (self_destroy_time) {
-    const valid = validateSelfDestroyTime(self_destroy_time);
+    const valid = parseSelfDestroyTimeToDate(self_destroy_time);
     if (!valid) {
       return {
         isValid: false,

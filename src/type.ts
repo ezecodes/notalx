@@ -37,11 +37,17 @@ export type INote = {
   secret: string;
   is_hidden: boolean;
   will_self_destroy: boolean;
-  self_destroy_time: string;
+  self_destroy_time: Date;
   createdAt: Date;
   updatedAt: Date;
 };
-
+export type INoteCollaborator = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type IPagination = {
   page: number;
   page_size: number;
@@ -83,14 +89,21 @@ export type IAuthSession = {
   user_agent: string;
   alias_id: string;
 };
-
+export type IncomingNote = {
+  self_destroy_time: string;
+  content: string;
+  title: string;
+  is_hidden: boolean;
+  secret: string;
+  will_self_destroy: boolean;
+};
 export interface INoteEditor {
   id: string;
   title: string;
   content: string;
   hidden: boolean;
   willSelfDestroy: boolean;
-  selfDestroyTime: string;
+  selfDestroyTime: Date;
   createdAt: Date;
 }
 export type IOtpExpiry = {

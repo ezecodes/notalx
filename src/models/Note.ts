@@ -33,7 +33,7 @@ Note.init(
     },
     secret: { type: DataTypes.STRING, allowNull: true },
     self_destroy_time: {
-      type: DataTypes.STRING,
+      type: DataTypes.DATE,
       allowNull: true,
     },
   },

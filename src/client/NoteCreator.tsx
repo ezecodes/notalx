@@ -75,7 +75,7 @@ const Editor = () => {
     toast(response.message);
     if (response.status === "ok") {
       deleteDraft(editor.draft_id!);
-      navigate("/?alias=" + encodeToBase62(editor.selectedAlias?.id!));
+      document.location.href = "/";
     }
   };
 

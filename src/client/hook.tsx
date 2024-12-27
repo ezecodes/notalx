@@ -43,6 +43,11 @@ type IContext = {
   Is_Authorised_Alias_Same_As_Note_Alias: (alias_id: string) => boolean;
   isAuthorised: () => boolean;
   Is_Authorised_Alias_Same_As_Selected_Alias: (alias_id?: string) => boolean;
+  collaborators: null | { collaborators: _IAlias[]; note_id: string };
+  setCollaborators: Dispatch<
+    React.SetStateAction<null | { collaborators: _IAlias[]; note_id: string }>
+  >;
+  getNoteCollaborators: (note_id: string) => any;
 };
 const key = "drafts";
 
@@ -52,6 +57,10 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [draftCount, setDraftCount] = useState<number>(0);
   const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
+  const [collaborators, setCollaborators] = useState<null | {
+    collaborators: _IAlias[];
+    note_id: string;
+  }>(null);
 
   const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
@@ -69,7 +78,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       return;
     }
 
-    const f = await fetch(`/api/note/${id}/delete`, { method: "delete" });
+    const f = await fetch(`/api/note/${id}`, { method: "delete" });
     const response: IApiResponse<null> = await f.json();
 
     alert(response.message);
@@ -82,6 +91,14 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
+  async function getNoteCollaborators(note_id: string) {
+    const f = await fetch(`/api/note/${note_id}/collaborators`);
+    const response: IApiResponse<{ rows: _IAlias[] }> = await f.json();
+
+    response.status === "ok" &&
+      setCollaborators({ note_id, collaborators: response.data!.rows });
+  }
+
   const fetchNotes = (aliasId?: string) => {
     if (aliasId) {
       fetchAliasPublicNotes(aliasId).then((res) => {
@@ -90,7 +107,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
         }
       });
     } else {
-      fetchAliasPublicAndPrivateNotes().then((res) => {
+      fetchAllPublicNotes().then((res) => {
         if (res.status === "ok" && res.data) {
           setSelectedNotes(res.data.notes);
         }
@@ -203,6 +220,9 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     fetchNotes,
     deleteNote,
     Is_Authorised_Alias_Same_As_Selected_Alias,
+    getNoteCollaborators,
+    collaborators,
+    setCollaborators,
   };
 
   return (

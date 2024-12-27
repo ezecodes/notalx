@@ -1,7 +1,8 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { FC, useContext, useEffect, useRef, useState } from "react";
 import {
   BackButton,
   Button,
+  CollaboratorsModal,
   DisplayDateCreated,
   ExpirationInfo,
   InputWithIcon,
@@ -9,13 +10,49 @@ import {
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill from "react-quill";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { _IAlias, IApiResponse, INote, INoteEditor } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
+import { IoSettingsOutline } from "react-icons/io5";
+import { RiAdminLine } from "react-icons/ri";
+import { GoPeople } from "react-icons/go";
+import { IoMdTime } from "react-icons/io";
+import { GoLock } from "react-icons/go";
+
+const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+  const navigate = useNavigate();
+
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative">
+      <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
+
+      {isDropdownVisible && (
+        <div className="absolute mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md">
+          <ul>
+            <li className="dropdown_item" onClick={setCollabModal}>
+              <GoPeople /> Collaborators
+            </li>
+            <li className="dropdown_item" onClick={() => navigate("/notes")}>
+              <IoMdTime /> Set expiration
+            </li>
+            <li className="dropdown_item" onClick={() => navigate("/notes")}>
+              <GoLock /> Mark as hidden
+            </li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Editor = () => {
   const [editor, setEditor] = useState<INoteEditor | null>(null);
+  const [showCollabModal, setCollabModal] = useState<boolean>(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
   const { otpExpiry } = useContext(GlobalContext)!;
@@ -51,7 +88,7 @@ const Editor = () => {
   const handleNoteUpload = async (id: string) => {
     if (!editor) return;
 
-    const f = await fetch("/api/note/edit/" + id, {
+    const f = await fetch("/api/note/" + id, {
       method: "put",
       headers: {
         "content-type": "application/json",
@@ -71,7 +108,7 @@ const Editor = () => {
   return (
     <>
       <div className="modal animate__animated animate__slideInDown  ">
-        <form className="modal_child    gap-y-3 flex flex-col  px-3 my-5 py-3">
+        <form className="modal_child    gap-y-3 flex flex-col  ">
           <BackButton text={"Editing note"} url={-1} />
 
           {editor ? (
@@ -95,13 +132,14 @@ const Editor = () => {
               </fieldset>
 
               <fieldset className="flex flex-col gap-y-3 items-end ">
-                <div className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
+                <div className="flex gap-x-4 flex-wrap gap-y-2 items-center justify-end  ">
                   <ExpirationInfo
                     time={editor.selfDestroyTime}
                     willSelfDestroy={editor.willSelfDestroy}
                   />
                   <IsHiddenInfo hidden={editor.hidden} />
-                  <DisplayDateCreated date={editor.createdAt} />
+                  <DisplayDateCreated date={editor.createdAt} />{" "}
+                  <Settings setCollabModal={() => setCollabModal(true)} />
                 </div>
                 <div className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
                   <Button
@@ -158,6 +196,13 @@ const Editor = () => {
           )}
         </form>
       </div>
+
+      {showCollabModal && (
+        <CollaboratorsModal
+          note_id={editor?.id!}
+          onClose={() => setCollabModal(false)}
+        />
+      )}
     </>
   );
 };

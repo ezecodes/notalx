@@ -22,16 +22,19 @@
 .add_bg {
   background-color: var(--bg_color) !important;
 }
+.page {
+  @apply flex flex-col justify-center items-center w-full;
+}
 body {
   /* background: var(--main-background); */
   background-color: var(--bg_color) !important;
   color: var(--text_color);
 }
 .primary_button {
-  @apply rounded-md  gap-x-2 max-w-[180px] h-[35px] px-2  flex items-center justify-center;
+  @apply rounded-md  gap-x-2 max-w-[180px] h-[35px] px-2 button flex items-center justify-center;
 }
 .sub_button {
-  @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm button flex items-center justify-center;
+  @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;
 }
 
 .sub_button svg {
@@ -84,6 +87,9 @@ label {
 .primary_button svg {
   @apply text-gray-300;
 }
+.modal_child {
+  @apply px-3 my-5 py-3;
+}
 
 .draft_actions,
 .header_actions {
@@ -106,7 +112,18 @@ label {
   padding-left: var(--top_gap);
   padding-right: var(--top_gap);
 }
-
+.edit_ico {
+  color: #9191eb;
+}
+.delete_ico {
+  color: #f76767;
+}
+.dropdown_item {
+  @apply px-4 py-2 duration-100 hover:bg-[#3f3f3f] cursor-pointer flex items-center gap-x-2;
+}
+.dropdown_item:hover > span {
+  display: block;
+}
 @media screen and (min-width: 640px) {
   :root {
     --top_gap: 30px;
