@@ -29,10 +29,8 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   };
   return (
     <div className="relative">
-      <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
-
       {isDropdownVisible && (
-        <div className="absolute mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md">
+        <div className="absolute bottom-[100%] mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md">
           <ul>
             <li className="dropdown_item" onClick={setCollabModal}>
               <GoPeople /> Collaborators
@@ -46,6 +44,7 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
           </ul>
         </div>
       )}
+      <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
     </div>
   );
 };
@@ -64,17 +63,19 @@ const Editor = () => {
 
   const fetchPrevNote = async (note_slug: string) => {
     const f = await fetch("/api/note/" + note_slug);
-    const response: IApiResponse<INote> = await f.json();
+    const response: IApiResponse<{ note: INote; collaborators: _IAlias[] }> =
+      await f.json();
 
     if (response.status === "err") return;
+    const note = response.data?.note!;
     setEditor({
-      content: response.data!.content,
-      hidden: response.data!.is_hidden,
-      title: response.data!.title,
-      willSelfDestroy: response.data!.will_self_destroy,
-      createdAt: response.data!.createdAt,
-      id: response.data!.id,
-      selfDestroyTime: response.data!.self_destroy_time,
+      content: note.content,
+      hidden: note.is_hidden,
+      title: note.title,
+      willSelfDestroy: note.will_self_destroy,
+      createdAt: note.createdAt,
+      id: note.id,
+      selfDestroyTime: note.self_destroy_time,
     });
   };
 

@@ -20,16 +20,8 @@ import { MdRadioButtonUnchecked } from "react-icons/md";
 import { toast } from "react-toastify";
 
 const Editor = () => {
-  const navigate = useNavigate();
-  const {
-    editor,
-    setEditor,
-    saveToStore,
-    loadDrafts,
-    deleteDraft,
-    otpExpiry,
-    Is_Authorised_Alias_Same_As_Selected_Alias,
-  } = useContext(GlobalContext)!;
+  const { editor, setEditor, saveToStore, loadDrafts, deleteDraft } =
+    useContext(GlobalContext)!;
   const hasCalled = useRef(false);
   const [secretInputType, setSecretInputType] = useState("text");
 
@@ -144,47 +136,11 @@ const Editor = () => {
             style={{ borderTop: "1px solid #3d3d3d" }}
           >
             <div className="flex flex-col gap-y-3   ">
-              <div className="label_input flex-wrap">
-                <label className="subtext">
-                  {Is_Authorised_Alias_Same_As_Selected_Alias()
-                    ? "Your alias"
-                    : "Find your alias"}
-                </label>
-                <div className="flex gap-x-3 w-full">
-                  <SearchDropdown
-                    onClick={(value) => handleUpdate({ selectedAlias: value! })}
-                    selected={editor.selectedAlias ?? null}
-                  />
-
-                  {!editor.selectedAlias ||
-                    (!Is_Authorised_Alias_Same_As_Selected_Alias(
-                      editor.selectedAlias.id
-                    ) ? (
-                      <span
-                        className="text-sm subtext cursor-pointer text-underline "
-                        onClick={() =>
-                          navigate(
-                            "/auth-with-alias?alias=" +
-                              encodeToBase62(editor.selectedAlias!.id)
-                          )
-                        }
-                      >
-                        Authorise
-                      </span>
-                    ) : (
-                      <AuthorisedInfo
-                        clickUrl="/auth-with-alias"
-                        otpExpiry={otpExpiry}
-                      />
-                    ))}
-                </div>
-              </div>
-
               <div className="grid sm:grid-cols-2 gap-y-3 gap-x-6">
                 {editor.hidden && (
                   <div className="label_input">
                     <label className="subtext">
-                      Enter a secret for this note
+                      Enter a secret for this note <br />
                     </label>
                     <InputWithIcon
                       icon={<CiLock />}
@@ -195,6 +151,10 @@ const Editor = () => {
                       value={editor.secret ?? ""}
                       onChange={(value) => handleUpdate({ secret: value })}
                     />
+                    <span className="subtext text-sm">
+                      A secret lets you access your notes without logging in.
+                      Leave it blank to require logging in for access.
+                    </span>
                   </div>
                 )}
                 {editor.willSelfDestroy && (

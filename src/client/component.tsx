@@ -8,7 +8,7 @@ import {
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
 import { _IAlias, IApiResponse, INote, IOtpExpiry } from "../type";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsPersonCheck, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
@@ -17,7 +17,6 @@ import {
   IoCreateOutline,
   IoPersonAdd,
 } from "react-icons/io5";
-import { CiCircleChevDown } from "react-icons/ci";
 import { GlobalContext } from "./hook";
 import { MdDeleteOutline } from "react-icons/md";
 import { IoBookmarkOutline } from "react-icons/io5";
@@ -97,11 +96,11 @@ export const CollaboratorsModal: FC<{
   }
   return (
     <div
-      className="modal top_space my-5"
+      className="modal top_space py-5"
       style={{ background: "#212121f7", backdropFilter: "blur(1px)" }}
     >
       <div className="top_space sm:w-[400px]">
-        <BackButton text="Adding note collaborators" url={-1} />
+        <BackButton text="Manage note collaborators" onClick={onClose} />
         <br />
         <SearchDropdown selected={selected} onClick={handleCollabUpdate} />
 
@@ -120,6 +119,7 @@ export const CollaboratorsModal: FC<{
             })}
         </div>
         <div className="flex flex-col gap-y-2 pt-2 border_top mt-2">
+          <span className="text-sm subtext">Exisiting collaborators</span>
           {collaborators.length > 0 &&
             collaborators.map((i) => {
               return (
@@ -138,7 +138,7 @@ export const CollaboratorsModal: FC<{
 
         <div className="flex justify-end gap-x-3 mt-3">
           <button className="sub_button" onClick={onClose}>
-            Cancel
+            Close
           </button>
           <button className="primary_button" onClick={save}>
             Save
@@ -175,14 +175,15 @@ export const Button = ({
 };
 
 interface IBb {
-  url: any;
+  url?: any;
   text: string;
+  onClick?: () => void;
 }
-export const BackButton: FC<IBb> = ({ text, url }) => {
+export const BackButton: FC<IBb> = ({ text, url, onClick }) => {
   const navigate = useNavigate();
   return (
     <div className="flex flex-col justify-start gap-y-3">
-      <IoArrowBackOutline onClick={() => navigate(url)} />
+      <IoArrowBackOutline onClick={() => onClick ?? navigate(url)} />
 
       <h3 className="text-[1.1rem] font-[500]">{text}</h3>
     </div>
@@ -396,7 +397,7 @@ interface IDc {
 export const DisplayDateCreated: FC<IDc> = ({ date }) => {
   return (
     <span className="text-sm subtext flex items-center">
-      {new Date(date).toLocaleDateString()}
+      {formatRelativeTime(date)}
     </span>
   );
 };
@@ -416,56 +417,28 @@ export const AuthorisedInfo = ({ otpExpiry, clickUrl }: any) => {
   };
 
   return (
-    <div className="relative">
-      {/* Main Button */}
-      <div
-        className="flex cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2 hover:bg-[rgba(0,0,0,.1)] duration-300"
-        onClick={() => navigate(clickUrl as any)}
-      >
-        <BsPersonCheck
-          className={`${
-            otpExpiry?.is_valid_auth ? "text-green-400" : "text-white"
-          } text-[25px]`}
-        />
-        <span className="subtext hidden 3micro:inline text-sm">
-          {otpExpiry?.name}
-        </span>
-
-        {otpExpiry?.is_valid_auth && (
-          <CiCircleChevDown
-            className="cursor-pointer text-[20px]"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering the parent click
-              displayDropdown();
-            }}
-          />
-        )}
-      </div>
-
-      {/* Dropdown Menu */}
-      {isDropdownVisible && (
-        <div className="absolute mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md">
-          <ul>
-            <li
-              className="px-4 py-2 hover:bg-[#3f3f3f] cursor-pointer"
-              onClick={() => navigate("/notes")}
-            >
-              My Notes
-            </li>
-          </ul>
-        </div>
-      )}
+    <div
+      className="flex cursor-pointer px-2 py-2 rounded-sm items-center gap-x-2 hover:bg-[rgba(0,0,0,.1)] duration-300"
+      onClick={() => navigate(clickUrl as any)}
+    >
+      <BsPersonCheck
+        className={`${
+          otpExpiry?.is_valid_auth ? "text-green-400" : "text-white"
+        } text-[25px]`}
+      />
+      <span className="subtext hidden 3micro:inline text-sm">
+        {otpExpiry?.name}
+      </span>
     </div>
   );
 };
 
 export const SharedHeader = () => {
   const navigate = useNavigate();
-  const { selectedAlias, setSelectedAlias, otpExpiry } =
-    useContext(GlobalContext)!;
+  const { otpExpiry } = useContext(GlobalContext)!;
   return (
     <header className="flex flex-col py-4 gap-y-5 w-full items-center top_space">
-      <div className="flex flex-row gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
+      <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
         <Button
           text="New alias"
           icon={<IoPersonAdd />}
@@ -479,26 +452,84 @@ export const SharedHeader = () => {
           }}
         />
         <AuthorisedInfo clickUrl="/auth-with-alias" otpExpiry={otpExpiry} />
-
-        <div className="flex w-full items-center gap-x-3">
-          <SearchDropdown
-            onClick={(value) => setSelectedAlias(value)}
-            selected={selectedAlias}
-          />
-        </div>
       </div>
     </header>
   );
 };
 
-export const SingleNote: FC<{ note: INote }> = ({ note }) => {
+interface Avatar {
+  src?: string; // Optional for cases without an image
+  alt?: string;
+  name?: string; // Optional name to display initials
+}
+
+interface AvatarGroupProps {
+  avatars: Avatar[];
+  size?: string; // Tailwind size classes like "10", "12", etc.
+  spacing?: string; // Negative margin classes like "-2", "-3", etc.
+}
+
+const AvatarGroup: React.FC<AvatarGroupProps> = ({
+  avatars,
+  size = "10",
+  spacing = "-3",
+}) => {
+  return (
+    <div className="flex items-center">
+      {avatars.map((avatar, index) => (
+        <div
+          key={index}
+          className={`relative inline-block rounded-full border-2 border-white bg-[#555555] flex items-center justify-center`}
+          style={{
+            marginLeft: index === 0 ? "0" : `-${spacing}rem`,
+            width: `${size}rem`,
+            height: `${size}rem`,
+          }}
+        >
+          {avatar.src ? (
+            <img
+              src={avatar.src}
+              alt={avatar.alt || "Avatar"}
+              className={`w-full h-full rounded-full object-cover`}
+            />
+          ) : (
+            <span
+              className={`text-white text-sm font-bold`}
+              style={{
+                fontSize: `${parseInt(size) / 3}rem`, // Dynamically size initials text
+              }}
+            >
+              {getInitials(avatar.name)}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Helper function to extract initials from a name
+const getInitials = (name?: string): string => {
+  if (!name) return "?";
+  const words = name.split(" ");
+  return words.length > 1
+    ? `${words[0][0]}${words[1][0]}`.toUpperCase()
+    : words[0][0].toUpperCase();
+};
+
+export default AvatarGroup;
+
+export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
+  note,
+  collaborators,
+}) => {
   const { Is_Authorised_Alias_Same_As_Note_Alias, deleteNote } =
     useContext(GlobalContext)!;
   const navigate = useNavigate();
 
   return (
     <div
-      className="shadow-sm w-full  py-2 h-[170px] 3micro:w-[450px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+      className="shadow-sm w-full  pt-3 pb-1 h-[180px] 3micro:w-[350px] rounded-md gap-y-2 flex flex-col overflow-hidden"
       style={{ border: "1px solid #353535" }}
       key={note.id}
     >
@@ -509,31 +540,20 @@ export const SingleNote: FC<{ note: INote }> = ({ note }) => {
 
       <Link
         to={"/" + note.slug}
-        className="hover:bg-[#292929] duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
+        className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
       >
         <span
-          className="text-sm"
+          className="text-sm block h-full"
           dangerouslySetInnerHTML={{ __html: note.content }}
         ></span>
       </Link>
 
-      <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-end gap-x-2">
-        <DisplayDateCreated date={note.createdAt} />
-        {Is_Authorised_Alias_Same_As_Note_Alias(note.alias_id) ? (
-          <>
-            <MdDeleteOutline
-              onClick={() => deleteNote(note.id)}
-              className="delete_ico"
-            />
-            <IoCreateOutline
-              onClick={() => navigate("/edit/" + note.slug)}
-              className="edit_ico"
-            />
-          </>
-        ) : (
-          <></>
-        )}
-        <IoBookmarkOutline />
+      <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
+        <AvatarGroup size="2" avatars={collaborators} />
+        <div className="flex items-center gap-x-2">
+          <DisplayDateCreated date={note.createdAt} />
+          <IoBookmarkOutline />
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { ErrorCodes, INote } from "../type";
+import { _IAlias, ErrorCodes, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
@@ -15,11 +15,18 @@ import { toast } from "react-toastify";
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
   const params = useParams<{ note_slug: string }>();
-  const [note, setNote] = useState<INote | null>(null);
+  const [note, setNote] = useState<{
+    note: INote;
+    collaborators: _IAlias[];
+  } | null>(null);
   const retries = useRef(0);
   const hasCalled = useRef(false);
-  const { Is_Authorised_Alias_Same_As_Note_Alias, getOTPExpiry, deleteNote } =
-    useContext(GlobalContext)!;
+  const {
+    Is_Authorised_Alias_Same_As_Note_Alias,
+    getOTPExpiry,
+    deleteNote,
+    Is_Authorised_Alias_A_Note_Collaborator,
+  } = useContext(GlobalContext)!;
 
   const navigate = useNavigate();
 
@@ -56,27 +63,31 @@ const ViewNote: FC<IViewNote> = () => {
   return (
     <div className="modal top_space relative animate__animated animate__slideInDown">
       <div className="flex modal_child mt-7 flex-col gap-y-3       py-5">
-        <BackButton text={note.title} url={-1} />
+        <BackButton text={note.note.title} url={-1} />
 
-        <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
+        <div dangerouslySetInnerHTML={{ __html: note.note.content }}></div>
 
         <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">
           <div className="flex text-md gap-x-3 gap-y-3 flex-wrap items-center  justify-end ">
             <ExpirationInfo
-              time={note.self_destroy_time}
-              willSelfDestroy={note.will_self_destroy}
+              time={note.note.self_destroy_time}
+              willSelfDestroy={note.note.will_self_destroy}
             />
-            <IsHiddenInfo hidden={note.is_hidden} />
-            <DisplayDateCreated date={note.createdAt} />
+            <IsHiddenInfo hidden={note.note.is_hidden} />
+            <DisplayDateCreated date={note.note.createdAt} />
           </div>
 
           <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
-            {Is_Authorised_Alias_Same_As_Note_Alias(note.alias_id) ? (
+            {Is_Authorised_Alias_Same_As_Note_Alias(note.note.alias_id) ||
+            Is_Authorised_Alias_A_Note_Collaborator(note.collaborators) ? (
               <>
-                <Button text="Delete" onClick={() => deleteNote(note.id)} />
+                <Button
+                  text="Delete"
+                  onClick={() => deleteNote(note.note.id)}
+                />
                 <Button
                   text="Edit"
-                  onClick={() => navigate("/edit/" + note.slug)}
+                  onClick={() => navigate("/edit/" + note.note.slug)}
                 />
               </>
             ) : (

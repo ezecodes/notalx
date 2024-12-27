@@ -232,22 +232,12 @@ export async function deleteExpiredNotes() {
 }
 
 export function validateIncomingNote(note: IncomingNote) {
-  const {
-    content,
-    title,
-    is_hidden,
-    secret,
-    self_destroy_time,
-    will_self_destroy,
-  } = note;
+  const { content, title, self_destroy_time, will_self_destroy } = note;
 
   if (!title || !content) {
     return { isValid: false, error: "Note must have a title and content" };
   }
 
-  if (is_hidden && !secret) {
-    return { isValid: false, error: "Enter a secret for hidden note" };
-  }
   if (will_self_destroy && !self_destroy_time) {
     return { isValid: false, error: "Enter a time for note deletion" };
   }

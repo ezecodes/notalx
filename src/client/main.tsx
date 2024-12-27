@@ -13,7 +13,6 @@ import CreateAlias from "./AliasCreator";
 import AliasAuth from "./AliasAuth";
 import Faq from "./Faq";
 import { Slide, ToastContainer } from "react-toastify";
-import AuthorisedAliasNotes from "./AuthorisedAliasNotes";
 
 const route = createBrowserRouter([
   {
@@ -47,10 +46,6 @@ const route = createBrowserRouter([
         element: <Faq />,
       },
     ],
-  },
-  {
-    path: "notes",
-    element: <AuthorisedAliasNotes />,
   },
 ]);
 

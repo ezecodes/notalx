@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   _IAlias,
+  ApiFetchNote,
   IApiResponse,
   INote,
   INoteCreator,
@@ -35,19 +36,24 @@ type IContext = {
   otpExpiry: IOtpExpiry | null;
   getOTPExpiry: () => void;
 
-  selectedNotes: INote[];
+  selectedNotes: { collaborators: _IAlias[]; note: INote }[];
 
-  fetchNotes: (aliasId?: string) => void;
+  fetchNotes: () => void;
   deleteNote: (noteId: string) => void;
 
   Is_Authorised_Alias_Same_As_Note_Alias: (alias_id: string) => boolean;
   isAuthorised: () => boolean;
-  Is_Authorised_Alias_Same_As_Selected_Alias: (alias_id?: string) => boolean;
+  Is_Authorised_Alias_A_Note_Collaborator: (
+    collaborators: _IAlias[]
+  ) => boolean;
   collaborators: null | { collaborators: _IAlias[]; note_id: string };
   setCollaborators: Dispatch<
     React.SetStateAction<null | { collaborators: _IAlias[]; note_id: string }>
   >;
   getNoteCollaborators: (note_id: string) => any;
+  fetchAliasNotes: () => void;
+  publicNotes: ApiFetchNote[];
+  authAliasNotes: ApiFetchNote[];
 };
 const key = "drafts";
 
@@ -55,7 +61,7 @@ const GlobalContext = createContext<IContext | null>(null);
 const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<Partial<INoteCreator>[] | null>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
-  const [selectedNotes, setSelectedNotes] = useState<INote[]>([]);
+  const [selectedNotes, setSelectedNotes] = useState<ApiFetchNote[]>([]);
   const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
   const [collaborators, setCollaborators] = useState<null | {
     collaborators: _IAlias[];
@@ -65,11 +71,13 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
     content: "",
-    hidden: false,
+    hidden: true,
     willSelfDestroy: false,
     draft_id: null,
   });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
+  const [publicNotes, setPublicNotes] = useState<ApiFetchNote[]>([]);
+  const [authAliasNotes, setAuthAliasNotes] = useState<ApiFetchNote[]>([]);
 
   const deleteNote = async (id: string) => {
     const e = prompt("Are you sure ? Type yes to confirm");
@@ -85,7 +93,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
     if (response.status === "ok") {
       const notes = selectedNotes;
-      const index = selectedNotes.findIndex((i) => i.id === id);
+      const index = selectedNotes.findIndex((i) => i.note.id === id);
       notes.splice(index, 1);
       setSelectedNotes(notes);
     }
@@ -99,20 +107,20 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       setCollaborators({ note_id, collaborators: response.data!.rows });
   }
 
-  const fetchNotes = (aliasId?: string) => {
-    if (aliasId) {
-      fetchAliasPublicNotes(aliasId).then((res) => {
-        if (res.status === "ok" && res.data) {
-          setSelectedNotes(res.data.notes);
-        }
-      });
-    } else {
-      fetchAllPublicNotes().then((res) => {
-        if (res.status === "ok" && res.data) {
-          setSelectedNotes(res.data.notes);
-        }
-      });
-    }
+  const fetchNotes = () => {
+    fetchAllPublicNotes().then((res) => {
+      if (res.status === "ok" && res.data) {
+        setPublicNotes(res.data.rows);
+      }
+    });
+  };
+
+  const fetchAliasNotes = () => {
+    fetchAliasPublicAndPrivateNotes().then((res) => {
+      if (res.status === "ok" && res.data) {
+        setAuthAliasNotes(res.data.rows);
+      }
+    });
   };
 
   const loadDrafts = () => {
@@ -186,12 +194,13 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     return false;
   };
 
-  const Is_Authorised_Alias_Same_As_Selected_Alias = (alias_id?: string) => {
-    if (!alias_id && !selectedAlias) return false;
-    let aliasToUse = alias_id ?? selectedAlias!.id!;
-    if (otpExpiry?.is_valid_auth && aliasToUse === otpExpiry.alias_id)
-      return true;
-    return false;
+  const Is_Authorised_Alias_A_Note_Collaborator = (
+    collaborators: _IAlias[]
+  ) => {
+    if (!isAuthorised() || collaborators.length === 0) return false;
+    const find = collaborators.find((i) => otpExpiry?.alias_id === i.id);
+    if (!find) return false;
+    return true;
   };
 
   const isAuthorised = () => {
@@ -219,10 +228,13 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     selectedNotes,
     fetchNotes,
     deleteNote,
-    Is_Authorised_Alias_Same_As_Selected_Alias,
+    Is_Authorised_Alias_A_Note_Collaborator,
     getNoteCollaborators,
     collaborators,
     setCollaborators,
+    fetchAliasNotes,
+    publicNotes,
+    authAliasNotes,
   };
 
   return (

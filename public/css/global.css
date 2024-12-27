@@ -31,7 +31,7 @@ body {
   color: var(--text_color);
 }
 .primary_button {
-  @apply rounded-md  gap-x-2 max-w-[180px] h-[35px] px-2 button flex items-center justify-center;
+  @apply rounded-md  gap-x-2 max-w-[180px] text-sm h-[35px] px-2 button flex items-center justify-center;
 }
 .sub_button {
   @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;
@@ -88,7 +88,7 @@ label {
   @apply text-gray-300;
 }
 .modal_child {
-  @apply px-3 my-5 py-3;
+  @apply px-3 py-5;
 }
 
 .draft_actions,

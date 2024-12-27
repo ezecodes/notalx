@@ -6,6 +6,10 @@ export type IAlias = {
   updatedAt: Date;
 };
 
+export type INoteHistory = {
+  note_id: string;
+};
+
 export type _IAlias = {
   id: string;
   name: string;
@@ -41,6 +45,12 @@ export type INote = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type ApiFetchNote = {
+  collaborators: _IAlias[];
+  note: INote;
+};
+
 export type INoteCollaborator = {
   id: string;
   note_id: string;

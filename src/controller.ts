@@ -20,6 +20,7 @@ import {
   CacheKeys,
   otpSessionCookieKey,
   sessionCookieKey,
+  AliasAttributes,
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
@@ -64,6 +65,7 @@ export async function requestOtp(
   }
   const code = getRandomInt().toString();
   const auth_code_hash = hashSync(code, 10);
+  console.log(code);
 
   const expiry = new Date();
   expiry.setMinutes(expiry.getMinutes() + 30);
@@ -83,7 +85,6 @@ export async function requestOtp(
     expiry,
     auth_code_hash,
   };
-  console.log(code);
   memcachedService.set(CacheKeys.otp(otpSessionSlug), cache, 3600);
 
   sendEmail({
@@ -103,7 +104,6 @@ export async function verifyOtp(
   next: NextFunction
 ) {
   const { alias_id, code } = req.body;
-  console.log(req.body);
 
   const sessionSlug = req.signedCookies[otpSessionCookieKey];
 
@@ -128,7 +128,7 @@ export async function verifyOtp(
     next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Invalid Otp code"));
     return;
   }
-  const expiry = setExpiryInUTC(1);
+  const expiry = setExpiryInUTC(24);
 
   if (isExpired(cachedSession.expiry as string)) {
     next(
@@ -148,14 +148,18 @@ export async function verifyOtp(
   };
   const authSessionId = randomBytes(15).toString("base64url");
 
-  memcachedService.set(CacheKeys.authSession(authSessionId), sessionObj, 86400);
+  memcachedService.set(
+    CacheKeys.authSession(authSessionId),
+    sessionObj,
+    24 * 60 * 60
+  );
   memcachedService.delete(CacheKeys.otp(user!.dataValues.email));
 
   const cookieOpts: CookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge: 1440 * 60 * 1000, // 60 minutes
+    maxAge: 24 * 60 * 60 * 1000,
     signed: true,
   };
 
@@ -359,7 +363,7 @@ export async function getNoteBySlug(
     return;
   }
 
-  const data = {
+  const note = {
     title: find?.dataValues.title,
     content: find?.dataValues.content,
     createdAt: find?.dataValues.createdAt,
@@ -388,7 +392,10 @@ export async function getNoteBySlug(
   res.json({
     status: "ok",
     message: "Note retrieved",
-    data,
+    data: {
+      note,
+      collaborators: await PopulateCollaborators(note.id!),
+    },
   });
 }
 
@@ -399,8 +406,6 @@ export async function getAuthorizedAliasNotes(
   next: NextFunction
 ) {
   const alias_id = req.alias?.id!;
-
-  const find = await Alias.findByPk(alias_id, { attributes: ["name"] });
 
   let notes = await Note.findAll({
     where: {
@@ -413,11 +418,19 @@ export async function getAuthorizedAliasNotes(
     },
     attributes: NoteAttributes,
   });
+
+  const data = await Promise.all(
+    notes.map(async (i) => {
+      const f = await Alias.findByPk(i.dataValues.alias_id, {
+        attributes: AliasAttributes,
+      });
+      return { collaborators: [f?.dataValues], note: i };
+    })
+  );
   res.json({
     status: "ok",
     data: {
-      alias: { id: alias_id, name: find?.dataValues.name },
-      notes: notes ?? [],
+      rows: JSON.parse(JSON.stringify(data)),
     },
   });
 }
@@ -432,12 +445,20 @@ export async function getAllNotes(
     where: { [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any] },
     attributes: NoteAttributes,
   });
-  res.json({
-    status: "ok",
-    data: {
-      notes: notes ?? [],
-    },
-  });
+
+  let data = await Promise.all(
+    notes.map(async (i) => ({
+      collaborators: await PopulateCollaborators(i.dataValues.id!),
+      note: i,
+    }))
+  );
+  JSON.parse(JSON.stringify(data)),
+    res.json({
+      status: "ok",
+      data: {
+        rows: data,
+      },
+    });
 }
 
 ("----- getAliasNotes ------");
@@ -448,8 +469,6 @@ export async function getAliasNotes(
 ) {
   const alias_id = req.params.alias_id;
 
-  const find = await Alias.findByPk(alias_id, { attributes: ["name"] });
-
   let notes = await Note.findAll({
     where: {
       alias_id,
@@ -457,13 +476,19 @@ export async function getAliasNotes(
     },
     attributes: NoteAttributes,
   });
-  res.json({
-    status: "ok",
-    data: {
-      alias: { id: alias_id, name: find?.dataValues.name },
-      notes: notes ?? [],
-    },
-  });
+  let data = await Promise.all(
+    notes.map(async (i) => ({
+      collaborators: await PopulateCollaborators(i.dataValues.id!),
+      note: i,
+    }))
+  );
+  (data = JSON.parse(JSON.stringify(data))),
+    res.json({
+      status: "ok",
+      data: {
+        rows: data,
+      },
+    });
 }
 
 export async function getNoteCollaborators(
@@ -473,6 +498,15 @@ export async function getNoteCollaborators(
 ) {
   const note_id = req.params.note_id;
 
+  res.json({
+    status: "ok",
+    data: {
+      rows: await PopulateCollaborators(note_id),
+    },
+  });
+}
+
+async function PopulateCollaborators(note_id: string) {
   const find = await NoteCollaborator.findAll({
     where: { note_id },
   });
@@ -487,12 +521,7 @@ export async function getNoteCollaborators(
     )
   );
 
-  res.json({
-    status: "ok",
-    data: {
-      rows,
-    },
-  });
+  return rows;
 }
 
 export async function addNoteCollaborators(
@@ -525,14 +554,12 @@ export async function addNoteCollaborators(
     return;
   }
 
-  await Promise.all(
-    collaborators.map(async ({ id }: any) => {
-      await NoteCollaborator.findOrCreate({
-        where: { note_id, alias_id: id },
-        defaults: { note_id, alias_id: id },
-      });
-    })
-  );
+  collaborators.forEach(({ id }: any) => {
+    NoteCollaborator.findOrCreate({
+      where: { note_id, alias_id: id },
+      defaults: { note_id, alias_id: id },
+    });
+  });
 
   res.json({
     status: "ok",
@@ -613,8 +640,9 @@ export async function createNote(
     update.self_destroy_time = time;
     update.will_self_destroy = true;
   }
-  if (is_hidden && secret) {
-    update.secret = hashSync(secret, 10);
+  if (is_hidden) {
+    update.secret =
+      secret && secret.trim().length > 0 ? hashSync(secret, 10) : null;
     update.is_hidden = true;
   }
 

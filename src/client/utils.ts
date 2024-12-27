@@ -2,6 +2,7 @@ import baseX from "base-x";
 
 import {
   _IAlias,
+  ApiFetchNote,
   IApiResponse,
   INote,
   IOtpExpiry,
@@ -34,7 +35,7 @@ export const fetchAllAlias = async () => {
 
 export const fetchAliasPublicAndPrivateNotes = async () => {
   const f = await fetch(`/api/alias/note`);
-  return (await f.json()) as IApiResponse<{ notes: INote[] }>;
+  return (await f.json()) as IApiResponse<{ rows: ApiFetchNote[] }>;
 };
 
 export const fetchAliasPublicNotes = async (id: string) => {
@@ -47,7 +48,9 @@ export const searchAliasByName = async (name: string) => {
 };
 export const fetchAllPublicNotes = async () => {
   const f = await fetch("/api/note/");
-  return (await f.json()) as IApiResponse<{ alias: _IAlias; notes: INote[] }>;
+  return (await f.json()) as IApiResponse<{
+    rows: ApiFetchNote[];
+  }>;
 };
 
 export const fetchNote = async (slug: string, secret: string) => {
@@ -58,7 +61,10 @@ export const fetchNote = async (slug: string, secret: string) => {
       Accept: "application/json",
     },
   });
-  return (await f.json()) as IApiResponse<INote>;
+  return (await f.json()) as IApiResponse<{
+    note: INote;
+    collaborators: _IAlias[];
+  }>;
 };
 export const fetchAlias = async (id: string) => {
   const f = await fetch("/api/alias/" + id);

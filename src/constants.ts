@@ -33,3 +33,4 @@ export const NoteAttributes = [
   "will_self_destroy",
   "self_destroy_time",
 ];
+export const AliasAttributes = ["id", "name"];
