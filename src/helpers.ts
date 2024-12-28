@@ -11,6 +11,9 @@ import {
 import { createTransport } from "nodemailer";
 import { NextFunction, Request, Response } from "express";
 import memcachedService from "./memcached";
+import NoteCollaborator from "./models/NoteCollaborator";
+import Alias from "./models/Alias";
+import { hashSync } from "bcrypt";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -117,13 +120,25 @@ interface IUserSession {
   alias_id: string;
 }
 
-export async function getSession(req: Request) {
-  const sessionId = req.signedCookies[sessionCookieKey];
-  const session: IUserSession | null = await memcachedService.get(
-    CacheKeys.authSession(sessionId)
+export async function PopulateNoteCollaborators(
+  note_id: string,
+  note_owner_id?: string
+) {
+  const find = await NoteCollaborator.findAll({
+    where: { note_id },
+  });
+
+  const rows = await Promise.all(
+    find.map(async (i) => await Alias.findByPkWithCache(i.dataValues.alias_id))
   );
 
-  return session;
+  // Add the owner to the collaborator if note_owner_id exists
+  if (note_owner_id) {
+    const findOwner = await Alias.findByPkWithCache(note_owner_id);
+    rows.unshift(findOwner);
+  }
+
+  return rows;
 }
 export function isExpired(expiry: string): boolean {
   const nowUTC = new Date();
@@ -135,12 +150,24 @@ export function setExpiryInUTC(hoursToAdd: number): string {
   now.setUTCHours(now.getUTCHours() + hoursToAdd);
   return now.toISOString();
 }
-export async function isAuthorizedAlias(req: Request, aliasId: string) {
-  const session = await getSession(req);
+
+export async function getSessionFromReq(req: Request) {
+  const sessionId = req.signedCookies[sessionCookieKey];
+  const session: IUserSession | null = await memcachedService.get(
+    CacheKeys.authSession(sessionId)
+  );
+  return session;
+}
+
+export async function Is_Alias_In_Session_Same_As_Alias(
+  req: Request,
+  alias_id: string
+) {
+  const session = await getSessionFromReq(req);
   if (!session) {
     return false;
   }
-  if (session.alias_id !== aliasId) {
+  if (session.alias_id !== alias_id) {
     return false;
   }
   if (isExpired(session.expiry)) {
@@ -231,11 +258,32 @@ export async function deleteExpiredNotes() {
   }
 }
 
-export function validateIncomingNote(note: IncomingNote) {
-  const { content, title, self_destroy_time, will_self_destroy } = note;
+export function validateIncomingNote(
+  note: IncomingNote,
+  validatationType: "update" | "create"
+) {
+  const {
+    content,
+    title,
+    self_destroy_time,
+    will_self_destroy,
+    is_hidden,
+    secret,
+  } = note;
 
-  if (!title || !content) {
-    return { isValid: false, error: "Note must have a title and content" };
+  const data: any = {};
+
+  if (validatationType === "create") {
+    if (!title || !content || title.trim() === "" || content.trim() === "") {
+      return { isValid: false, error: "Note must have a title and content" };
+    }
+  }
+
+  if (title) {
+    data.title = title;
+  }
+  if (content) {
+    data.content = content;
   }
 
   if (will_self_destroy && !self_destroy_time) {
@@ -243,16 +291,26 @@ export function validateIncomingNote(note: IncomingNote) {
   }
 
   if (self_destroy_time) {
-    const valid = parseSelfDestroyTimeToDate(self_destroy_time);
-    if (!valid) {
+    const validTime = parseSelfDestroyTimeToDate(self_destroy_time);
+    if (!validTime) {
       return {
         isValid: false,
         error: "Invalid timer. Please follow the format: <number> <unit>.",
       };
     }
+    data.will_self_destroy = true;
+    data.self_destroy_time = validTime;
   }
 
-  return { isValid: true };
+  if (is_hidden) {
+    data.is_hidden = true;
+  }
+
+  if (secret && secret.trim() !== "") {
+    data.secret = hashSync(secret, 10);
+  }
+
+  return { isValid: true, data };
 }
 
 const determine_status_code = (errorCode: ErrorCodes) => {

@@ -1,7 +1,7 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { _IAlias, ErrorCodes, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchNote } from "./utils";
+import { decodeFromBase62, fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
 import {
   BackButton,
@@ -61,11 +61,14 @@ const ViewNote: FC<IViewNote> = () => {
   if (!note) return <></>;
 
   return (
-    <div className="modal top_space relative animate__animated animate__slideInDown">
-      <div className="flex modal_child mt-7 flex-col gap-y-3       py-5">
+    <div className="modal   relative animate__animated animate__slideInDown">
+      <div className="flex modal_child mt-7 flex-col gap-y-3 ">
         <BackButton text={note.note.title} url={-1} />
 
-        <div dangerouslySetInnerHTML={{ __html: note.note.content }}></div>
+        <div
+          className="note_body"
+          dangerouslySetInnerHTML={{ __html: note.note.content }}
+        ></div>
 
         <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">
           <div className="flex text-md gap-x-3 gap-y-3 flex-wrap items-center  justify-end ">

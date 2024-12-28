@@ -76,6 +76,7 @@ const Editor = () => {
       createdAt: note.createdAt,
       id: note.id,
       selfDestroyTime: note.self_destroy_time,
+      alias_id: note.alias_id,
     });
   };
 
@@ -100,15 +101,17 @@ const Editor = () => {
       }),
     });
     const response: IApiResponse<null> = await f.json();
-
-    toast(response.message);
+    if (response.status === "err") toast.error(response.message);
+    else {
+      toast.success(response.message);
+    }
   };
 
   if (!otpExpiry?.is_valid_auth) return <></>;
 
   return (
     <>
-      <div className="modal animate__animated animate__slideInDown  ">
+      <div className="modal   ">
         <form className="modal_child    gap-y-3 flex flex-col  ">
           <BackButton text={"Editing note"} url={-1} />
 
@@ -198,10 +201,11 @@ const Editor = () => {
         </form>
       </div>
 
-      {showCollabModal && (
+      {showCollabModal && editor && (
         <CollaboratorsModal
           note_id={editor?.id!}
           onClose={() => setCollabModal(false)}
+          note_owner_id={editor?.alias_id}
         />
       )}
     </>
@@ -216,7 +220,7 @@ interface NoteEditorProps {
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto note_body">
       <ReactQuill
         value={value}
         onChange={onChange}

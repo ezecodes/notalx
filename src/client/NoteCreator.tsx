@@ -199,7 +199,7 @@ interface NoteEditorProps {
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto note_body">
       <ReactQuill
         value={value}
         onChange={onChange}

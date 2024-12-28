@@ -37,8 +37,9 @@ router
 
 router
   .route("/note/:note_id")
-  .delete(authoriseAlias, authoriseAliasForNote, Controller.deleteNote)
-  .put(authoriseAlias, Controller.editNote);
+  .delete(authoriseAlias, Controller.deleteNote)
+  .put(authoriseAlias, authoriseAliasForNote, Controller.editNote)
+  .get(Controller.getNoteBySlug);
 
 router
   .route("/note/:note_id/collaborators")
@@ -49,7 +50,5 @@ router
     authoriseAliasForNote,
     Controller.deleteNoteCollaborator
   );
-
-router.route("/note/:note_slug").get(Controller.getNoteBySlug);
 
 export default router;

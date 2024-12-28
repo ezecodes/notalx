@@ -32,7 +32,7 @@ const Home = () => {
     fetchAliasNotes,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<Tab>("notes");
+  const [activeTab, setActiveTab] = useState<Tab>("public");
 
   useEffect(() => {
     try {

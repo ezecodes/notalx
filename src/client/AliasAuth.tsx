@@ -72,7 +72,7 @@ const AliasAuth = () => {
   };
 
   return (
-    <div className="modal animate__animated animate__slideInDown">
+    <div className="modal  ">
       <div className="flex mt-7 flex-col gap-y-3 relative modal_child px-5 py-5  ">
         <BackButton
           text={

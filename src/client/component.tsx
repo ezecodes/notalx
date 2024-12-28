@@ -24,8 +24,9 @@ import { toast } from "react-toastify";
 
 export const CollaboratorsModal: FC<{
   note_id: string;
+  note_owner_id: string;
   onClose: () => void;
-}> = ({ note_id, onClose }) => {
+}> = ({ note_id, onClose, note_owner_id }) => {
   const [collaborators, setCollaborators] = useState<_IAlias[]>([]);
   const [newCollaborators, setNewCollaborators] = useState<_IAlias[]>([]);
 
@@ -102,7 +103,11 @@ export const CollaboratorsModal: FC<{
       <div className="top_space sm:w-[400px]">
         <BackButton text="Manage note collaborators" onClick={onClose} />
         <br />
-        <SearchDropdown selected={selected} onClick={handleCollabUpdate} />
+        <SearchDropdown
+          filter={(option) => option.id !== note_owner_id}
+          selected={selected}
+          onClick={handleCollabUpdate}
+        />
 
         <div className="flex flex-col gap-y-2 pt-2 ">
           {newCollaborators.length > 0 &&
@@ -233,11 +238,13 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
 interface SearchDropdownProps {
   onClick: (selected: _IAlias | null) => void;
   selected: _IAlias | null;
+  filter?: (option: _IAlias) => boolean;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   onClick,
   selected,
+  filter,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [options, setOptions] = useState<_IAlias[]>([]);
@@ -266,6 +273,13 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
 
   const handleBlur = () => {
     setTimeout(() => setShowDropdown(false), 300);
+  };
+
+  const handleFilter = (option: _IAlias) => {
+    if (filter) {
+      return filter(option) && option.id !== otpExpiry?.alias_id;
+    }
+    return option.id !== otpExpiry?.alias_id;
   };
 
   return (
@@ -305,18 +319,16 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
           style={{ borderTop: "1px solid #555555" }}
           className="absolute w-full bg-[#232323] border border-gray-300 rounded-md mt-1 shadow-lg z-10"
         >
-          {options
-            .filter((i) => i.id !== otpExpiry?.alias_id)
-            .map((option) => (
-              <li
-                key={option.id}
-                onClick={() => handleOptionClick(option)}
-                className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
-                style={{ borderBottom: "1px solid #555555" }}
-              >
-                {option.name}
-              </li>
-            ))}
+          {options.filter(handleFilter).map((option) => (
+            <li
+              key={option.id}
+              onClick={() => handleOptionClick(option)}
+              className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
+              style={{ borderBottom: "1px solid #555555" }}
+            >
+              {option.name}
+            </li>
+          ))}
           <Link to={"/newalias"} className="text-sm px-4 flex justify-center">
             New Alias
           </Link>
@@ -478,6 +490,7 @@ const AvatarGroup: React.FC<AvatarGroupProps> = ({
     <div className="flex items-center">
       {avatars.map((avatar, index) => (
         <div
+          title={avatar.name}
           key={index}
           className={`relative inline-block rounded-full border-2 border-white bg-[#555555] flex items-center justify-center`}
           style={{
@@ -523,10 +536,6 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
   note,
   collaborators,
 }) => {
-  const { Is_Authorised_Alias_Same_As_Note_Alias, deleteNote } =
-    useContext(GlobalContext)!;
-  const navigate = useNavigate();
-
   return (
     <div
       className="shadow-sm w-full  pt-3 pb-1 h-[180px] 3micro:w-[350px] rounded-md gap-y-2 flex flex-col overflow-hidden"

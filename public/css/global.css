@@ -88,7 +88,7 @@ label {
   @apply text-gray-300;
 }
 .modal_child {
-  @apply px-3 py-5;
+  @apply 3micro:px-3 py-5;
 }
 
 .draft_actions,
@@ -108,7 +108,8 @@ label {
 .border_top {
   border-top: 1px solid #3d3d3d;
 }
-.top_space {
+.top_space,
+.modal {
   padding-left: var(--top_gap);
   padding-right: var(--top_gap);
 }

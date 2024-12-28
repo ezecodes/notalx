@@ -109,6 +109,7 @@ export interface INoteEditor {
   content: string;
   hidden: boolean;
   willSelfDestroy: boolean;
+  alias_id: string;
   selfDestroyTime: Date;
   createdAt: Date;
 }
@@ -126,7 +127,10 @@ declare module "express" {
 declare global {
   namespace Express {
     export interface Request {
-      alias?: {
+      __alias?: {
+        id: string;
+      };
+      __note?: {
         id: string;
       };
     }
