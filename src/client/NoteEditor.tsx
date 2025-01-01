@@ -4,14 +4,19 @@ import {
   Button,
   CollaboratorsModal,
   DisplayDateCreated,
+  DraftEmail,
   ExpirationInfo,
   InputWithIcon,
   IsHiddenInfo,
+  ScheduledTask,
+  SuggestedActionButtons,
+  SummaryHistoryItem,
+  SummerisedResultPane,
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
-import ReactQuill from "react-quill";
+import ReactQuill, { Quill } from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
-import { _IAlias, IApiResponse, INote, INoteEditor } from "../type";
+import { _IAlias, IApiResponse, IJob, INote, INoteEditor } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -19,6 +24,8 @@ import { RiAdminLine } from "react-icons/ri";
 import { GoPeople } from "react-icons/go";
 import { IoMdTime } from "react-icons/io";
 import { GoLock } from "react-icons/go";
+import { decodeFromBase62 } from "./utils";
+import { BsStars } from "react-icons/bs";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -28,20 +35,18 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
     setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
   };
   return (
-    <div className="relative">
+    <div className="relative ">
       {isDropdownVisible && (
-        <div className="absolute bottom-[100%] mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md">
-          <ul>
-            <li className="dropdown_item" onClick={setCollabModal}>
-              <GoPeople /> Collaborators
-            </li>
-            <li className="dropdown_item" onClick={() => navigate("/notes")}>
-              <IoMdTime /> Set expiration
-            </li>
-            <li className="dropdown_item" onClick={() => navigate("/notes")}>
-              <GoLock /> Mark as hidden
-            </li>
-          </ul>
+        <div className="popup_child animate__bounceIn animate__animated">
+          <li className="dropdown_item" onClick={setCollabModal}>
+            <GoPeople /> Collaborators
+          </li>
+          <li className="dropdown_item" onClick={() => navigate("/notes")}>
+            <IoMdTime /> Set expiration
+          </li>
+          <li className="dropdown_item" onClick={() => navigate("/notes")}>
+            <GoLock /> Mark as hidden
+          </li>
         </div>
       )}
       <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
@@ -54,19 +59,37 @@ const Editor = () => {
   const [showCollabModal, setCollabModal] = useState<boolean>(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
-  const { otpExpiry } = useContext(GlobalContext)!;
+  const { otpExpiry, summeriseAction } = useContext(GlobalContext)!;
   const handleUpdate = (values: Partial<INoteEditor>) => {
     const data = { ...editor, ...values };
 
     setEditor(data as INoteEditor);
   };
 
-  const fetchPrevNote = async (note_slug: string) => {
-    const f = await fetch("/api/note/" + note_slug);
+  const [jobs, setJobs] = useState<IJob[]>([]);
+  const [loadingStates, setLoadingStates] = useState({
+    summary: true,
+  });
+  const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
+
+  const [highlightedText, setHighlightedText] = useState<string | null>(null);
+
+  const fetchAllJobsInNote = async () => {
+    const f = await fetch(`/api/note/${parsedNoteId.current}/job`);
+    const response: IApiResponse<{ rows: IJob[] }> = await f.json();
+
+    response.data && setJobs(response.data.rows);
+  };
+
+  const fetchPrevNote = async () => {
+    const f = await fetch("/api/note/" + parsedNoteId.current);
     const response: IApiResponse<{ note: INote; collaborators: _IAlias[] }> =
       await f.json();
 
-    if (response.status === "err") return;
+    if (response.status === "err") {
+      toast.error(response.message);
+      return;
+    }
     const note = response.data?.note!;
     setEditor({
       content: note.content,
@@ -82,7 +105,8 @@ const Editor = () => {
 
   useEffect(() => {
     if (!hasCalled.current) {
-      fetchPrevNote(params.note_slug!);
+      fetchPrevNote();
+      fetchAllJobsInNote();
       hasCalled.current = true;
     }
   }, []);
@@ -111,49 +135,86 @@ const Editor = () => {
 
   return (
     <>
-      <div className="modal   ">
-        <form className="modal_child    gap-y-3 flex flex-col  ">
-          <BackButton text={"Editing note"} url={-1} />
+      <div className="modal  note_manager pb-5">
+        <div className="modal_child">
+          <form className="    gap-y-3 flex flex-col  ">
+            <BackButton text={"Editing note"} url={"/"} />
 
-          {editor ? (
-            <>
-              <fieldset className="flex flex-col gap-y-3 mt-4">
-                <div>
-                  <InputWithIcon
-                    icon={<IoPencilOutline />}
-                    placeholder="Enter note title"
-                    type="text"
-                    value={editor.title!}
-                    onChange={(value) => handleUpdate({ title: value })}
-                  />
-                </div>
-                <div>
-                  <NoteEditor
-                    value={editor.content ?? ""}
-                    onChange={(value) => handleUpdate({ content: value })}
-                  />
-                </div>
-              </fieldset>
+            {editor ? (
+              <>
+                <fieldset className="flex flex-col gap-y-3 items-end ">
+                  <div className="flex gap-x-4 flex-wrap gap-y-2 items-center justify-end  ">
+                    <ExpirationInfo
+                      time={editor.selfDestroyTime}
+                      willSelfDestroy={editor.willSelfDestroy}
+                    />
+                    <IsHiddenInfo hidden={editor.hidden} />
+                    <DisplayDateCreated date={editor.createdAt} />{" "}
+                    <Settings setCollabModal={() => setCollabModal(true)} />
+                  </div>
+                </fieldset>
+                <fieldset className="flex flex-col gap-y-3 mt-4">
+                  <div className="note_title">
+                    <InputWithIcon
+                      icon={<IoPencilOutline />}
+                      placeholder="Enter note title"
+                      type="text"
+                      value={editor.title!}
+                      onChange={(value) => handleUpdate({ title: value })}
+                    />
+                  </div>
+                  <div>
+                    <NoteEditor
+                      value={editor.content ?? ""}
+                      onChange={(value) => handleUpdate({ content: value })}
+                      onSelect={(value) => {
+                        setHighlightedText(value);
+                      }}
+                    />
+                  </div>
+                </fieldset>
+                <fieldset className="flex flex-col gap-y-3 items-end ">
+                  <div className="flex gap-x-4  gap-y-2 justify-end relative items-center w-full  ">
+                    <div className="absolute left-0 top-0">
+                      <SuggestedActionButtons
+                        email={() => {
+                          // callJobAction("email", highlightedText)
+                        }}
+                        highlightedText={highlightedText}
+                        prioritize={() => {
+                          // callJobAction("prioritize", highlightedText)
+                        }}
+                        schedule={() => {
+                          // callJobAction("schedule", highlightedText)
+                        }}
+                        summerise={() => {
+                          setLoadingStates((prev) => ({
+                            ...prev,
+                            summary: true,
+                          }));
+                          summeriseAction(
+                            parsedNoteId.current,
+                            highlightedText!
+                          ).then((res) => {
+                            setLoadingStates((prev) => ({
+                              ...prev,
+                              summary: false,
+                            }));
 
-              <fieldset className="flex flex-col gap-y-3 items-end ">
-                <div className="flex gap-x-4 flex-wrap gap-y-2 items-center justify-end  ">
-                  <ExpirationInfo
-                    time={editor.selfDestroyTime}
-                    willSelfDestroy={editor.willSelfDestroy}
-                  />
-                  <IsHiddenInfo hidden={editor.hidden} />
-                  <DisplayDateCreated date={editor.createdAt} />{" "}
-                  <Settings setCollabModal={() => setCollabModal(true)} />
-                </div>
-                <div className="flex gap-x-4 flex-wrap gap-y-2 justify-end  ">
-                  <Button
-                    text="Save note"
-                    onClick={() => handleNoteUpload(editor.id)}
-                  />
-                </div>
-              </fieldset>
-
-              {/* <fieldset
+                            fetchAllJobsInNote();
+                          });
+                        }}
+                        todo={() => {}}
+                        loadingStates={loadingStates}
+                      />
+                    </div>
+                    <Button
+                      text="Save note"
+                      onClick={() => handleNoteUpload(editor.id)}
+                    />
+                  </div>
+                </fieldset>
+                {/* <fieldset
                 className="mt-4 pt-4 block"
                 style={{ borderTop: "1px solid #3d3d3d" }}
               >
@@ -194,11 +255,26 @@ const Editor = () => {
                   </div>
                 </div>
               </fieldset> */}
-            </>
-          ) : (
-            <></>
-          )}
-        </form>
+              </>
+            ) : (
+              <></>
+            )}
+          </form>
+          <div className="mt-14   flex flex-col gap-y-3 w-full justify-start">
+            <h3 className="  text-sm subtext">Edit History</h3>
+
+            {jobs.length > 0 &&
+              jobs.map((job) => {
+                if (job.job.job_type === "summarisation") {
+                  return <SummaryHistoryItem job={job} />;
+                }
+                return <></>;
+              })}
+
+            {/* <DraftEmail />
+            <ScheduledTask /> */}
+          </div>
+        </div>{" "}
       </div>
 
       {showCollabModal && editor && (
@@ -216,14 +292,29 @@ export default Editor;
 interface NoteEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onSelect: (value: string | null) => void;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
+const NoteEditor: React.FC<NoteEditorProps> = ({
+  value,
+  onChange,
+  onSelect,
+}) => {
+  const handleSelectionChange = (selection: any, source: any, editor: any) => {
+    if (selection && selection.length > 0) {
+      const selectedText = editor.getText(selection.index, selection.length);
+      onSelect(selectedText);
+    } else {
+      onSelect(null); // Clear the highlighted text when the selection is removed
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto note_body">
       <ReactQuill
         value={value}
         onChange={onChange}
+        onChangeSelection={handleSelectionChange}
         theme="snow" // 'snow' is the default theme, you can customize it as per your need
         modules={{
           toolbar: [

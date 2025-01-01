@@ -4,6 +4,7 @@ import { validate } from "uuid";
 import {
   ApiError,
   generateSlug,
+  getChatCompletions,
   getRandomInt,
   getSessionFromReq,
   isExpired,
@@ -13,7 +14,15 @@ import {
   validateIncomingNote,
   validateUsername,
 } from "./helpers";
-import { ErrorCodes, IAlias, IncomingNote, INote, IOtpSession } from "./type";
+import {
+  ErrorCodes,
+  IAlias,
+  IAuthSession,
+  IJob,
+  IJobStatusTrace,
+  IncomingNote,
+  IOtpSession,
+} from "./type";
 import {
   NoteAttributes,
   CacheKeys,
@@ -23,10 +32,13 @@ import {
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
-import { compareSync, hashSync } from "bcrypt";
+import { compare, compareSync, hashSync } from "bcrypt";
 import Note from "./models/Note";
 import { Op } from "sequelize";
 import NoteCollaborator from "./models/NoteCollaborator";
+import Job from "./job/job.model";
+import { AsyncLocalStorage } from "async_hooks";
+import { ChatCompletionMessage } from "openai/resources";
 
 ("----- getAllAlias ------");
 export async function getAllAlias(
@@ -100,7 +112,15 @@ export async function verifyOtp(
   next: NextFunction
 ) {
   const { alias_id, code } = req.body;
-
+  if (!alias_id || !validate(alias_id) || !code) {
+    next(
+      ApiError.error(
+        ErrorCodes.RESOURCE_NOT_FOUND,
+        "Please ensure that both alias ID and OTP code are provided in the request"
+      )
+    );
+    return;
+  }
   const sessionSlug = req.signedCookies[otpSessionCookieKey];
 
   if (!sessionSlug) {
@@ -119,7 +139,7 @@ export async function verifyOtp(
     return;
   }
 
-  const valid = compareSync(code, cachedSession.auth_code_hash);
+  const valid = await compare(code.toString(), cachedSession.auth_code_hash);
   if (alias_id !== cachedSession.alias_id || !valid) {
     next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Invalid Otp code"));
     return;
@@ -135,12 +155,13 @@ export async function verifyOtp(
 
   const user = await Alias.findByPkWithCache(alias_id);
 
-  const sessionObj = {
+  const sessionObj: IAuthSession = {
     expiry,
     ip_address:
       req.headers["x-forwarded-for"]! || req.connection.remoteAddress!,
     user_agent: req.headers["user-agent"]!,
     alias_id,
+    socket_auth_hash: hashSync(alias_id, 5),
   };
   const authSessionId = randomBytes(15).toString("base64url");
 
@@ -242,6 +263,146 @@ export async function getAliasById(
   });
 }
 
+export async function createNoteSummary(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { text_selection } = req.body;
+
+  if (!text_selection || text_selection.trim() === "") {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "Please highlight the text you want to summerise"
+      )
+    );
+
+    return;
+  }
+  if (text_selection.split(" ").length < 10) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "The text to summarize must contain more than 10 words"
+      )
+    );
+    return;
+  }
+
+  const note_id = req.params["note_id"];
+
+  const find = await Note.findByPkWithCache(note_id);
+  if (!find) {
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Note not found"));
+
+    return;
+  }
+  if (!find.content.includes(text_selection)) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "Selected text does not exist on note"
+      )
+    );
+    return;
+  }
+
+  try {
+    const textArr = text_selection.split(" ");
+    const summary = {
+      content: textArr.splice(2, textArr.length - 1).join(" "),
+      refusal: null,
+    };
+
+    if (!summary.content) {
+      next(ApiError.error(ErrorCodes.INTERNAL_SERVER_ERROR, summary.refusal!));
+      return;
+    }
+
+    let payload: any = {
+      old_content: text_selection,
+      new_content: summary.content,
+    };
+
+    let status_trace: IJobStatusTrace[] = [
+      {
+        message: "Summary completed",
+        status: "ok",
+        timestamp: new Date(),
+      },
+    ];
+    Job.create(
+      {
+        alias_id: req.__alias!.id!,
+        job: {
+          job_type: "summarisation",
+          payload,
+        },
+        note_id,
+        status_trace,
+      },
+      { returning: true, raw: true }
+    );
+
+    res.json({
+      status: "ok",
+      message: "Summary completed",
+    });
+  } catch (err) {
+    next(
+      ApiError.error(
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        "Could not process request"
+      )
+    );
+    console.error(err);
+  }
+}
+export async function getSingleJob(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const job_id = req.params["job_id"];
+
+  const job = await Job.findByPkWithCache(job_id);
+  if (!job) {
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Job not found"));
+
+    return;
+  }
+
+  res.json({
+    status: "ok",
+    data: {
+      job,
+    },
+  });
+}
+export async function getAllJobsForNote(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const pagination = req.__pagination__;
+  const rows = await Job.findAll({
+    where: {
+      note_id: req.params.note_id,
+    },
+    limit: pagination!.page_size,
+    offset: (pagination!.page - 1) * pagination!.page_size,
+    order: [["createdAt", "DESC"]],
+  });
+
+  res.json({
+    status: "ok",
+    data: {
+      rows,
+    },
+  });
+}
+
 ("----- registerAlias ------");
 export async function registerAlias(
   req: Request,
@@ -314,18 +475,27 @@ export async function editNote(
     next(ApiError.error(ErrorCodes.VALIDATION_ERROR, valid.error));
     return;
   }
+  if (!note || Object.keys(note).length === 0) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "The note content cannot be empty. Please provide valid note data."
+      )
+    );
+    return;
+  }
 
   Note.updateByIdWithCache(note_id, valid.data);
   res.json({ status: "ok", message: "Note updated" });
 }
 
-("----- getNoteBySlug ------");
-export async function getNoteBySlug(
+("----- getNoteById ------");
+export async function getNoteById(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const note_id = req.__note?.id;
+  const note_id = req.params.note_id;
 
   const find = await Note.findByPkWithCache(note_id!);
 
@@ -471,7 +641,7 @@ export async function addNoteCollaborators(
   res: Response,
   next: NextFunction
 ) {
-  const { collaborators } = req.body;
+  const { collaborators }: { collaborators: { id: string }[] } = req.body;
   const note_id = req.params.note_id;
 
   if (
@@ -494,6 +664,21 @@ export async function addNoteCollaborators(
       )
     );
     return;
+  }
+
+  const existingCollaborators = await PopulateNoteCollaborators(note_id);
+
+  for (let alias of existingCollaborators as IAlias[]) {
+    const find = collaborators.find((i) => i.id === alias.id);
+    if (find) {
+      next(
+        ApiError.error(
+          ErrorCodes.CONFLICT,
+          `${alias.name} is already a collaborator`
+        )
+      );
+      return;
+    }
   }
 
   collaborators.forEach(async ({ id }: any) => {
@@ -521,7 +706,7 @@ export async function deleteNoteCollaborator(
   if (find && find.dataValues.alias_id === alias_id) {
     next(
       ApiError.error(
-        ErrorCodes.FORBIDDEN,
+        ErrorCodes.UNAUTHORIZED,
         "You cannot delete the default collaborator"
       )
     );
@@ -541,15 +726,15 @@ export async function createNote(
   res: Response,
   next: NextFunction
 ) {
-  const { note }: { alias_id: string; note: IncomingNote } = req.body;
-  const { title, is_hidden } = note;
-
+  const { note }: { note: IncomingNote } = req.body;
   const valid = validateIncomingNote(note, "create");
+
   if (!valid.isValid) {
     next(ApiError.error(ErrorCodes.VALIDATION_ERROR, valid.error));
 
     return;
   }
+  const { title, is_hidden } = note;
 
   const findAlias = await Alias.findByPkWithCache(req.__alias?.id!);
 
@@ -560,7 +745,7 @@ export async function createNote(
 
   const slug = generateSlug(title!, 5, is_hidden ?? false);
 
-  await Note.create({ ...valid.data, slug });
+  Note.create({ ...valid.data, slug, alias_id: req.__alias!.id! });
 
   res.json({ status: "ok", message: "Note has been saved to your alias!" });
 }

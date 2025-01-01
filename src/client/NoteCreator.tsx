@@ -73,8 +73,8 @@ const Editor = () => {
 
   return (
     <>
-      <div className="modal  relative">
-        <form className="modal_child relative gap-y-3 flex flex-col  px-3 my-5 py-3">
+      <div className="modal  note_manager relative">
+        <form className="modal_child relative gap-y-3 flex flex-col ">
           <BackButton text={"Creating note"} url={-1} />
           <span
             onClick={() => setDraftModal(true)}
@@ -84,7 +84,7 @@ const Editor = () => {
           </span>
 
           <fieldset className="flex flex-col gap-y-3 mt-4">
-            <div>
+            <div className="note_title">
               <InputWithIcon
                 icon={<IoPencilOutline />}
                 placeholder="Enter note title"

@@ -3,7 +3,10 @@ import * as Controller from "./controller";
 import {
   authoriseAlias,
   authoriseAliasForNote,
+  authoriseAliasToViewNote,
   validateAliasId,
+  validateAndSetPagination,
+  validateJobId,
   validateNoteId,
 } from "./middlewares";
 
@@ -19,6 +22,7 @@ router.use("/otp", otpRouter);
 
 router.param("note_id", validateNoteId);
 router.param("alias_id", validateAliasId);
+router.param("job_id", validateJobId);
 
 router
   .route("/alias")
@@ -39,7 +43,19 @@ router
   .route("/note/:note_id")
   .delete(authoriseAlias, Controller.deleteNote)
   .put(authoriseAlias, authoriseAliasForNote, Controller.editNote)
-  .get(Controller.getNoteBySlug);
+  .get(authoriseAliasToViewNote, Controller.getNoteById);
+
+router
+  .route("/note/:note_id/job/summerise")
+  .post(authoriseAlias, Controller.createNoteSummary);
+
+router.route("/note/:note_id/job/schedule").post(authoriseAlias);
+router.route("/note/:note_id/job/draft_email").post(authoriseAlias);
+
+router.route("/note/job/:job_id").get(authoriseAlias, Controller.getSingleJob);
+router
+  .route("/note/:note_id/job")
+  .get(authoriseAlias, validateAndSetPagination, Controller.getAllJobsForNote);
 
 router
   .route("/note/:note_id/collaborators")

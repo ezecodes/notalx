@@ -7,6 +7,7 @@ import {
   CacheKeys,
   mailConfig,
   sessionCookieKey,
+  X_API_KEY,
 } from "./constants";
 import { createTransport } from "nodemailer";
 import { NextFunction, Request, Response } from "express";
@@ -14,6 +15,31 @@ import memcachedService from "./memcached";
 import NoteCollaborator from "./models/NoteCollaborator";
 import Alias from "./models/Alias";
 import { hashSync } from "bcrypt";
+import OpenAI from "openai";
+import { ChatCompletionMessage } from "openai/resources";
+const openai = new OpenAI({
+  apiKey: X_API_KEY,
+  baseURL: "https://api.x.ai/v1",
+});
+export async function getChatCompletions(
+  prompt: string
+): Promise<ChatCompletionMessage> {
+  const completion = await openai.chat.completions.create({
+    model: "grok-2-latest",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an AI assistant specialized in text summarization. Your goal is to provide concise and accurate summaries of the provided text.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+  return completion.choices[0].message;
+}
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -262,6 +288,9 @@ export function validateIncomingNote(
   note: IncomingNote,
   validatationType: "update" | "create"
 ) {
+  if (!note) {
+    return { isValid: false, error: "Invalid note data provided" };
+  }
   const {
     content,
     title,

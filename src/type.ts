@@ -6,6 +6,23 @@ export type IAlias = {
   updatedAt: Date;
 };
 
+export type IJobStatusTrace = {
+  status: "ok" | "pending" | "err";
+  message: string;
+  timestamp: Date;
+  error_code?: string | number;
+};
+
+export type IJob = {
+  id: string;
+  status_trace: IJobStatusTrace[];
+  job: IJobTypes;
+  alias_id: string;
+  note_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type _IAlias = {
   id: string;
   name: string;
@@ -46,7 +63,21 @@ export type ApiFetchNote = {
   collaborators: _IAlias[];
   note: INote;
 };
+export type ITask = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
+export type IAgent = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type INoteCollaborator = {
   id: string;
   note_id: string;
@@ -91,9 +122,10 @@ export type IOtpSession = {
 
 export type IAuthSession = {
   expiry: Date | string;
-  ip_address: string;
+  ip_address: string | any;
   user_agent: string;
   alias_id: string;
+  socket_auth_hash: string;
 };
 export type IncomingNote = {
   self_destroy_time: string;
@@ -133,6 +165,11 @@ declare global {
       __note?: {
         id: string;
       };
+      __pagination__?: {
+        page: number;
+        page_size: number;
+        offset: number;
+      };
     }
   }
 }
@@ -144,3 +181,65 @@ export enum ErrorCodes {
   INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
   CONFLICT = "CONFLICT",
 }
+
+// Summarisation Job
+export type ISummarisationJob = {
+  job_type: "summarisation";
+  payload: {
+    old_content: string;
+    new_content?: string; // Set after completion
+  };
+};
+
+// Task Scheduling Job
+type IScheduleTaskJob = {
+  job_type: "schedule_task";
+  payload: {
+    task_name: string;
+    task_date: Date;
+    calendar_id?: string; // Optional for calendar integration
+  };
+};
+
+// Email Drafting Job
+type IEmailDraftJob = {
+  job_type: "email_draft";
+  payload: {
+    recipient: string;
+    subject: string;
+    body: string;
+    draft_id?: string; // Optional if saving draft
+  };
+};
+
+// Task Prioritization Job
+type IPrioritizationJob = {
+  job_type: "task_prioritization";
+  payload: {
+    tasks: { id: string; description: string; priority?: number }[];
+    sorted_tasks?: { id: string; description: string; priority: number }[]; // After processing
+  };
+};
+
+// Agnostic Job (Custom Tasks)
+type ICustomJob = {
+  job_type: "custom";
+  payload: {
+    input: any; // Flexible input
+    output?: any; // Flexible output after completion
+  };
+};
+
+// Union Type for All Jobs
+type IJobTypes =
+  | ISummarisationJob
+  | IScheduleTaskJob
+  | IEmailDraftJob
+  | IPrioritizationJob
+  | ICustomJob;
+
+// Job State for Tracking
+export type IJobState<T extends IJobTypes["job_type"]> = Extract<
+  IJobTypes,
+  { job_type: T }
+>;

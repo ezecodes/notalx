@@ -30,6 +30,7 @@ const Home = () => {
     publicNotes,
     authAliasNotes,
     fetchAliasNotes,
+    otpExpiry,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("public");
@@ -64,14 +65,18 @@ const Home = () => {
         >
           Public notes
         </button>
-        <button
-          onClick={() => setActiveTab("notes")}
-          className={`sub_button ${
-            activeTab === "notes" ? "text-white" : "subtext"
-          } `}
-        >
-          My notes
-        </button>
+
+        {otpExpiry?.is_valid_auth && (
+          <button
+            onClick={() => setActiveTab("notes")}
+            className={`sub_button ${
+              activeTab === "notes" ? "text-white" : "subtext"
+            } `}
+          >
+            My notes
+          </button>
+        )}
+
         <button
           onClick={() => setActiveTab("bookmarks")}
           className={`sub_button ${

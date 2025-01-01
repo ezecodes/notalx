@@ -1,4 +1,4 @@
-import { FC, ReactNode, useContext, useEffect, useState } from "react";
+import { FC, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import {
   encodeToBase62,
   fetchAllAlias,
@@ -7,20 +7,211 @@ import {
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import { _IAlias, IApiResponse, INote, IOtpExpiry } from "../type";
+import { _IAlias, IApiResponse, IJob, INote, IOtpExpiry } from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
-import { BsPersonCheck, BsUnlock } from "react-icons/bs";
+import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
 import {
   IoArrowBackOutline,
   IoCreateOutline,
   IoPersonAdd,
+  IoShareOutline,
 } from "react-icons/io5";
 import { GlobalContext } from "./hook";
 import { MdDeleteOutline } from "react-icons/md";
 import { IoBookmarkOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
+import { IoShareSocialOutline } from "react-icons/io5";
+import { SiWhatsapp } from "react-icons/si";
+import { FaTelegram } from "react-icons/fa";
+import { BiLogoTelegram } from "react-icons/bi";
+import { GoArrowRight } from "react-icons/go";
+import { Oval } from "react-loader-spinner";
+
+export const NoteEditHistory = () => {};
+
+interface HighlightWordsProps {
+  text: string;
+}
+const HighlightWords: React.FC<HighlightWordsProps> = ({ text }) => {
+  return (
+    <p className="">
+      {text.split(" ").map((word, index) => (
+        <span
+          key={index}
+          className="ml-1 mb-1 px-1 py-1 rounded-md text-sm"
+          style={{
+            backgroundColor: "#424242",
+            display: "inline-block",
+          }}
+        >
+          {word}
+        </span>
+      ))}
+    </p>
+  );
+};
+
+export const SummaryHistoryItem: FC<{ job: IJob }> = ({ job }) => {
+  const payload = useRef(
+    job.job.payload as { old_content: string; new_content: string }
+  );
+  return (
+    <div className="flex flex-col gap-y-2 bg-[#333] px-3 py-2 rounded-md">
+      <h6 className="  text-sm subtext">Summarisation</h6>
+      <div className="flex gap-x-2 items-center">
+        <p className="line-through subtext text-sm flex-wrap">
+          {payload.current.old_content}
+        </p>
+        <GoArrowRight />
+        <HighlightWords text={payload.current.old_content} />
+      </div>
+      <div className="flex items-center gap-x-2 justify-end">
+        <Button
+          text="Copy"
+          onClick={() => {
+            navigator.clipboard
+              .writeText(payload.current.new_content)
+              .then(() => {
+                toast.success("Copied");
+              });
+          }}
+        />
+        <Button text="Insert into note" onClick={() => {}} />
+        <Button text="Refine" onClick={() => {}} />
+        <span className="text-sm">{formatRelativeTime(job.createdAt)}</span>
+      </div>
+    </div>
+  );
+};
+
+const KeyValuePair = ({ header, value }: { value: string; header: string }) => {
+  return (
+    <span className="flex items-center gap-x-1">
+      <span className="subtext">{header}: </span>
+      <span>{value}</span>
+    </span>
+  );
+};
+
+export const DraftEmail = () => {
+  return (
+    <div className="note_history_item">
+      <h6 className="  text-sm subtext">Draft Email</h6>
+
+      <div>
+        <KeyValuePair value="[team@company.com]" header="email" />
+        <KeyValuePair header="Subject" value="Q4 Strategy Meeting  " />
+        <KeyValuePair
+          header="body"
+          value="Dear Team, As
+        discussed, our meeting on Friday will focus on Q4 strategy..."
+        />
+      </div>
+
+      <div className="flex items-center gap-x-2 justify-end">
+        <Button text="Send email" onClick={() => {}} />
+        <Button text="Copy email" onClick={() => {}} />
+      </div>
+    </div>
+  );
+};
+export const ScheduledTask = () => {
+  return (
+    <div className="note_history_item">
+      <h6 className="  text-sm subtext">Task Details</h6>
+
+      <ul className="flex flex-col gap-y-2">
+        <li>
+          <KeyValuePair value="Discuss Q4 goals and strategy" header="Task" />
+          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
+          <KeyValuePair value="2:00 PM" header="Time" />
+        </li>
+        <li>
+          <KeyValuePair value="Review marketing budget" header="Task" />
+          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
+          <KeyValuePair value="4:00 PM" header="Time" />
+        </li>
+        <li>
+          <KeyValuePair value="Finalize team presentation" header="Task" />
+          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
+          <KeyValuePair value="4:00 PM" header="Time" />
+        </li>
+      </ul>
+
+      <div className="flex items-center gap-x-2 justify-end">
+        <Button text="Confirm Task" onClick={() => {}} />
+        <Button text="Re-order" onClick={() => {}} />
+        <Button text="Edit Task" onClick={() => {}} />
+      </div>
+    </div>
+  );
+};
+
+export const SummerisedResultPane = () => {
+  return (
+    <aside className="modal">
+      <div className="w-full mx-5 add_border py-3 px-3 rounded-sm flex  items-center justify-center sm:w-[500px]">
+        <div className="flex flex-col gap-y-3">
+          <p>
+            In pricing your sass, identify all your user types , then place a
+            feature that incorporates their usage on the sass under a tiered
+            pricing
+          </p>
+          <div className="flex items-center gap-x-2 justify-end">
+            <Button text="Copy" onClick={() => {}} />
+            <Button text="Insert into note" onClick={() => {}} />
+            <Button text="Refine" onClick={() => {}} />
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+type ISuggestedActionParam = () => void;
+type ISuggestedAction = {
+  summerise: ISuggestedActionParam;
+  schedule: ISuggestedActionParam;
+  email: ISuggestedActionParam;
+  prioritize: ISuggestedActionParam;
+  todo: ISuggestedActionParam;
+  highlightedText: string | null;
+  loadingStates: {
+    summary: boolean;
+  };
+};
+export const SuggestedActionButtons: FC<ISuggestedAction> = ({
+  email,
+  prioritize,
+  schedule,
+  summerise,
+  todo,
+  highlightedText,
+  loadingStates,
+}) => {
+  return (
+    <div className="flex flex-col items-start gap-y-2 animate__fadeInUp animate__animated">
+      <div className="flex items-center gap-x-2">
+        <h3 className="  text-sm subtext">Sugested Actions</h3>
+        <BsStars className="text-yellow-200 " />
+      </div>
+
+      <div className="flex items-center gap-x-3 swirl_parent ">
+        <Button
+          text="Summerise"
+          icon={loadingStates.summary ? <RingsLoader /> : <></>}
+          onClick={summerise}
+          bg="bg-[#333]"
+        />
+        <Button text="Schedule" onClick={schedule} />
+        <Button text="Email" onClick={email} />
+        <Button text="New Task" onClick={prioritize} />
+      </div>
+    </div>
+  );
+};
 
 export const CollaboratorsModal: FC<{
   note_id: string;
@@ -161,16 +352,18 @@ export const Button = ({
   text,
   icon,
   type,
+  bg,
 }: {
   text: string;
   onClick: () => void;
   icon?: ReactNode;
   type?: "button" | "submit";
   action?: Action;
+  bg?: string;
 }) => {
   return (
     <button
-      className={`primary_button   `}
+      className={`primary_button ${bg ?? ""} `}
       onClick={onClick}
       type={type ?? "button"}
     >
@@ -187,10 +380,12 @@ interface IBb {
 export const BackButton: FC<IBb> = ({ text, url, onClick }) => {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col justify-start gap-y-3">
+    <div className="flex my-5 items-center gap-x-3">
       <IoArrowBackOutline onClick={() => onClick ?? navigate(url)} />
 
-      <h3 className="text-[1.1rem] font-[500]">{text}</h3>
+      <h3 className="text-[1rem] transform-capitalize subtext font-[500]">
+        {text}
+      </h3>
     </div>
   );
 };
@@ -548,7 +743,7 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
       </div>
 
       <Link
-        to={"/" + note.slug}
+        to={"/" + encodeToBase62(note.id)}
         className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
       >
         <span
@@ -562,8 +757,135 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
         <div className="flex items-center gap-x-2">
           <DisplayDateCreated date={note.createdAt} />
           <IoBookmarkOutline />
+          <NoteSharingPopup note={note} />
         </div>
       </div>
     </div>
   );
 };
+const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative sharepopup">
+      {isDropdownVisible && (
+        <div className="popup_child animate__bounceIn animate__animated">
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              navigator.clipboard
+                .writeText("https://notalx.com/" + note.slug)
+                .then(() => {
+                  toast.success("Link copied to clipboard");
+                });
+              displayDropdown();
+            }}
+          >
+            <IoShareOutline /> Copy Link
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(
+                  "https://notalx.com/" + note.slug
+                )}`,
+                "_blank"
+              );
+              displayDropdown();
+            }}
+          >
+            <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://t.me/share/url?url=${encodeURIComponent(
+                  "https://notalx.com/" + note.slug
+                )}`
+              );
+              displayDropdown();
+            }}
+          >
+            <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
+          </li>{" "}
+        </div>
+      )}
+      <IoShareSocialOutline onClick={displayDropdown} />
+    </div>
+  );
+};
+
+const TextSelectionPopup: FC<{ note: INote }> = ({ note }) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative sharepopup">
+      {isDropdownVisible && (
+        <div className="popup_child animate__bounceIn animate__animated">
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              navigator.clipboard
+                .writeText("https://notalx.com/" + note.slug)
+                .then(() => {
+                  toast.success("Link copied to clipboard");
+                });
+              displayDropdown();
+            }}
+          >
+            <IoShareOutline /> Copy Link
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(
+                  "https://notalx.com/" + note.slug
+                )}`,
+                "_blank"
+              );
+              displayDropdown();
+            }}
+          >
+            <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://t.me/share/url?url=${encodeURIComponent(
+                  "https://notalx.com/" + note.slug
+                )}`
+              );
+              displayDropdown();
+            }}
+          >
+            <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
+          </li>{" "}
+        </div>
+      )}
+      <IoShareSocialOutline onClick={displayDropdown} />
+    </div>
+  );
+};
+
+const RingsLoader = () => (
+  <Oval
+    visible={true}
+    height="20"
+    width="20"
+    strokeWidth={5}
+    color="#ddd"
+    ariaLabel="oval-loading"
+    wrapperStyle={{}}
+    wrapperClass=""
+  />
+);

@@ -1,5 +1,4 @@
 import "react-quill/dist/quill.snow.css";
-import "choices.js/public/assets/styles/choices.min.css";
 import "react-toastify/dist/ReactToastify.css";
 
 import { RouterProvider, createBrowserRouter } from "react-router-dom";

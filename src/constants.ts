@@ -34,3 +34,5 @@ export const NoteAttributes = [
   "self_destroy_time",
 ];
 export const AliasAttributes = ["id", "name"];
+
+export const X_API_KEY = process.env.X_API_KEY

@@ -1,7 +1,7 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { _IAlias, ErrorCodes, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
-import { decodeFromBase62, fetchNote } from "./utils";
+import { decodeFromBase62, encodeToBase62, fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
 import {
   BackButton,
@@ -50,7 +50,8 @@ const ViewNote: FC<IViewNote> = () => {
   }
 
   useEffect(() => {
-    params.note_slug && handleNoteFetch(params.note_slug);
+    const slug = params.note_slug ? decodeFromBase62(params.note_slug) : null;
+    slug && handleNoteFetch(slug);
     if (!hasCalled.current) {
       getOTPExpiry();
 
@@ -62,7 +63,7 @@ const ViewNote: FC<IViewNote> = () => {
 
   return (
     <div className="modal   relative animate__animated animate__slideInDown">
-      <div className="flex modal_child mt-7 flex-col gap-y-3 ">
+      <div className="flex modal_child flex-col gap-y-3 ">
         <BackButton text={note.note.title} url={-1} />
 
         <div
@@ -90,7 +91,9 @@ const ViewNote: FC<IViewNote> = () => {
                 />
                 <Button
                   text="Edit"
-                  onClick={() => navigate("/edit/" + note.note.slug)}
+                  onClick={() =>
+                    navigate("/edit/" + encodeToBase62(note.note.id))
+                  }
                 />
               </>
             ) : (
