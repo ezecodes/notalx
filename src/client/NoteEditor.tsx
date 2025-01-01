@@ -68,7 +68,7 @@ const Editor = () => {
 
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [loadingStates, setLoadingStates] = useState({
-    summary: true,
+    summary: false,
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
 
