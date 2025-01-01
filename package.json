@@ -65,6 +65,7 @@
     "react-toastify": "^10.0.6",
     "sequelize": "^6.37.4",
     "sqlite3": "^5.1.7",
+    "string-strip-html": "^13.4.8",
     "tailwindcss": "^3.4.16",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",

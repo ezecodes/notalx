@@ -7,6 +7,7 @@ import {
   INote,
   IOtpExpiry,
   IPaginatedResponse,
+  ISummaryResponse,
 } from "../type";
 
 export function isSessionExpired(expiry: string): boolean {
@@ -71,6 +72,24 @@ export const fetchAlias = async (id: string) => {
   return (await f.json()) as IApiResponse<_IAlias>;
 };
 
+export async function summeriseSelectedText(
+  note_id: string,
+  highlightedText: {
+    text: string;
+    start_index: number;
+    end_index: number;
+  }
+): Promise<IApiResponse<ISummaryResponse>> {
+  const f = await fetch(`/api/note/${note_id}/job/summerise`, {
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(highlightedText),
+    method: "POST",
+  });
+  return (await f.json()) as Promise<IApiResponse<ISummaryResponse>>;
+}
+
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();
   const date = new Date(timestamp);
@@ -81,8 +100,8 @@ export function formatRelativeTime(timestamp: string | Date): string {
     { unit: "month", seconds: 30 * 24 * 60 * 60 },
     { unit: "day", seconds: 24 * 60 * 60 },
     { unit: "hour", seconds: 60 * 60 },
-    { unit: "minute", seconds: 60 },
-    { unit: "second", seconds: 1 },
+    { unit: "min", seconds: 60 },
+    { unit: "sec", seconds: 1 },
   ];
 
   for (const { unit, seconds } of timeUnits) {

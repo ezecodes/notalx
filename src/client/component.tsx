@@ -53,7 +53,7 @@ const HighlightWords: React.FC<HighlightWordsProps> = ({ text }) => {
   );
 };
 
-export const SummaryHistoryItem: FC<{ job: IJob }> = ({ job }) => {
+export const SummaryHistoryItem: FC<{ job: IJob, handleInsert: () => void }> = ({ job , handleInsert}) => {
   const payload = useRef(
     job.job.payload as { old_content: string; new_content: string }
   );
@@ -68,6 +68,7 @@ export const SummaryHistoryItem: FC<{ job: IJob }> = ({ job }) => {
         <HighlightWords text={payload.current.old_content} />
       </div>
       <div className="flex items-center gap-x-2 justify-end">
+        <span className="text-sm">{formatRelativeTime(job.createdAt)}</span>
         <Button
           text="Copy"
           onClick={() => {
@@ -78,9 +79,8 @@ export const SummaryHistoryItem: FC<{ job: IJob }> = ({ job }) => {
               });
           }}
         />
-        <Button text="Insert into note" onClick={() => {}} />
+        <Button text="Insert into note" onClick={() => handleInsert()} />
         <Button text="Refine" onClick={() => {}} />
-        <span className="text-sm">{formatRelativeTime(job.createdAt)}</span>
       </div>
     </div>
   );

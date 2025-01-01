@@ -268,9 +268,9 @@ export async function createNoteSummary(
   res: Response,
   next: NextFunction
 ) {
-  const { text_selection } = req.body;
+  const { text, start_index, end_index } = req.body;
 
-  if (!text_selection || text_selection.trim() === "") {
+  if (!text || text.trim() === "") {
     next(
       ApiError.error(
         ErrorCodes.VALIDATION_ERROR,
@@ -280,74 +280,35 @@ export async function createNoteSummary(
 
     return;
   }
-  if (text_selection.split(" ").length < 10) {
+  if (text.split(" ").length < 5) {
     next(
       ApiError.error(
         ErrorCodes.VALIDATION_ERROR,
-        "The text to summarize must contain more than 10 words"
+        "The text to summarize must contain more than 5 words"
       )
     );
     return;
   }
-
   const note_id = req.params["note_id"];
-
   const find = await Note.findByPkWithCache(note_id);
+
   if (!find) {
     next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Note not found"));
-
-    return;
-  }
-  if (!find.content.includes(text_selection)) {
-    next(
-      ApiError.error(
-        ErrorCodes.VALIDATION_ERROR,
-        "Selected text does not exist on note"
-      )
-    );
     return;
   }
 
   try {
-    const textArr = text_selection.split(" ");
-    const summary = {
-      content: textArr.splice(2, textArr.length - 1).join(" "),
-      refusal: null,
+    const data = {
+      new_content: "test summary",
+      old_content: text,
+      end_index: start_index + end_index,
+      start_index,
     };
-
-    if (!summary.content) {
-      next(ApiError.error(ErrorCodes.INTERNAL_SERVER_ERROR, summary.refusal!));
-      return;
-    }
-
-    let payload: any = {
-      old_content: text_selection,
-      new_content: summary.content,
-    };
-
-    let status_trace: IJobStatusTrace[] = [
-      {
-        message: "Summary completed",
-        status: "ok",
-        timestamp: new Date(),
-      },
-    ];
-    Job.create(
-      {
-        alias_id: req.__alias!.id!,
-        job: {
-          job_type: "summarisation",
-          payload,
-        },
-        note_id,
-        status_trace,
-      },
-      { returning: true, raw: true }
-    );
 
     res.json({
       status: "ok",
       message: "Summary completed",
+      data,
     });
   } catch (err) {
     next(
@@ -356,7 +317,6 @@ export async function createNoteSummary(
         "Could not process request"
       )
     );
-    console.error(err);
   }
 }
 export async function getSingleJob(

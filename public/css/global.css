@@ -120,7 +120,15 @@ label {
 .subtext {
   @apply text-gray-300;
 }
-
+.sp_buttons {
+  @apply text-sm bg-[#333] rounded-md h-[25px] px-2;
+}
+.sp_buttons.insert {
+  @apply bg-[#0848ad];
+}
+.sp_buttons.discard {
+  @apply bg-[#7a243c];
+}
 .note_history_item {
   @apply flex flex-col gap-y-2 bg-[#333] px-3 py-2 rounded-md;
 }

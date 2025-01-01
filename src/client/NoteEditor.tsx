@@ -16,7 +16,14 @@ import {
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill, { Quill } from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
-import { _IAlias, IApiResponse, IJob, INote, INoteEditor } from "../type";
+import {
+  _IAlias,
+  IApiResponse,
+  IJob,
+  INote,
+  INoteEditor,
+  ISummaryResponse,
+} from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -24,8 +31,9 @@ import { RiAdminLine } from "react-icons/ri";
 import { GoPeople } from "react-icons/go";
 import { IoMdTime } from "react-icons/io";
 import { GoLock } from "react-icons/go";
-import { decodeFromBase62 } from "./utils";
+import { decodeFromBase62, summeriseSelectedText } from "./utils";
 import { BsStars } from "react-icons/bs";
+import { MdOutlineAutoFixHigh } from "react-icons/md";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -59,12 +67,15 @@ const Editor = () => {
   const [showCollabModal, setCollabModal] = useState<boolean>(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
-  const { otpExpiry, summeriseAction } = useContext(GlobalContext)!;
+  const { otpExpiry } = useContext(GlobalContext)!;
   const handleUpdate = (values: Partial<INoteEditor>) => {
     const data = { ...editor, ...values };
 
     setEditor(data as INoteEditor);
   };
+
+  const [currentInsertion, setCurrentInsertion] =
+    useState<ISummaryResponse | null>(null);
 
   const [jobs, setJobs] = useState<IJob[]>([]);
   const [loadingStates, setLoadingStates] = useState({
@@ -72,7 +83,11 @@ const Editor = () => {
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
 
-  const [highlightedText, setHighlightedText] = useState<string | null>(null);
+  const [highlightedText, setHighlightedText] = useState<{
+    text: string;
+    start_index: number;
+    end_index: number;
+  } | null>(null);
 
   const fetchAllJobsInNote = async () => {
     const f = await fetch(`/api/note/${parsedNoteId.current}/job`);
@@ -131,6 +146,127 @@ const Editor = () => {
     }
   };
 
+  const handleSummariseAction = async () => {
+    try {
+      setLoadingStates((prev) => ({ ...prev, summary: true }));
+      const response = await summeriseSelectedText(
+        parsedNoteId.current,
+        highlightedText!
+      );
+      if (response.status === "err") {
+        toast.error(response.message!);
+        return;
+      }
+
+      setCurrentInsertion(response.data!);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, summary: false }));
+    }
+  };
+
+  const quillRef = useRef<ReactQuill | null>(null);
+  const [popupVisible, setPopupVisible] = useState<boolean>(false);
+  const [previewRange, setPreviewRange] = useState<{
+    start: number;
+    end: number;
+    originalText: string;
+    previewText: string;
+  } | null>(null);
+
+  const handleSelectionChange = (selection: any, source: any, editor: any) => {
+    console.log(selection);
+    if (selection && selection.length > 0) {
+      const selectedText = editor.getText(selection.index, selection.length);
+      setHighlightedText({
+        start_index: selection.index!,
+        end_index: selection.length,
+        text: selectedText,
+      });
+    } else {
+      setHighlightedText(null);
+    }
+  };
+
+  const replaceText = (start: number, end: number, newValue: string) => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor();
+      editor.deleteText(start, end - start);
+      editor.insertText(start, newValue);
+    }
+  };
+  useEffect(() => {
+    if (currentInsertion) {
+      const { new_content, old_content, end_index, start_index } =
+        currentInsertion;
+
+      if (quillRef.current) {
+        const editor = quillRef.current.getEditor();
+        const originalText = editor.getText(
+          start_index,
+          end_index - start_index
+        );
+
+        // Save original text and show preview
+        setPreviewRange({
+          start: start_index,
+          end: end_index,
+          originalText,
+          previewText: new_content,
+        });
+        setPopupVisible(true);
+      }
+    } else {
+      setPreviewRange(null);
+      setPopupVisible(false);
+    }
+  }, [currentInsertion]);
+
+  const handleInsert = () => {
+    if (currentInsertion) {
+      const { start_index, end_index, new_content } = currentInsertion;
+      replaceText(start_index, end_index, new_content);
+      setPopupVisible(false);
+      setPreviewRange(null);
+    }
+  };
+
+  const handleCopy = () => {
+    if (currentInsertion) {
+      navigator.clipboard.writeText(currentInsertion.new_content);
+    }
+    return;
+  };
+
+  const handleDiscard = () => {
+    if (previewRange) {
+      const { start, end, originalText } = previewRange;
+
+      // Restore original text in the preview range
+      replaceText(start, end, originalText);
+
+      // Clear preview
+      setPopupVisible(false);
+      setPreviewRange(null);
+    }
+  };
+  const clearSelection = () => {
+    const quill = quillRef!.current!.getEditor(); // Get the Quill editor instance
+    const cursorPosition = quill.getSelection()?.index || 0; // Get the cursor position or default to 0
+    quill.setSelection(cursorPosition, 0); // Clear the selection by setting range length to 0
+  };
+  // Apply preview text
+  useEffect(() => {
+    if (quillRef.current && previewRange) {
+      const { start, end, previewText } = previewRange;
+      const editor = quillRef.current.getEditor();
+
+      // Temporarily format preview text
+      editor.formatText(start, end - start, { background: "#32eb0457" });
+      editor.deleteText(start, end - start);
+      editor.insertText(start, previewText, { background: "#32eb0457" });
+    }
+  }, [previewRange]);
+
   if (!otpExpiry?.is_valid_auth) return <></>;
 
   return (
@@ -164,13 +300,47 @@ const Editor = () => {
                     />
                   </div>
                   <div>
-                    <NoteEditor
-                      value={editor.content ?? ""}
-                      onChange={(value) => handleUpdate({ content: value })}
-                      onSelect={(value) => {
-                        setHighlightedText(value);
-                      }}
-                    />
+                    <div className="w-full max-w-4xl mx-auto note_body">
+                      <ReactQuill
+                        ref={quillRef}
+                        value={editor.content}
+                        onChange={(value) => handleUpdate({ content: value })}
+                        onChangeSelection={handleSelectionChange}
+                        theme="snow"
+                        modules={{
+                          toolbar: [
+                            [{ header: "1" }, { header: "2" }, { font: [] }],
+                            [{ list: "ordered" }, { list: "bullet" }],
+                            ["bold", "italic", "underline", "strike"],
+                            [{ align: [] }],
+                            ["link"],
+                            [{ color: [] }, { background: [] }],
+                            ["image"],
+                            ["clean"],
+                          ],
+                        }}
+                        placeholder="Write your note here..."
+                      />
+                      {popupVisible && (
+                        <div className="w-[200px] flex items-center h-[40px] bg-[#2c2c2c] shadow-sm px-3 justify-center gap-x-2">
+                          <button
+                            className="sp_buttons insert"
+                            onClick={handleInsert}
+                          >
+                            Insert
+                          </button>
+                          <button
+                            className="sp_buttons discard"
+                            onClick={handleDiscard}
+                          >
+                            Discard
+                          </button>
+                          <button className="sp_buttons" onClick={handleCopy}>
+                            Copy
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </fieldset>
                 <fieldset className="flex flex-col gap-y-3 items-end ">
@@ -180,30 +350,14 @@ const Editor = () => {
                         email={() => {
                           // callJobAction("email", highlightedText)
                         }}
-                        highlightedText={highlightedText}
+                        highlightedText={highlightedText?.text!}
                         prioritize={() => {
                           // callJobAction("prioritize", highlightedText)
                         }}
                         schedule={() => {
                           // callJobAction("schedule", highlightedText)
                         }}
-                        summerise={() => {
-                          setLoadingStates((prev) => ({
-                            ...prev,
-                            summary: true,
-                          }));
-                          summeriseAction(
-                            parsedNoteId.current,
-                            highlightedText!
-                          ).then((res) => {
-                            setLoadingStates((prev) => ({
-                              ...prev,
-                              summary: false,
-                            }));
-
-                            fetchAllJobsInNote();
-                          });
-                        }}
+                        summerise={handleSummariseAction}
                         todo={() => {}}
                         loadingStates={loadingStates}
                       />
@@ -260,13 +414,15 @@ const Editor = () => {
               <></>
             )}
           </form>
-          <div className="mt-14   flex flex-col gap-y-3 w-full justify-start">
-            <h3 className="  text-sm subtext">Edit History</h3>
+          <div className="mt-14 flex flex-col gap-y-3 w-full justify-start">
+            <h3 className="text-sm subtext">Edit History</h3>
 
             {jobs.length > 0 &&
               jobs.map((job) => {
                 if (job.job.job_type === "summarisation") {
-                  return <SummaryHistoryItem job={job} />;
+                  return (
+                    <SummaryHistoryItem handleInsert={() => {}} job={job} />
+                  );
                 }
                 return <></>;
               })}
@@ -287,49 +443,5 @@ const Editor = () => {
     </>
   );
 };
+
 export default Editor;
-
-interface NoteEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSelect: (value: string | null) => void;
-}
-
-const NoteEditor: React.FC<NoteEditorProps> = ({
-  value,
-  onChange,
-  onSelect,
-}) => {
-  const handleSelectionChange = (selection: any, source: any, editor: any) => {
-    if (selection && selection.length > 0) {
-      const selectedText = editor.getText(selection.index, selection.length);
-      onSelect(selectedText);
-    } else {
-      onSelect(null); // Clear the highlighted text when the selection is removed
-    }
-  };
-
-  return (
-    <div className="w-full max-w-4xl mx-auto note_body">
-      <ReactQuill
-        value={value}
-        onChange={onChange}
-        onChangeSelection={handleSelectionChange}
-        theme="snow" // 'snow' is the default theme, you can customize it as per your need
-        modules={{
-          toolbar: [
-            [{ header: "1" }, { header: "2" }, { font: [] }],
-            [{ list: "ordered" }, { list: "bullet" }],
-            ["bold", "italic", "underline", "strike"],
-            [{ align: [] }],
-            ["link"],
-            [{ color: [] }, { background: [] }],
-            ["image"],
-            ["clean"], // This is to clear the formatting
-          ],
-        }}
-        placeholder="Write your note here..."
-      />
-    </div>
-  );
-};

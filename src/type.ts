@@ -243,3 +243,10 @@ export type IJobState<T extends IJobTypes["job_type"]> = Extract<
   IJobTypes,
   { job_type: T }
 >;
+
+export type ISummaryResponse = {
+  start_index: number;
+  end_index: number;
+  new_content: string;
+  old_content: string;
+};

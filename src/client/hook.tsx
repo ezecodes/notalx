@@ -16,6 +16,7 @@ import {
   INote,
   INoteCreator,
   IOtpExpiry,
+  ISummaryResponse,
 } from "../type";
 import { fetchAllPublicNotes, fetchAliasPublicAndPrivateNotes } from "./utils";
 import { toast } from "react-toastify";
@@ -53,10 +54,6 @@ type IContext = {
   fetchAliasNotes: () => void;
   publicNotes: ApiFetchNote[];
   authAliasNotes: ApiFetchNote[];
-  summeriseAction: (
-    note_id: string,
-    text_selection: string
-  ) => Promise<IApiResponse<IJob>>;
 };
 const key = "drafts";
 
@@ -104,26 +101,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       document.location.href = "/";
     }
   };
-
-  async function summeriseAction(
-    note_id: string,
-    text_selection: string
-  ): Promise<IApiResponse<IJob>> {
-    const f = await fetch(`/api/note/${note_id}/job/summerise`, {
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ text_selection }),
-      method: "POST",
-    });
-    const response: IApiResponse<{ job: IJob }> = await f.json();
-
-    if (response.status === "err") {
-      toast.error(response.message);
-    }
-
-    return { status: "ok" };
-  }
 
   async function getNoteCollaborators(note_id: string) {
     const f = await fetch(`/api/note/${note_id}/collaborators`);
@@ -261,7 +238,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     fetchAliasNotes,
     publicNotes,
     authAliasNotes,
-    summeriseAction,
   };
 
   return (
