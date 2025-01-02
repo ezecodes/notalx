@@ -2,7 +2,6 @@ import { FC, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import {
   encodeToBase62,
   fetchAllAlias,
-  formatDate,
   formatRelativeTime,
   searchAliasByName,
 } from "./utils";
@@ -26,7 +25,11 @@ import {
   IoShareOutline,
 } from "react-icons/io5";
 import { GlobalContext } from "./hook";
-import { MdDeleteOutline } from "react-icons/md";
+import {
+  MdDeleteOutline,
+  MdOutlineEditCalendar,
+  MdOutlineRadioButtonChecked,
+} from "react-icons/md";
 import { IoBookmarkOutline } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { IoShareSocialOutline } from "react-icons/io5";
@@ -35,7 +38,7 @@ import { FaTelegram } from "react-icons/fa";
 import { BiDotsVertical, BiLogoTelegram } from "react-icons/bi";
 import { GoArrowRight } from "react-icons/go";
 import { Oval } from "react-loader-spinner";
-import { IoIosArrowDown } from "react-icons/io";
+import { IoIosArrowDown, IoMdCheckmarkCircleOutline } from "react-icons/io";
 
 export const NoteEditHistory = () => {};
 
@@ -587,6 +590,56 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
           return <option value={option}>{option}</option>;
         })}
       </select>
+    </div>
+  );
+};
+
+export const ScheduledTasksWrapper: FC<{ tasks: ISingleScheduledTask[] }> = ({
+  tasks,
+}) => {
+  return (
+    <div className="w-full flex flex-wrap gap-4 mt-4">
+      {tasks.map((task) => {
+        return (
+          <div className="flex bg-[#333] flex-col gap-y-2 relative h-[150px] rounded-sm w-[300px]">
+            <MdOutlineEditCalendar className="absolute subtext right-[10px] top-[10px]" />
+            <h4 className="bg-[#333] border_bottom py-2 px-2">{task.name}</h4>
+            <div className="bg-[#333] flex flex-col">
+              <span className="flex items-center justify-center text-[#dbdbdb] gap-y-2 text-[1rem]">
+                {new Date(task.date).toLocaleDateString()}
+                {" ,"}
+                {new Date(task.date).toLocaleTimeString()}
+              </span>
+            </div>
+            <div className="px-3 flex justify-center">
+              {task.participants ? (
+                <AvatarGroup size="2" avatars={[{ name: "Jah" }]} />
+              ) : (
+                <>--</>
+              )}
+            </div>
+
+            <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
+              <span className="text-sm subtext flex items-center gap-x-2 ">
+                {new Date() < new Date(task.date) ? (
+                  <>
+                    <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />{" "}
+                    Upcoming
+                  </>
+                ) : (
+                  <>
+                    <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />{" "}
+                    Past
+                  </>
+                )}
+              </span>
+              <span className="text-sm subtext">
+                {formatRelativeTime(task.date)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

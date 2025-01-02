@@ -122,7 +122,7 @@ export const fetchAllJobsForAlias = async () => {
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();
   const date = new Date(timestamp);
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000); // Notice the change here for future dates
 
   const timeUnits: { unit: string; seconds: number }[] = [
     { unit: "year", seconds: 365 * 24 * 60 * 60 },
@@ -133,17 +133,28 @@ export function formatRelativeTime(timestamp: string | Date): string {
     { unit: "sec", seconds: 1 },
   ];
 
-  for (const { unit, seconds } of timeUnits) {
-    const value = Math.floor(diffInSeconds / seconds);
-    if (value > 0) {
-      return value === 1 ? `A ${unit} ago` : `${value} ${unit}s ago`;
+  if (diffInSeconds < 0) {
+    // Past timestamps
+    for (const { unit, seconds } of timeUnits) {
+      const value = Math.floor(Math.abs(diffInSeconds) / seconds);
+      if (value > 0) {
+        return value === 1 ? `A ${unit} ago` : `${value} ${unit}s ago`;
+      }
     }
+    return "just now";
+  } else {
+    // Future timestamps
+    for (const { unit, seconds } of timeUnits) {
+      const value = Math.floor(diffInSeconds / seconds);
+      if (value > 0) {
+        return value === 1 ? `In a ${unit}` : `In ${value} ${unit}s`;
+      }
+    }
+    return "just now";
   }
-
-  return "just now";
 }
+
 export const formatDate = (date: any) => {
-  console.log(date);
   date = new Date(date);
   const hours = date.getHours() % 12 || 12; // Convert to 12-hour format
   const ampm = date.getHours() >= 12 ? "pm" : "am";

@@ -149,6 +149,9 @@ label {
 .border_top {
   border-top: 1px solid #3d3d3d;
 }
+.border_bottom {
+  border-bottom: 1px solid #3d3d3d;
+}
 .top_space,
 .modal {
   padding-left: var(--top_gap);

@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import {
+import AvatarGroup, {
   BackButton,
   Button,
   CollaboratorsModal,
@@ -9,6 +9,7 @@ import {
   InputWithIcon,
   IsHiddenInfo,
   KeyValuePair,
+  ScheduledTasksWrapper,
   SuggestedActionButtons,
   SummaryHistoryItem,
 } from "./component";
@@ -31,14 +32,16 @@ import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
 import { GoPeople } from "react-icons/go";
-import { IoMdTime } from "react-icons/io";
+import { IoMdCheckmarkCircleOutline, IoMdTime } from "react-icons/io";
 import { GoLock } from "react-icons/go";
 import {
   decodeFromBase62,
   createScheduleTask,
   summeriseSelectedText,
+  formatRelativeTime,
 } from "./utils";
-import { BiDotsVertical } from "react-icons/bi";
+import { MdOutlineRadioButtonChecked } from "react-icons/md";
+import { MdOutlineEditCalendar } from "react-icons/md";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -81,7 +84,7 @@ const Editor = () => {
   };
 
   const [currentJobTab, setCurrentJobTab] = useState<"task" | "email" | "all">(
-    "all"
+    "task"
   );
 
   const searchParams = new URLSearchParams(window.location.search);
@@ -516,6 +519,16 @@ const Editor = () => {
               </button>
             </div>
 
+            {currentJobTab === "task" && (
+              <div className="w-full flex items-center gap-x-3">
+                <h6 className="text-sm subtext">Sort by</h6>
+                <select className="bg-transparent text-sm ">
+                  <option> Upcoming </option>
+                  <option> Past </option>
+                </select>
+              </div>
+            )}
+
             {currentJobTab === "task" &&
               jobs
                 .filter((i) => i.job_type == JobType.scheduled_task)
@@ -523,28 +536,7 @@ const Editor = () => {
                   const payload = job.payload as {
                     tasks: ISingleScheduledTask[];
                   };
-                  return (
-                    <div className="flex flex-col gap-y-2 bg-[#333] w-full">
-                      {payload.tasks.map((task) => {
-                        return (
-                          <div className="flex ">
-                            <div className="flex flex-col gap-y-2 relative ">
-                              <BiDotsVertical className="absolute right-[10px] top-[10px]" />
-                              <KeyValuePair value={task.name} header="Task" />
-                              <KeyValuePair
-                                value={new Date(task.date).toLocaleDateString()}
-                                header="Date"
-                              />
-                              <KeyValuePair
-                                value={new Date(task.date).toLocaleTimeString()}
-                                header="Time"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
+                  return <ScheduledTasksWrapper tasks={payload.tasks} />;
                 })}
           </div>
         </div>

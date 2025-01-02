@@ -347,29 +347,60 @@ export async function createTaskSchedule(
 ) {
   const { text, start_index, end_index } = req.body;
 
-  const schedule = await Job.create({
-    alias_id: req.__alias!.id!,
-    note_id: req.params.note_id,
-    job_type: JobType.scheduled_task,
-    payload: {
-      tasks: [
+  const count = await Job.count({ where: { note_id: req.params.note_id } });
+
+  if (count === 0) {
+    const schedule = await Job.create({
+      alias_id: req.__alias!.id!,
+      note_id: req.params.note_id,
+      job_type: JobType.scheduled_task,
+      payload: {
+        tasks: [
+          {
+            id: randomBytes(8).toString("hex"),
+            name: "Study prep",
+            date: new Date(),
+            reminder: new Date(),
+          },
+        ],
+      },
+      status_trace: [
+        { message: "Schedule complete", status: "ok", timestamp: new Date() },
+      ],
+    });
+  } else {
+    const job = (await Job.findOne({
+      where: { note_id: req.params.note_id },
+      raw: true,
+    })) as any as IAnyJob<IScheduleTaskPayload>;
+
+    let payload = job.payload;
+
+    payload = typeof payload === "string" ? JSON.parse(payload) : payload;
+
+    if (Array.isArray(payload.tasks)) {
+      payload.tasks.push({
+        id: randomBytes(8).toString("hex"),
+        name: "Study prep",
+        date: new Date(),
+        reminder: new Date(),
+      });
+    } else {
+      payload.tasks = [
         {
           id: randomBytes(8).toString("hex"),
           name: "Study prep",
           date: new Date(),
           reminder: new Date(),
         },
-      ],
-    },
-    status_trace: [
-      { message: "Schedule complete", status: "ok", timestamp: new Date() },
-    ],
-  });
+      ];
+    }
 
+    Job.updateByIdWithCache(job.id, { payload });
+  }
   res.json({
     status: "ok",
     message: "Schedule task complete",
-    data: schedule,
   });
 }
 
