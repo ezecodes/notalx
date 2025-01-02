@@ -10,7 +10,7 @@ class Task extends Model<Optional<ITask, "createdAt" | "updatedAt" | "id">> {
     this: typeof Task,
     id: string
   ): Promise<ITask | null> {
-    const cacheKey = `alias:${id}`;
+    const cacheKey = `task:${id}`;
 
     const cachedResult = await memcachedService.get<ITask>(cacheKey);
     if (cachedResult) {
@@ -22,7 +22,7 @@ class Task extends Model<Optional<ITask, "createdAt" | "updatedAt" | "id">> {
     })) as any;
 
     if (task) {
-      await memcachedService.set(cacheKey, task);
+      memcachedService.set(cacheKey, task);
     }
 
     return task;
@@ -44,7 +44,7 @@ class Task extends Model<Optional<ITask, "createdAt" | "updatedAt" | "id">> {
     this: typeof Task,
     pagination: IPagination
   ): Promise<ITask[]> {
-    const cacheKey = `alias:all:${pagination.page}:${pagination.page_size}`;
+    const cacheKey = `task:all:${pagination.page}:${pagination.page_size}`;
 
     const cachedResult = await memcachedService.get<ITask[]>(cacheKey);
     if (cachedResult) {
@@ -82,10 +82,25 @@ Task.init(
       type: DataTypes.UUID,
       allowNull: false,
     },
-
-    task: {
-      type: DataTypes.JSON,
+    name: {
+      type: DataTypes.STRING,
       allowNull: false,
+    },
+    date: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    participants: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    reminder: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    calendar_id: {
+      type: DataTypes.JSON,
+      allowNull: true,
     },
   },
   { sequelize, modelName: "Task" }

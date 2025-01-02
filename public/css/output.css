@@ -730,6 +730,10 @@ video {
   width: 100%;
 }
 
+.w-\[90\%\] {
+  width: 90%;
+}
+
 .max-w-4xl {
   max-width: 56rem;
 }
@@ -986,6 +990,11 @@ video {
   padding-bottom: 1.25rem;
 }
 
+.py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
 .pb-1 {
   padding-bottom: 0.25rem;
 }
@@ -1157,6 +1166,10 @@ video {
 
 .duration-300 {
   transition-duration: 300ms;
+}
+
+.duration-100 {
+  transition-duration: 100ms;
 }
 
 :root {
@@ -1543,6 +1556,10 @@ label {
 
   .sm\:w-\[500px\] {
     width: 500px;
+  }
+
+  .sm\:w-\[450px\] {
+    width: 450px;
   }
 
   .sm\:grid-cols-2 {

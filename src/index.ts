@@ -17,6 +17,8 @@ const reactRoutes = [
   "/auth-with-alias",
   "/:note_slug",
   "/faq",
+  "/note/:note_id",
+  "/task/:task_id",
 ];
 const server = express();
 

@@ -92,7 +92,7 @@ const ViewNote: FC<IViewNote> = () => {
                 <Button
                   text="Edit"
                   onClick={() =>
-                    navigate("/edit/" + encodeToBase62(note.note.id))
+                    navigate("/note/" + encodeToBase62(note.note.id))
                   }
                 />
               </>

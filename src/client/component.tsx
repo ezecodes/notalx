@@ -7,14 +7,7 @@ import {
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import {
-  _IAlias,
-  IApiResponse,
-  INote,
-  IOtpExpiry,
-  ISingleScheduledTask,
-  ITask,
-} from "../type";
+import { _IAlias, IApiResponse, INote, IOtpExpiry, ITask } from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsArrowDown, BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
@@ -338,7 +331,9 @@ interface IBb {
 export const BackButton: FC<IBb> = ({ text, url, onClick }) => {
   return (
     <div className="flex my-5 items-center gap-x-3">
-      <IoArrowBackOutline onClick={() => onClick ?? navigateBackOrHome()} />
+      <IoArrowBackOutline
+        onClick={() => (onClick ? onClick() : navigateBackOrHome())}
+      />
 
       <h3 className="text-[1rem] transform-capitalize subtext font-[500]">
         {text}
@@ -396,12 +391,14 @@ interface SearchDropdownProps {
   onClick: (selected: _IAlias | null) => void;
   selected: _IAlias | null;
   filter?: (option: _IAlias) => boolean;
+  placeholder?: string;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   onClick,
   selected,
   filter,
+  placeholder,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [options, setOptions] = useState<_IAlias[]>([]);
@@ -429,7 +426,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   };
 
   const handleBlur = () => {
-    setTimeout(() => setShowDropdown(false), 300);
+    setTimeout(() => setShowDropdown(false), 100);
   };
 
   const handleFilter = (option: _IAlias) => {
@@ -465,7 +462,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
           onChange={handleInputChange}
           onFocus={() => setShowDropdown(true)} // Show dropdown on focus
           onBlur={handleBlur}
-          placeholder="Find alias..."
+          placeholder={placeholder ?? "Find users by name..."}
           className="w-full bg-transparent p-2"
           autoComplete="off" // Disable browser's autocomplete
         />
@@ -480,7 +477,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             <li
               key={option.id}
               onClick={() => handleOptionClick(option)}
-              className="px-4 py-3 cursor-pointer hover:bg-gray-[#777777] "
+              className="px-4 py-3 cursor-pointer duration-100 hover:bg-gray-[#777777] "
               style={{ borderBottom: "1px solid #555555" }}
             >
               {option.name}
@@ -559,6 +556,7 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
 };
 
 export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
+  const navigate = useNavigate();
   return (
     <div className="w-full flex flex-wrap gap-4 mt-4">
       {tasks.map((task) => {
@@ -567,31 +565,36 @@ export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
             key={task.id}
             className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[170px] rounded-sm w-[300px]"
           >
-            <MdOutlineEditCalendar
-              className="absolute subtext right-[10px] top-[10px]"
-              onClick={() => {
-                window.location.href = `/task/${encodeToBase62(task.note_id)}`;
-              }}
-            />
-            <h4 className=" subtext border_bottom py-2 font-[500] text-sm px-2">
-              {task.task.name}
+            <h4 className=" subtext flex justify-between items-center border_bottom py-2  text-sm px-2">
+              <span className="font-[500] ">{task.name}</span>
+
+              <span className="flex items-center gap-x-2">
+                <TaskSharingPopup task={task} />
+                <MdOutlineEditCalendar
+                  className="  subtext  "
+                  onClick={() => {
+                    navigate(`/task/${encodeToBase62(task.id)}`);
+                  }}
+                />
+              </span>
             </h4>
+
             <div className=" flex flex-col">
               <span className="flex items-center font-[500] text-center justify-center text-white gap-y-2 text-md">
-                {new Date(task.task.date).toDateString()}
+                {new Date(task.date).toDateString()}
                 <br />
-                {new Date(task.task.date).toLocaleTimeString()}
+                {new Date(task.date).toLocaleTimeString()}
               </span>
             </div>
             <div className="px-3 flex justify-center">
-              {task.task.participants && (
+              {task.participants && (
                 <AvatarGroup size="2" avatars={[{ name: "Jah" }]} />
               )}
             </div>
 
             <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
-                {new Date() < new Date(task.task.date) ? (
+                {new Date() < new Date(task.date) ? (
                   <>
                     <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />{" "}
                     Upcoming
@@ -604,7 +607,7 @@ export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
                 )}
               </span>
               <span className="text-sm subtext">
-                {formatRelativeTime(task.task.date)}
+                {formatRelativeTime(task.date)}
               </span>
             </div>
           </div>
@@ -850,6 +853,63 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
               window.open(
                 `https://t.me/share/url?url=${encodeURIComponent(
                   "https://notalx.com/" + note.slug
+                )}`
+              );
+              displayDropdown();
+            }}
+          >
+            <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
+          </li>{" "}
+        </div>
+      )}
+      <IoShareSocialOutline onClick={displayDropdown} />
+    </div>
+  );
+};
+
+const TaskSharingPopup: FC<{ task: ITask }> = ({ task }) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative sharepopup">
+      {isDropdownVisible && (
+        <div className="popup_child animate__bounceIn animate__animated">
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              navigator.clipboard
+                .writeText("https://notalx.com/task" + encodeToBase62(task.id))
+                .then(() => {
+                  toast.success("Copied!");
+                });
+              displayDropdown();
+            }}
+          >
+            <IoShareOutline /> Copy Link
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(
+                  "https://notalx.com/task" + encodeToBase62(task.id)
+                )}`,
+                "_blank"
+              );
+              displayDropdown();
+            }}
+          >
+            <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
+          </li>
+          <li
+            className="dropdown_item"
+            onClick={() => {
+              window.open(
+                `https://t.me/share/url?url=${encodeURIComponent(
+                  "https://notalx.com/task" + encodeToBase62(task.id)
                 )}`
               );
               displayDropdown();

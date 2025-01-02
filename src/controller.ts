@@ -20,7 +20,7 @@ import {
   IAuthSession,
   IncomingNote,
   IOtpSession,
-  ISingleScheduledTask,
+  ITask,
 } from "./type";
 import {
   NoteAttributes,
@@ -264,21 +264,22 @@ export async function editTaskSchedule(
   res: Response,
   next: NextFunction
 ) {
-  const { task } = req.body;
-
   const task_id = req.params.task_id;
 
-  const { date, name, reminder, participants } = task as ISingleScheduledTask;
+  const { date, name, reminder, participants } = req.body as Pick<
+    ITask,
+    "date" | "name" | "participants" | "reminder"
+  >;
 
   const findTask = await Task.findByPkWithCache(task_id);
 
-  if (date && !isDate(date)) {
+  if (date && !isDate(new Date(date))) {
     next(
       ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
     );
     return;
   }
-  let newTask = { ...findTask?.task! };
+  let newTask = { ...findTask! };
 
   if (date) {
     newTask = { ...newTask, date };
@@ -290,9 +291,7 @@ export async function editTaskSchedule(
     newTask = { ...newTask, reminder };
   }
 
-  Task.updateByIdWithCache(task_id, {
-    task: newTask,
-  });
+  Task.updateByIdWithCache(task_id, newTask);
 
   res.json({
     status: "ok",
@@ -310,14 +309,16 @@ export async function createTaskSchedule(
     next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
     return;
   }
-  const task = await Task.create({
+  const scheduledDate = setExpiryInUTC(2) as any;
+
+  const reminder = setExpiryInUTC(1) as any;
+
+  Task.create({
     alias_id: req.__alias!.id!,
     note_id: req.params.note_id,
-    task: {
-      name: "Study prep",
-      date: new Date(),
-      reminder: new Date(),
-    },
+    name: "Study prep",
+    date: scheduledDate,
+    reminder,
   });
 
   res.json({
@@ -365,9 +366,9 @@ export async function getSingleTask(
   res: Response,
   next: NextFunction
 ) {
-  const task_id = req.params["task_id"];
+  const task_id = req.params.task_id;
 
-  const task = await Task.findByPkWithCache(task_id);
+  const task = await Task.findByPk(task_id);
 
   res.json({
     status: "ok",
@@ -462,7 +463,6 @@ export async function registerAlias(
   res.json({ status: "ok", message: "Alias created!" });
 }
 
-("----- export async function getNote(req: Request, res: Response, next: NextFunction) { ------");
 export async function getNote(req: Request, res: Response, next: NextFunction) {
   const all = await Note.findAll({ where: { is_hidden: false } });
   res.json({ status: "ok", data: { rows: all } });

@@ -50,7 +50,11 @@ export type ITask = {
   id: string;
   note_id: string;
   alias_id: string;
-  task: ISingleScheduledTask;
+  name: string;
+  date: Date;
+  reminder: Date;
+  participants?: _IAlias[];
+  calendar_id?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -177,14 +181,6 @@ export type ISummarisationJob = {
     old_content: string;
     new_content?: string; // Set after completion
   };
-};
-
-export type ISingleScheduledTask = {
-  name: string;
-  date: Date;
-  reminder: Date;
-  participants?: string[];
-  calendar_id?: string;
 };
 
 // Email Drafting Job

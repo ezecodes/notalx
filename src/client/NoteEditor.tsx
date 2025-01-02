@@ -21,27 +21,19 @@ import {
   INote,
   INoteEditor,
   ISummaryResponse,
-  ISingleScheduledTask,
   ITask,
 } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
 import { GoPeople } from "react-icons/go";
-import { IoMdCheckmarkCircleOutline, IoMdTime } from "react-icons/io";
+import { IoMdTime } from "react-icons/io";
 import { GoLock } from "react-icons/go";
 import {
   decodeFromBase62,
   createScheduleTask,
   summeriseSelectedText,
-  formatRelativeTime,
-  calculateReminderDate,
-  calculateReminderLiteral,
-  DEFAULT_SCHEDULE_REMINDERS,
-  navigateBackOrHome,
 } from "./utils";
-import { MdOutlineRadioButtonChecked } from "react-icons/md";
-import { MdOutlineEditCalendar } from "react-icons/md";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -106,11 +98,6 @@ const Editor = () => {
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
-  const handleScheduleTaskEdit = (
-    job_id: string,
-    task: Partial<ISingleScheduledTask>
-  ) => {};
 
   const [highlightedText, setHighlightedText] = useState<{
     text: string;
@@ -326,7 +313,7 @@ const Editor = () => {
       <div className="modal  note_manager pb-5">
         <div className="modal_child">
           <form className="    gap-y-3 flex flex-col  ">
-            <BackButton text={"Editing note"} url={"/"} />
+            <BackButton text={"Editing note"} onClick={() => navigate("/")} />
 
             {editor ? (
               <>
@@ -344,6 +331,7 @@ const Editor = () => {
                 <fieldset className="flex flex-col gap-y-3 mt-4">
                   <div className="note_title">
                     <InputWithIcon
+                      label="Title"
                       icon={<IoPencilOutline />}
                       placeholder="Enter note title"
                       type="text"

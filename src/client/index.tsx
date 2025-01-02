@@ -1,25 +1,9 @@
 import { FC, useContext, useEffect, useState } from "react";
-import { IoCreateOutline, IoPersonAdd } from "react-icons/io5";
-import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  AuthorisedInfo,
-  Button,
-  DisplayDateCreated,
-  ScheduledTasksWrapper,
-  SearchDropdown,
-  SharedHeader,
-  SingleNote,
-} from "./component";
-import { encodeToBase62, fetchAllScheduledTasksForAlias } from "./utils";
+import { Outlet, useNavigate, useSearchParams } from "react-router-dom";
+import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
+import { fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
-import { MdDeleteOutline } from "react-icons/md";
-import { VscLock } from "react-icons/vsc";
-import {
-  ApiFetchNote,
-  IApiResponse,
-  ISingleScheduledTask,
-  ITask,
-} from "../type";
+import { ApiFetchNote, ITask } from "../type";
 type Tab = "notes" | "tasks" | "public";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
@@ -77,24 +61,25 @@ const Home = () => {
         </button>
 
         {otpExpiry?.is_valid_auth && (
-          <button
-            onClick={() => setActiveTab("notes")}
-            className={`sub_button ${
-              activeTab === "notes" ? "text-white" : "subtext"
-            } `}
-          >
-            My notes
-          </button>
+          <>
+            <button
+              onClick={() => setActiveTab("notes")}
+              className={`sub_button ${
+                activeTab === "notes" ? "text-white" : "subtext"
+              } `}
+            >
+              My notes
+            </button>
+            <button
+              onClick={() => setActiveTab("tasks")}
+              className={`sub_button ${
+                activeTab === "tasks" ? "text-white" : "subtext"
+              } `}
+            >
+              Schedules
+            </button>
+          </>
         )}
-
-        <button
-          onClick={() => setActiveTab("tasks")}
-          className={`sub_button ${
-            activeTab === "tasks" ? "text-white" : "subtext"
-          } `}
-        >
-          Schedules
-        </button>
       </div>
 
       {
