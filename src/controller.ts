@@ -15,14 +15,11 @@ import {
   validateUsername,
 } from "./helpers";
 import {
-  IAnyJob,
   ErrorCodes,
   IAlias,
   IAuthSession,
   IncomingNote,
   IOtpSession,
-  JobType,
-  IScheduleTaskPayload,
   ISingleScheduledTask,
 } from "./type";
 import {
@@ -33,12 +30,12 @@ import {
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
-import { compare, compareSync, hashSync } from "bcrypt";
+import { compare, hashSync } from "bcrypt";
 import Note from "./models/Note";
-import { Op, Sequelize } from "sequelize";
+import { Op } from "sequelize";
 import NoteCollaborator from "./models/NoteCollaborator";
-import Job from "./job/job.model";
 import { isDate } from "util/types";
+import Task from "./models/Task";
 
 ("----- getAllAlias ------");
 export async function getAllAlias(
@@ -267,73 +264,35 @@ export async function editTaskSchedule(
   res: Response,
   next: NextFunction
 ) {
-  const { tasks } = req.body;
-  if (!tasks || !Array.isArray(tasks)) {
+  const { task } = req.body;
+
+  const task_id = req.params.task_id;
+
+  const { date, name, reminder, participants } = task as ISingleScheduledTask;
+
+  const findTask = await Task.findByPkWithCache(task_id);
+
+  if (date && !isDate(date)) {
     next(
       ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
     );
     return;
   }
-  const job_id = req.params.job_id;
+  let newTask = { ...findTask?.task! };
 
-  const findTaskSchedule = await Job.findByPkWithCache<
-    IAnyJob<IScheduleTaskPayload>
-  >(job_id);
-
-  const newTasks = [] as ISingleScheduledTask[];
-
-  for (let task of tasks) {
-    const { date, id, name, reminder }: Partial<ISingleScheduledTask> = task;
-    const idArr = findTaskSchedule!.payload.tasks.map((i) => i.id);
-    if (!id || !validate(id) || !idArr.includes(id)) {
-      next(
-        ApiError.error(
-          ErrorCodes.VALIDATION_ERROR,
-          "Task contains an invalid ID"
-        )
-      );
-      return;
-    }
-    if (
-      (reminder && !Array.isArray(reminder)) ||
-      reminder?.some((i) => !isDate(i))
-    ) {
-      next(
-        ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
-      );
-      return;
-    }
-
-    if (date && !isDate(date)) {
-      next(
-        ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
-      );
-      return;
-    }
-    const previousTask = findTaskSchedule!.payload.tasks.find(
-      (i) => i.id === id
-    ) as ISingleScheduledTask;
-    let newTask = { ...previousTask };
-
-    if (date) {
-      newTask = { ...newTask, date };
-    }
-    if (name) {
-      newTask = { ...newTask, name };
-    }
-    if (reminder) {
-      newTask = { ...newTask, reminder };
-    }
-
-    newTasks.push({
-      ...previousTask,
-      ...newTask,
-    });
+  if (date) {
+    newTask = { ...newTask, date };
+  }
+  if (name) {
+    newTask = { ...newTask, name };
+  }
+  if (reminder) {
+    newTask = { ...newTask, reminder };
   }
 
-  const updatedJob = { ...findTaskSchedule, payload: { tasks: newTasks } };
-
-  Job.updateByIdWithCache(job_id, updatedJob);
+  Task.updateByIdWithCache(task_id, {
+    task: newTask,
+  });
 
   res.json({
     status: "ok",
@@ -345,59 +304,22 @@ export async function createTaskSchedule(
   res: Response,
   next: NextFunction
 ) {
-  const { text, start_index, end_index } = req.body;
+  const count = await Task.count({ where: { note_id: req.params.note_id } });
 
-  const count = await Job.count({ where: { note_id: req.params.note_id } });
-
-  if (count === 0) {
-    const schedule = await Job.create({
-      alias_id: req.__alias!.id!,
-      note_id: req.params.note_id,
-      job_type: JobType.scheduled_task,
-      payload: {
-        tasks: [
-          {
-            id: randomBytes(8).toString("hex"),
-            name: "Study prep",
-            date: new Date(),
-            reminder: new Date(),
-          },
-        ],
-      },
-      status_trace: [
-        { message: "Schedule complete", status: "ok", timestamp: new Date() },
-      ],
-    });
-  } else {
-    const job = (await Job.findOne({
-      where: { note_id: req.params.note_id },
-      raw: true,
-    })) as any as IAnyJob<IScheduleTaskPayload>;
-
-    let payload = job.payload;
-
-    payload = typeof payload === "string" ? JSON.parse(payload) : payload;
-
-    if (Array.isArray(payload.tasks)) {
-      payload.tasks.push({
-        id: randomBytes(8).toString("hex"),
-        name: "Study prep",
-        date: new Date(),
-        reminder: new Date(),
-      });
-    } else {
-      payload.tasks = [
-        {
-          id: randomBytes(8).toString("hex"),
-          name: "Study prep",
-          date: new Date(),
-          reminder: new Date(),
-        },
-      ];
-    }
-
-    Job.updateByIdWithCache(job.id, { payload });
+  if (count === 2) {
+    next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
+    return;
   }
+  const task = await Task.create({
+    alias_id: req.__alias!.id!,
+    note_id: req.params.note_id,
+    task: {
+      name: "Study prep",
+      date: new Date(),
+      reminder: new Date(),
+    },
+  });
+
   res.json({
     status: "ok",
     message: "Schedule task complete",
@@ -438,32 +360,27 @@ export async function createNoteSummary(
     );
   }
 }
-export async function getSingleJob(
+export async function getSingleTask(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const job_id = req.params["job_id"];
+  const task_id = req.params["task_id"];
 
-  const job = await Job.findByPkWithCache(job_id);
-  if (!job) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Job not found"));
-
-    return;
-  }
+  const task = await Task.findByPkWithCache(task_id);
 
   res.json({
     status: "ok",
-    data: job,
+    data: task,
   });
 }
-export async function getAllJobsForNote(
+export async function getAllTasksForNote(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const pagination = req.__pagination__;
-  const rows = await Job.findAll({
+  const rows = await Task.findAll({
     where: {
       note_id: req.params.note_id,
     },
@@ -481,41 +398,15 @@ export async function getAllJobsForNote(
   });
 }
 
-export async function getAllJobsForAlias(
+export async function getAllTasksForAlias(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const pagination = req.__pagination__;
-  const rows = await Job.findAll({
+  const rows = await Task.findAll({
     where: {
       alias_id: req.__alias!.id,
-    },
-    limit: pagination!.page_size,
-    offset: (pagination!.page - 1) * pagination!.page_size,
-    order: [["createdAt", "DESC"]],
-  });
-
-  res.json({
-    status: "ok",
-    data: {
-      rows,
-      pagination: req.__pagination__,
-    },
-  });
-}
-
-export async function getJobsBasedOnJobTypeForAnAlias(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const pagination = req.__pagination__;
-  const job_type = req.params.job_type;
-  const rows = await Job.findAll({
-    where: {
-      alias_id: req.__alias!.id,
-      job_type,
     },
     limit: pagination!.page_size,
     offset: (pagination!.page - 1) * pagination!.page_size,

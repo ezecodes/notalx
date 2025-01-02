@@ -6,8 +6,7 @@ import {
   authoriseAliasToViewNote,
   validateAliasId,
   validateAndSetPagination,
-  validateJobId,
-  validateJobType,
+  validateTaskId,
   validateNoteId,
 } from "./middlewares";
 
@@ -23,7 +22,7 @@ router.use("/otp", otpRouter);
 
 router.param("note_id", validateNoteId);
 router.param("alias_id", validateAliasId);
-router.param("job_id", validateJobId);
+router.param("task", validateTaskId);
 
 router
   .route("/alias")
@@ -51,37 +50,28 @@ router
   .get(authoriseAliasToViewNote, Controller.getNoteById);
 
 router
-  .route("/note/:note_id/job/summerise")
+  .route("/note/:note_id/summerise")
   .post(authoriseAlias, Controller.createNoteSummary);
 
 router
-  .route("/note/:note_id/job/schedule")
-  .post(authoriseAlias, Controller.createTaskSchedule);
+  .route("/note/:note_id/task")
+  .post(authoriseAlias, Controller.createTaskSchedule)
+  .get(authoriseAlias, validateAndSetPagination, Controller.getAllTasksForNote);
+
+router.route("/note/:note_id/draft_email").post(authoriseAlias);
 
 router
-  .route("/note/:note_id/job/:job_id/schedule")
-  .put(authoriseAlias, Controller.editTaskSchedule);
-
-router.route("/note/:note_id/job/draft_email").post(authoriseAlias);
-
-router
-  .route("/job")
-  .get(authoriseAlias, validateAndSetPagination, Controller.getAllJobsForAlias);
-
-router
-  .route("/job/type/:job_type")
+  .route("/task")
   .get(
     authoriseAlias,
-    validateJobType,
     validateAndSetPagination,
-    Controller.getJobsBasedOnJobTypeForAnAlias
+    Controller.getAllTasksForAlias
   );
 
-router.route("/job/:job_id").get(authoriseAlias, Controller.getSingleJob);
-
 router
-  .route("/note/:note_id/job")
-  .get(authoriseAlias, validateAndSetPagination, Controller.getAllJobsForNote);
+  .route("/task/:task_id")
+  .get(authoriseAlias, Controller.getSingleTask)
+  .put(authoriseAlias, Controller.editTaskSchedule);
 
 router
   .route("/note/:note_id/collaborators")

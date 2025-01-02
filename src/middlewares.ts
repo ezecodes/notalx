@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Note from "./models/Note";
 import { ErrorCodes, IAuthSession, IPagination } from "./type";
-import { CacheKeys, JOB_TYPES_ARRAY, sessionCookieKey } from "./constants";
+import { CacheKeys, sessionCookieKey } from "./constants";
 import memcachedService from "./memcached";
 import {
   ApiError,
@@ -12,8 +12,8 @@ import {
 import Alias from "./models/Alias";
 import { validate } from "uuid";
 import { compareSync } from "bcrypt";
-import Job from "./job/job.model";
 import cookie from "cookie";
+import Task from "./models/Task";
 
 export function validateAndSetPagination(
   req: Request,
@@ -182,41 +182,22 @@ export async function authoriseAliasForNote(
   next();
 }
 
-export async function validateJobType(
+export async function validateTaskId(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const job_type = req.params["job_type"];
-
-  if (!JOB_TYPES_ARRAY.includes(job_type)) {
-    next(
-      ApiError.error(
-        ErrorCodes.VALIDATION_ERROR,
-        `Job Type must be one of ${JOB_TYPES_ARRAY.join(", ")}`
-      )
-    );
+  const task_id = req.params["task_id"];
+  if (!validate(task_id)) {
+    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Task ID"));
     return;
   }
-  next();
-}
-
-export async function validateJobId(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const job_id = req.params["job_id"];
-  if (!validate(job_id)) {
-    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Job ID"));
-    return;
-  }
-  const count = await Job.count({
-    where: { id: job_id },
+  const count = await Task.count({
+    where: { id: task_id },
   });
 
   if (count === 0) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Job not found"));
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Task not found"));
 
     return;
   }

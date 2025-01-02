@@ -5,15 +5,21 @@ import {
   AuthorisedInfo,
   Button,
   DisplayDateCreated,
+  ScheduledTasksWrapper,
   SearchDropdown,
   SharedHeader,
   SingleNote,
 } from "./component";
-import { encodeToBase62 } from "./utils";
+import { encodeToBase62, fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { MdDeleteOutline } from "react-icons/md";
 import { VscLock } from "react-icons/vsc";
-import { ApiFetchNote } from "../type";
+import {
+  ApiFetchNote,
+  IApiResponse,
+  ISingleScheduledTask,
+  ITask,
+} from "../type";
 type Tab = "notes" | "tasks" | "public";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
@@ -34,6 +40,7 @@ const Home = () => {
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("notes");
+  const [scheduledTasks, setScheduledTasks] = useState<ITask[]>([]);
 
   useEffect(() => {
     try {
@@ -45,6 +52,9 @@ const Home = () => {
 
       fetchNotes();
       fetchAliasNotes();
+      fetchAllScheduledTasksForAlias().then((res) => {
+        res.status === "ok" && setScheduledTasks(res.data!.rows!);
+      });
 
       getOTPExpiry();
     } catch (err) {
@@ -83,16 +93,19 @@ const Home = () => {
             activeTab === "tasks" ? "text-white" : "subtext"
           } `}
         >
-          Tasks
+          Schedules
         </button>
       </div>
 
       {
         <section className="w-full top_space py-5 mb-3">
           <div className="flex gap-4 flex-wrap">
-            <RenderNotes
-              notes={activeTab === "public" ? publicNotes : authAliasNotes}
-            />
+            {activeTab === "public" && <RenderNotes notes={publicNotes} />}
+            {activeTab === "notes" && <RenderNotes notes={authAliasNotes} />}
+
+            {activeTab === "tasks" && (
+              <ScheduledTasksWrapper tasks={scheduledTasks} />
+            )}
           </div>
         </section>
       }

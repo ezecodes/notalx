@@ -2,19 +2,37 @@ import baseX from "base-x";
 
 import {
   _IAlias,
-  IAnyJob,
   ApiFetchNote,
   IApiResponse,
   INote,
   IPaginatedResponse,
   ISummaryResponse,
-  IScheduleTaskPayload,
+  ITask,
 } from "../type";
-
+export const DEFAULT_SCHEDULE_REMINDERS = [
+  "5 mins before",
+  "10 mins before",
+  "15 mins before",
+  "30 mins before",
+  "60 mins before",
+];
 export function isSessionExpired(expiry: string): boolean {
   const nowUTC = new Date();
   const expiryDate = new Date(expiry);
   return nowUTC > expiryDate;
+}
+
+export function navigateBackOrHome(homePath: string = "/") {
+  const referrer = document.referrer;
+  const currentDomain = window.location.origin;
+
+  if (referrer.startsWith(currentDomain)) {
+    // Referrer is part of the same domain
+    window.history.back();
+  } else {
+    // Referrer is not part of the same domain, or no referrer
+    window.location.href = homePath;
+  }
 }
 export const parseUrl = (url: any) => {
   // Create a URL object
@@ -91,7 +109,7 @@ export async function summeriseSelectedText(
   return (await f.json()) as Promise<IApiResponse<ISummaryResponse>>;
 }
 
-type ab12 = Promise<IApiResponse<IAnyJob<IScheduleTaskPayload>[]>>;
+type ITaskList = Promise<IPaginatedResponse<ITask>>;
 export async function createScheduleTask(
   note_id: string,
   highlightedText: {
@@ -99,26 +117,64 @@ export async function createScheduleTask(
     start_index: number;
     end_index: number;
   }
-): ab12 {
-  const f = await fetch(`/api/note/${note_id}/job/schedule`, {
+): ITaskList {
+  const f = await fetch(`/api/note/${note_id}/task`, {
     headers: {
       "content-type": "application/json",
     },
     body: highlightedText ? JSON.stringify(highlightedText) : "",
     method: "POST",
   });
-  return (await f.json()) as ab12;
+  return (await f.json()) as ITaskList;
 }
-
-export const fetchAllJobsForAlias = async () => {
-  const f = await fetch(`/api/job`, {
+export const fetchAllScheduledTasksForAlias = async (): ITaskList => {
+  const f = await fetch(`/api/task`, {
     headers: {
       "content-type": "application/json",
     },
   });
-  return (await f.json()) as Promise<IApiResponse<IAnyJob<unknown>>>;
+  return (await f.json()) as ITaskList;
 };
 
+export function calculateReminderLiteral(
+  fixedDate: Date | string,
+  reminderDate: Date | string
+): string | null {
+  const fixed = new Date(fixedDate);
+  const reminder = new Date(reminderDate);
+
+  // Calculate the difference in minutes
+  const diffInMinutes = Math.round(
+    (fixed.getTime() - reminder.getTime()) / (60 * 1000)
+  );
+
+  // Match the difference with the predefined literals
+  const matchedReminder = DEFAULT_SCHEDULE_REMINDERS.find((reminder) => {
+    const minutes = parseInt(reminder.split(" ")[0], 10);
+    return minutes === diffInMinutes;
+  });
+
+  return matchedReminder || null; // Return the matched literal or null if not found
+}
+
+export function calculateReminderDate(
+  fixedDate: Date | string,
+  selectedReminder: string
+): Date | null {
+  const reminderMinutes = parseInt(selectedReminder.split(" ")[0], 10);
+
+  if (isNaN(reminderMinutes)) {
+    console.error("Invalid reminder format:", selectedReminder);
+    return null; // Return null if the format is invalid
+  }
+
+  const date = new Date(fixedDate);
+
+  // Subtract the reminder minutes from the fixed date
+  date.setMinutes(date.getMinutes() - reminderMinutes);
+
+  return date;
+}
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();
   const date = new Date(timestamp);

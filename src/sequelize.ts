@@ -10,7 +10,7 @@ const sequelize = new Sequelize({
 async function connectDb() {
   try {
     await sequelize.authenticate();
-    // sequelize.sync({ force: true });
+    sequelize.sync({ force: true });
   } catch (err) {
     throw new Error("Database connection failed:" + err);
   }

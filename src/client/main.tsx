@@ -12,6 +12,7 @@ import CreateAlias from "./AliasCreator";
 import AliasAuth from "./AliasAuth";
 import Faq from "./Faq";
 import { Slide, ToastContainer } from "react-toastify";
+import TaskEditor from "./TaskEditor";
 
 const route = createBrowserRouter([
   {
@@ -19,12 +20,16 @@ const route = createBrowserRouter([
     element: <NoteCreator />,
   },
   {
-    path: "edit/:note_slug",
+    path: "note/:note_slug",
     element: <NoteEditor />,
   },
   {
     path: ":note_slug",
     element: <ViewNote />,
+  },
+  {
+    path: "task/:task_id",
+    element: <TaskEditor />,
   },
   {
     path: "/",

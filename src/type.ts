@@ -1,5 +1,3 @@
-import { DataType, DataTypes } from "sequelize";
-
 export type IAlias = {
   id: string;
   name: string;
@@ -7,32 +5,6 @@ export type IAlias = {
   createdAt: Date;
   updatedAt: Date;
 };
-
-export type IJobStatusTrace = {
-  status: "ok" | "pending" | "err";
-  message: string;
-  timestamp: Date;
-  error_code?: string | number;
-};
-export interface IAnyJob<PayloadType> extends IJob {
-  payload: PayloadType;
-}
-export type IJob = {
-  id: string;
-  status_trace: IJobStatusTrace[];
-  job_type: JobType;
-  payload: unknown;
-  alias_id: string;
-  note_id: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export enum JobType {
-  summarisation = "summarisation",
-  scheduled_task = "scheduled_task",
-  email_draft = "email_draft",
-}
 
 export type _IAlias = {
   id: string;
@@ -78,6 +50,7 @@ export type ITask = {
   id: string;
   note_id: string;
   alias_id: string;
+  task: ISingleScheduledTask;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -206,12 +179,7 @@ export type ISummarisationJob = {
   };
 };
 
-export type IScheduleTaskPayload = {
-  tasks: ISingleScheduledTask[];
-};
-
 export type ISingleScheduledTask = {
-  id: string;
   name: string;
   date: Date;
   reminder: Date;

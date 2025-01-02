@@ -3,16 +3,17 @@ import {
   encodeToBase62,
   fetchAllAlias,
   formatRelativeTime,
+  navigateBackOrHome,
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
 import {
   _IAlias,
   IApiResponse,
-  IJob,
   INote,
   IOtpExpiry,
   ISingleScheduledTask,
+  ITask,
 } from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
@@ -61,42 +62,6 @@ const HighlightWords: React.FC<HighlightWordsProps> = ({ text }) => {
         </span>
       ))}
     </p>
-  );
-};
-
-export const SummaryHistoryItem: FC<{
-  job: IJob;
-  handleInsert: () => void;
-}> = ({ job, handleInsert }) => {
-  const payload = useRef(
-    job.payload as { old_content: string; new_content: string }
-  );
-  return (
-    <div className="flex flex-col gap-y-2 bg-[#333] px-3 py-2 rounded-md">
-      <h6 className="  text-sm subtext">Summarisation</h6>
-      <div className="flex gap-x-2 items-center">
-        <p className="line-through subtext text-sm flex-wrap">
-          {payload.current.old_content}
-        </p>
-        <GoArrowRight />
-        <HighlightWords text={payload.current.old_content} />
-      </div>
-      <div className="flex items-center gap-x-2 justify-end">
-        <span className="text-sm">{formatRelativeTime(job.createdAt)}</span>
-        <Button
-          text="Copy"
-          onClick={() => {
-            navigator.clipboard
-              .writeText(payload.current.new_content)
-              .then(() => {
-                toast.success("Copied");
-              });
-          }}
-        />
-        <Button text="Insert into note" onClick={() => handleInsert()} />
-        <Button text="Refine" onClick={() => {}} />
-      </div>
-    </div>
   );
 };
 
@@ -371,10 +336,9 @@ interface IBb {
   onClick?: () => void;
 }
 export const BackButton: FC<IBb> = ({ text, url, onClick }) => {
-  const navigate = useNavigate();
   return (
     <div className="flex my-5 items-center gap-x-3">
-      <IoArrowBackOutline onClick={() => onClick ?? navigate(url)} />
+      <IoArrowBackOutline onClick={() => onClick ?? navigateBackOrHome()} />
 
       <h3 className="text-[1rem] transform-capitalize subtext font-[500]">
         {text}
@@ -594,34 +558,40 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
   );
 };
 
-export const ScheduledTasksWrapper: FC<{ tasks: ISingleScheduledTask[] }> = ({
-  tasks,
-}) => {
+export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
   return (
     <div className="w-full flex flex-wrap gap-4 mt-4">
       {tasks.map((task) => {
         return (
-          <div className="flex bg-[#333] flex-col gap-y-2 relative h-[150px] rounded-sm w-[300px]">
-            <MdOutlineEditCalendar className="absolute subtext right-[10px] top-[10px]" />
-            <h4 className="bg-[#333] border_bottom py-2 px-2">{task.name}</h4>
-            <div className="bg-[#333] flex flex-col">
-              <span className="flex items-center justify-center text-[#dbdbdb] gap-y-2 text-[1rem]">
-                {new Date(task.date).toLocaleDateString()}
-                {" ,"}
-                {new Date(task.date).toLocaleTimeString()}
+          <div
+            key={task.id}
+            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[170px] rounded-sm w-[300px]"
+          >
+            <MdOutlineEditCalendar
+              className="absolute subtext right-[10px] top-[10px]"
+              onClick={() => {
+                window.location.href = `/task/${encodeToBase62(task.note_id)}`;
+              }}
+            />
+            <h4 className=" subtext border_bottom py-2 font-[500] text-sm px-2">
+              {task.task.name}
+            </h4>
+            <div className=" flex flex-col">
+              <span className="flex items-center font-[500] text-center justify-center text-white gap-y-2 text-md">
+                {new Date(task.task.date).toDateString()}
+                <br />
+                {new Date(task.task.date).toLocaleTimeString()}
               </span>
             </div>
             <div className="px-3 flex justify-center">
-              {task.participants ? (
+              {task.task.participants && (
                 <AvatarGroup size="2" avatars={[{ name: "Jah" }]} />
-              ) : (
-                <>--</>
               )}
             </div>
 
             <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
-                {new Date() < new Date(task.date) ? (
+                {new Date() < new Date(task.task.date) ? (
                   <>
                     <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />{" "}
                     Upcoming
@@ -629,12 +599,12 @@ export const ScheduledTasksWrapper: FC<{ tasks: ISingleScheduledTask[] }> = ({
                 ) : (
                   <>
                     <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />{" "}
-                    Past
+                    Ended
                   </>
                 )}
               </span>
               <span className="text-sm subtext">
-                {formatRelativeTime(task.date)}
+                {formatRelativeTime(task.task.date)}
               </span>
             </div>
           </div>

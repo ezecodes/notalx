@@ -11,22 +11,18 @@ import AvatarGroup, {
   KeyValuePair,
   ScheduledTasksWrapper,
   SuggestedActionButtons,
-  SummaryHistoryItem,
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill, { Quill } from "react-quill";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   _IAlias,
   IApiResponse,
-  IJob,
   INote,
   INoteEditor,
   ISummaryResponse,
-  IAnyJob,
   ISingleScheduledTask,
-  IScheduleTaskPayload,
-  JobType,
+  ITask,
 } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
@@ -39,6 +35,10 @@ import {
   createScheduleTask,
   summeriseSelectedText,
   formatRelativeTime,
+  calculateReminderDate,
+  calculateReminderLiteral,
+  DEFAULT_SCHEDULE_REMINDERS,
+  navigateBackOrHome,
 } from "./utils";
 import { MdOutlineRadioButtonChecked } from "react-icons/md";
 import { MdOutlineEditCalendar } from "react-icons/md";
@@ -73,7 +73,6 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
 const Editor = () => {
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const [showCollabModal, setCollabModal] = useState(false);
-  const [showScheduleModal, setScheduleModal] = useState(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
   const { otpExpiry } = useContext(GlobalContext)!;
@@ -87,20 +86,14 @@ const Editor = () => {
     "task"
   );
 
-  const searchParams = new URLSearchParams(window.location.search);
-
   const [currentInsertion, setCurrentInsertion] =
     useState<ISummaryResponse | null>(null);
 
-  const [jobs, setJobs] = useState<IAnyJob<unknown>[]>([]);
+  const [tasks, setTasks] = useState<ITask[]>([]);
   const [loadingStates, setLoadingStates] = useState({
     summary: false,
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
-
-  const [scheduleEditor, setScheduleEditor] = useState<
-    Partial<ISingleScheduledTask>[]
-  >([]);
 
   const quillRef = useRef<ReactQuill | null>(null);
   const [popupVisible, setPopupVisible] = useState<boolean>(false);
@@ -111,19 +104,13 @@ const Editor = () => {
     previewText: string;
   } | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const handleScheduleTaskEdit = (task: Partial<ISingleScheduledTask>) => {
-    const prevTasks = scheduleEditor;
-    const find = prevTasks.findIndex((i) => i.id === task.id);
-
-    if (find) {
-      const updatedTask = { ...prevTasks[find], ...task };
-      prevTasks[find] = updatedTask;
-      setScheduleEditor(prevTasks);
-    } else {
-      setScheduleEditor([task]);
-    }
-  };
+  const handleScheduleTaskEdit = (
+    job_id: string,
+    task: Partial<ISingleScheduledTask>
+  ) => {};
 
   const [highlightedText, setHighlightedText] = useState<{
     text: string;
@@ -131,11 +118,11 @@ const Editor = () => {
     end_index: number;
   } | null>(null);
 
-  const fetchAllJobsInNote = async () => {
-    const f = await fetch(`/api/note/${parsedNoteId.current}/job`);
-    const response: IApiResponse<{ rows: IJob[] }> = await f.json();
+  const fetchAllTasksInNote = async () => {
+    const f = await fetch(`/api/note/${parsedNoteId.current}/task`);
+    const response: IApiResponse<{ rows: ITask[] }> = await f.json();
 
-    response.data && setJobs(response.data.rows);
+    response.data && setTasks(response.data.rows);
   };
 
   const fetchPrevNote = async () => {
@@ -163,7 +150,7 @@ const Editor = () => {
   useEffect(() => {
     if (!hasCalled.current) {
       fetchPrevNote();
-      fetchAllJobsInNote();
+      fetchAllTasksInNote();
 
       hasCalled.current = true;
     }
@@ -326,8 +313,8 @@ const Editor = () => {
       return;
     }
 
-    fetchAllJobsInNote();
-    setScheduleModal(true);
+    fetchAllTasksInNote();
+    navigate("?page=schedule");
   };
 
   const handleTaskEdit = () => {};
@@ -524,20 +511,14 @@ const Editor = () => {
                 <h6 className="text-sm subtext">Sort by</h6>
                 <select className="bg-transparent text-sm ">
                   <option> Upcoming </option>
-                  <option> Past </option>
+                  <option> Ended </option>
                 </select>
               </div>
             )}
 
-            {currentJobTab === "task" &&
-              jobs
-                .filter((i) => i.job_type == JobType.scheduled_task)
-                .map((job) => {
-                  const payload = job.payload as {
-                    tasks: ISingleScheduledTask[];
-                  };
-                  return <ScheduledTasksWrapper tasks={payload.tasks} />;
-                })}
+            {currentJobTab === "task" && (
+              <ScheduledTasksWrapper tasks={tasks} />
+            )}
           </div>
         </div>
       </div>
@@ -549,66 +530,6 @@ const Editor = () => {
           note_owner_id={editor?.alias_id}
         />
       )}
-
-      {/* {showScheduleModal && (
-        <div
-          className="modal top_space py-5"
-          style={{ background: "#212121f7", backdropFilter: "blur(1px)" }}
-        >
-          <div className="sm:w-[400px]">
-            <BackButton text="Edit Task Schedule" />
-            <form
-              className="flex flex-col items-end gap-y-3"
-              onSubmit={handleTaskEdit}
-            >
-              {mostRecentlyCreatedTask &&
-                mostRecentlyCreatedTask.payload.tasks.map((task) => {
-                  return (
-                    <div className="flex flex-col gap-y-2 ">
-                      <InputWithIcon
-                        placeholder="Task name"
-                        label="Task name"
-                        onChange={(value) => {
-                          handleScheduleTaskEdit({ id: task.id, name: value });
-                        }}
-                        type="text"
-                        value={task.name}
-                      />
-                      <InputWithIcon
-                        placeholder="Date"
-                        label="Date"
-                        onChange={(value) => {
-                          console.log(value);
-                          handleScheduleTaskEdit({
-                            id: task.id,
-                            date: value as any,
-                          });
-                        }}
-                        type="date"
-                        value={new Date(task.date).toLocaleDateString()}
-                      />
-                      <InputWithIcon
-                        disabled={true}
-                        placeholder="Time"
-                        label="Time"
-                        onChange={() => {}}
-                        type="text"
-                        value={new Date(task.date).toLocaleTimeString()}
-                      />
-                      <Dropdown
-                        label="Reminder"
-                        options={task.reminder?.map((i) =>
-                          new Date(i).toTimeString()
-                        )}
-                      />
-                    </div>
-                  );
-                })}
-              <Button onClick={() => {}} text="Save" />
-            </form>
-          </div>
-        </div>
-      )} */}
     </>
   );
 };

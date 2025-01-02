@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import { JobType } from "./type";
 dotenv.config();
 
 export const sessionCookieKey = "s-tkn";
@@ -34,13 +33,18 @@ export const NoteAttributes = [
   "will_self_destroy",
   "self_destroy_time",
 ];
+
+export const DEFAULT_SCHEDULE_REMINDERS = [
+  "5 mins before",
+  "10 mins before",
+  "15 mins before",
+  "30 mins before",
+  "60 mins before",
+];
+
 export const AliasAttributes = ["id", "name"];
 
 export const X_API_KEY = process.env.X_API_KEY;
-
-export const JOB_TYPES_ARRAY = Object.values(JobType).filter(
-  (value) => typeof value === "string"
-) as string[];
 
 export const SUMMARY_PROMPT_VARIATIONS = [
   {
