@@ -1,35 +1,35 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
-import { IJob, IPagination } from "../type";
+import { IJob, IPagination, JobType } from "../type";
 import memcachedService from "../memcached";
 
 class Job extends Model<Optional<IJob, "createdAt" | "updatedAt" | "id">> {
   // Static method for finding a Job by its primary key with caching
-  static async findByPkWithCache(
+  static async findByPkWithCache<T>(
     this: typeof Job,
     id: string
-  ): Promise<IJob | null> {
+  ): Promise<T | null> {
     const cacheKey = `job:${id}`;
 
     // Try to retrieve the result from the cache
-    const cachedResult = await memcachedService.get<IJob>(cacheKey);
+    const cachedResult = await memcachedService.get<T>(cacheKey);
     if (cachedResult) {
       return cachedResult;
     }
 
     // If not found in cache, fetch from the database
-    const job = await this.findByPk(id, {
-      attributes: [
-        "id",
-        "alias_id",
-        "note_id",
-        "date_started",
-        "date_ended",
-        "job",
-        "status_trace",
-      ],
+    const job = (await this.findByPk(id, {
       raw: true,
-    });
+    })) as any;
+
+    if (job) {
+      if (typeof job.job === "string") {
+        job.job = JSON.parse(job.job);
+      }
+      if (typeof job.status_trace === "string") {
+        job.status_trace = JSON.parse(job.status_trace);
+      }
+    }
 
     // Cache the result if found
     if (job) {
@@ -117,8 +117,16 @@ Job.init(
       type: DataTypes.UUID,
       allowNull: false,
     },
-    job: {
+    payload: {
       type: DataTypes.JSON,
+      allowNull: false,
+    },
+    job_type: {
+      type: DataTypes.ENUM(
+        JobType.email_draft,
+        JobType.scheduled_task,
+        JobType.summarisation
+      ),
       allowNull: false,
     },
     status_trace: {

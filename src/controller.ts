@@ -15,30 +15,30 @@ import {
   validateUsername,
 } from "./helpers";
 import {
+  IAnyJob,
   ErrorCodes,
   IAlias,
   IAuthSession,
-  IJob,
-  IJobStatusTrace,
   IncomingNote,
   IOtpSession,
+  JobType,
+  IScheduleTaskPayload,
+  ISingleScheduledTask,
 } from "./type";
 import {
   NoteAttributes,
   CacheKeys,
   otpSessionCookieKey,
   sessionCookieKey,
-  AliasAttributes,
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
 import { compare, compareSync, hashSync } from "bcrypt";
 import Note from "./models/Note";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import NoteCollaborator from "./models/NoteCollaborator";
 import Job from "./job/job.model";
-import { AsyncLocalStorage } from "async_hooks";
-import { ChatCompletionMessage } from "openai/resources";
+import { isDate } from "util/types";
 
 ("----- getAllAlias ------");
 export async function getAllAlias(
@@ -262,6 +262,116 @@ export async function getAliasById(
     },
   });
 }
+export async function editTaskSchedule(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { tasks } = req.body;
+  if (!tasks || !Array.isArray(tasks)) {
+    next(
+      ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
+    );
+    return;
+  }
+  const job_id = req.params.job_id;
+
+  const findTaskSchedule = await Job.findByPkWithCache<
+    IAnyJob<IScheduleTaskPayload>
+  >(job_id);
+
+  const newTasks = [] as ISingleScheduledTask[];
+
+  for (let task of tasks) {
+    const { date, id, name, reminder }: Partial<ISingleScheduledTask> = task;
+    const idArr = findTaskSchedule!.payload.tasks.map((i) => i.id);
+    if (!id || !validate(id) || !idArr.includes(id)) {
+      next(
+        ApiError.error(
+          ErrorCodes.VALIDATION_ERROR,
+          "Task contains an invalid ID"
+        )
+      );
+      return;
+    }
+    if (
+      (reminder && !Array.isArray(reminder)) ||
+      reminder?.some((i) => !isDate(i))
+    ) {
+      next(
+        ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
+      );
+      return;
+    }
+
+    if (date && !isDate(date)) {
+      next(
+        ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid tasks to update")
+      );
+      return;
+    }
+    const previousTask = findTaskSchedule!.payload.tasks.find(
+      (i) => i.id === id
+    ) as ISingleScheduledTask;
+    let newTask = { ...previousTask };
+
+    if (date) {
+      newTask = { ...newTask, date };
+    }
+    if (name) {
+      newTask = { ...newTask, name };
+    }
+    if (reminder) {
+      newTask = { ...newTask, reminder };
+    }
+
+    newTasks.push({
+      ...previousTask,
+      ...newTask,
+    });
+  }
+
+  const updatedJob = { ...findTaskSchedule, payload: { tasks: newTasks } };
+
+  Job.updateByIdWithCache(job_id, updatedJob);
+
+  res.json({
+    status: "ok",
+    message: "Schedule updated",
+  });
+}
+export async function createTaskSchedule(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { text, start_index, end_index } = req.body;
+
+  const schedule = await Job.create({
+    alias_id: req.__alias!.id!,
+    note_id: req.params.note_id,
+    job_type: JobType.scheduled_task,
+    payload: {
+      tasks: [
+        {
+          id: randomBytes(8).toString("hex"),
+          name: "Study prep",
+          date: new Date(),
+          reminder: new Date(),
+        },
+      ],
+    },
+    status_trace: [
+      { message: "Schedule complete", status: "ok", timestamp: new Date() },
+    ],
+  });
+
+  res.json({
+    status: "ok",
+    message: "Schedule task complete",
+    data: schedule,
+  });
+}
 
 export async function createNoteSummary(
   req: Request,
@@ -270,36 +380,14 @@ export async function createNoteSummary(
 ) {
   const { text, start_index, end_index } = req.body;
 
-  if (!text || text.trim() === "") {
-    next(
-      ApiError.error(
-        ErrorCodes.VALIDATION_ERROR,
-        "Please highlight the text you want to summerise"
-      )
-    );
-
-    return;
-  }
-  if (text.split(" ").length < 5) {
-    next(
-      ApiError.error(
-        ErrorCodes.VALIDATION_ERROR,
-        "The text to summarize must contain more than 5 words"
-      )
-    );
-    return;
-  }
   const note_id = req.params["note_id"];
   const find = await Note.findByPkWithCache(note_id);
 
-  if (!find) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Note not found"));
-    return;
-  }
+  const textToSummerise = text ?? find!.content;
 
   try {
     const data = {
-      new_content: "test summary",
+      new_content: text.slice(5, text.length - 5),
       old_content: text,
       end_index: start_index + end_index,
       start_index,
@@ -335,9 +423,7 @@ export async function getSingleJob(
 
   res.json({
     status: "ok",
-    data: {
-      job,
-    },
+    data: job,
   });
 }
 export async function getAllJobsForNote(
@@ -359,6 +445,57 @@ export async function getAllJobsForNote(
     status: "ok",
     data: {
       rows,
+      pagination: req.__pagination__,
+    },
+  });
+}
+
+export async function getAllJobsForAlias(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const pagination = req.__pagination__;
+  const rows = await Job.findAll({
+    where: {
+      alias_id: req.__alias!.id,
+    },
+    limit: pagination!.page_size,
+    offset: (pagination!.page - 1) * pagination!.page_size,
+    order: [["createdAt", "DESC"]],
+  });
+
+  res.json({
+    status: "ok",
+    data: {
+      rows,
+      pagination: req.__pagination__,
+    },
+  });
+}
+
+export async function getJobsBasedOnJobTypeForAnAlias(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const pagination = req.__pagination__;
+  const job_type = req.params.job_type;
+  const rows = await Job.findAll({
+    where: {
+      alias_id: req.__alias!.id,
+      job_type,
+    },
+    limit: pagination!.page_size,
+    offset: (pagination!.page - 1) * pagination!.page_size,
+    order: [["createdAt", "DESC"]],
+  });
+
+  res.json({
+    status: "ok",
+    data: {
+      rows,
+      pagination: req.__pagination__,
     },
   });
 }

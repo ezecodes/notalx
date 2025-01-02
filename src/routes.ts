@@ -7,6 +7,7 @@ import {
   validateAliasId,
   validateAndSetPagination,
   validateJobId,
+  validateJobType,
   validateNoteId,
 } from "./middlewares";
 
@@ -32,11 +33,15 @@ router
 router.get("/alias/search", Controller.searchAlias);
 
 router.get("/alias/note", authoriseAlias, Controller.getAuthorizedAliasNotes);
-router.get("/alias/:alias_id/note", Controller.getAliasNotes);
+router.get(
+  "/alias/:alias_id/note",
+  validateAndSetPagination,
+  Controller.getAliasNotes
+);
 
 router
   .route("/note")
-  .get(Controller.getAllNotes)
+  .get(validateAndSetPagination, Controller.getAllNotes)
   .post(authoriseAlias, Controller.createNote);
 
 router
@@ -49,10 +54,31 @@ router
   .route("/note/:note_id/job/summerise")
   .post(authoriseAlias, Controller.createNoteSummary);
 
-router.route("/note/:note_id/job/schedule").post(authoriseAlias);
+router
+  .route("/note/:note_id/job/schedule")
+  .post(authoriseAlias, Controller.createTaskSchedule);
+
+router
+  .route("/note/:note_id/job/:job_id/schedule")
+  .put(authoriseAlias, Controller.editTaskSchedule);
+
 router.route("/note/:note_id/job/draft_email").post(authoriseAlias);
 
-router.route("/note/job/:job_id").get(authoriseAlias, Controller.getSingleJob);
+router
+  .route("/job")
+  .get(authoriseAlias, validateAndSetPagination, Controller.getAllJobsForAlias);
+
+router
+  .route("/job/type/:job_type")
+  .get(
+    authoriseAlias,
+    validateJobType,
+    validateAndSetPagination,
+    Controller.getJobsBasedOnJobTypeForAnAlias
+  );
+
+router.route("/job/:job_id").get(authoriseAlias, Controller.getSingleJob);
+
 router
   .route("/note/:note_id/job")
   .get(authoriseAlias, validateAndSetPagination, Controller.getAllJobsForNote);

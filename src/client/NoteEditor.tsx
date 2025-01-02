@@ -4,14 +4,13 @@ import {
   Button,
   CollaboratorsModal,
   DisplayDateCreated,
-  DraftEmail,
+  Dropdown,
   ExpirationInfo,
   InputWithIcon,
   IsHiddenInfo,
-  ScheduledTask,
+  KeyValuePair,
   SuggestedActionButtons,
   SummaryHistoryItem,
-  SummerisedResultPane,
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill, { Quill } from "react-quill";
@@ -23,17 +22,23 @@ import {
   INote,
   INoteEditor,
   ISummaryResponse,
+  IAnyJob,
+  ISingleScheduledTask,
+  IScheduleTaskPayload,
+  JobType,
 } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
-import { RiAdminLine } from "react-icons/ri";
 import { GoPeople } from "react-icons/go";
 import { IoMdTime } from "react-icons/io";
 import { GoLock } from "react-icons/go";
-import { decodeFromBase62, summeriseSelectedText } from "./utils";
-import { BsStars } from "react-icons/bs";
-import { MdOutlineAutoFixHigh } from "react-icons/md";
+import {
+  decodeFromBase62,
+  createScheduleTask,
+  summeriseSelectedText,
+} from "./utils";
+import { BiDotsVertical } from "react-icons/bi";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -64,7 +69,8 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
 
 const Editor = () => {
   const [editor, setEditor] = useState<INoteEditor | null>(null);
-  const [showCollabModal, setCollabModal] = useState<boolean>(false);
+  const [showCollabModal, setCollabModal] = useState(false);
+  const [showScheduleModal, setScheduleModal] = useState(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
   const { otpExpiry } = useContext(GlobalContext)!;
@@ -74,14 +80,47 @@ const Editor = () => {
     setEditor(data as INoteEditor);
   };
 
+  const [currentJobTab, setCurrentJobTab] = useState<"task" | "email" | "all">(
+    "all"
+  );
+
+  const searchParams = new URLSearchParams(window.location.search);
+
   const [currentInsertion, setCurrentInsertion] =
     useState<ISummaryResponse | null>(null);
 
-  const [jobs, setJobs] = useState<IJob[]>([]);
+  const [jobs, setJobs] = useState<IAnyJob<unknown>[]>([]);
   const [loadingStates, setLoadingStates] = useState({
     summary: false,
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
+
+  const [scheduleEditor, setScheduleEditor] = useState<
+    Partial<ISingleScheduledTask>[]
+  >([]);
+
+  const quillRef = useRef<ReactQuill | null>(null);
+  const [popupVisible, setPopupVisible] = useState<boolean>(false);
+  const [previewRange, setPreviewRange] = useState<{
+    start: number;
+    end: number;
+    originalText: string;
+    previewText: string;
+  } | null>(null);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+
+  const handleScheduleTaskEdit = (task: Partial<ISingleScheduledTask>) => {
+    const prevTasks = scheduleEditor;
+    const find = prevTasks.findIndex((i) => i.id === task.id);
+
+    if (find) {
+      const updatedTask = { ...prevTasks[find], ...task };
+      prevTasks[find] = updatedTask;
+      setScheduleEditor(prevTasks);
+    } else {
+      setScheduleEditor([task]);
+    }
+  };
 
   const [highlightedText, setHighlightedText] = useState<{
     text: string;
@@ -122,6 +161,7 @@ const Editor = () => {
     if (!hasCalled.current) {
       fetchPrevNote();
       fetchAllJobsInNote();
+
       hasCalled.current = true;
     }
   }, []);
@@ -147,6 +187,10 @@ const Editor = () => {
   };
 
   const handleSummariseAction = async () => {
+    if (!highlightedText) {
+      toast.error("Select text to summerise");
+      return;
+    }
     try {
       setLoadingStates((prev) => ({ ...prev, summary: true }));
       const response = await summeriseSelectedText(
@@ -164,19 +208,10 @@ const Editor = () => {
     }
   };
 
-  const quillRef = useRef<ReactQuill | null>(null);
-  const [popupVisible, setPopupVisible] = useState<boolean>(false);
-  const [previewRange, setPreviewRange] = useState<{
-    start: number;
-    end: number;
-    originalText: string;
-    previewText: string;
-  } | null>(null);
-
   const handleSelectionChange = (selection: any, source: any, editor: any) => {
-    console.log(selection);
     if (selection && selection.length > 0) {
       const selectedText = editor.getText(selection.index, selection.length);
+
       setHighlightedText({
         start_index: selection.index!,
         end_index: selection.length,
@@ -213,6 +248,14 @@ const Editor = () => {
           originalText,
           previewText: new_content,
         });
+        const globalSection = window.getSelection();
+        const range = globalSection!.getRangeAt(0);
+
+        const rect = range.getBoundingClientRect();
+        setPopupPosition({
+          top: rect.top + window.scrollY,
+          left: rect.left + window.scrollX,
+        });
         setPopupVisible(true);
       }
     } else {
@@ -232,7 +275,9 @@ const Editor = () => {
 
   const handleCopy = () => {
     if (currentInsertion) {
-      navigator.clipboard.writeText(currentInsertion.new_content);
+      navigator.clipboard.writeText(currentInsertion.new_content).then(() => {
+        toast.success("Copied");
+      });
     }
     return;
   };
@@ -247,6 +292,7 @@ const Editor = () => {
       // Clear preview
       setPopupVisible(false);
       setPreviewRange(null);
+      clearSelection();
     }
   };
   const clearSelection = () => {
@@ -262,10 +308,26 @@ const Editor = () => {
 
       // Temporarily format preview text
       editor.formatText(start, end - start, { background: "#32eb0457" });
-      editor.deleteText(start, end - start);
-      editor.insertText(start, previewText, { background: "#32eb0457" });
+      // editor.deleteText(start, end - start);
+      // editor.insertText(start, previewText, { background: "#32eb0457" });
     }
   }, [previewRange]);
+
+  const handleAiScheduling = async () => {
+    const response = await createScheduleTask(
+      parsedNoteId.current,
+      highlightedText!
+    );
+    if (response.status === "err") {
+      toast.error(response.message);
+      return;
+    }
+
+    fetchAllJobsInNote();
+    setScheduleModal(true);
+  };
+
+  const handleTaskEdit = () => {};
 
   if (!otpExpiry?.is_valid_auth) return <></>;
 
@@ -322,51 +384,63 @@ const Editor = () => {
                         placeholder="Write your note here..."
                       />
                       {popupVisible && (
-                        <div className="w-[200px] flex items-center h-[40px] bg-[#2c2c2c] shadow-sm px-3 justify-center gap-x-2">
-                          <button
-                            className="sp_buttons insert"
-                            onClick={handleInsert}
-                          >
-                            Insert
-                          </button>
-                          <button
-                            className="sp_buttons discard"
-                            onClick={handleDiscard}
-                          >
-                            Discard
-                          </button>
-                          <button className="sp_buttons" onClick={handleCopy}>
-                            Copy
-                          </button>
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: popupPosition.top + 50,
+                            left: popupPosition.left,
+                          }}
+                          className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c] max-w-[400px] shadow-md px-3 gap-x-2"
+                        >
+                          <div className="text-sm subtext">
+                            {currentInsertion?.new_content}
+                          </div>
+                          <div className="flex items-center justify-start gap-x-2">
+                            <button
+                              className="sp_buttons insert"
+                              type="button"
+                              onClick={handleInsert}
+                            >
+                              Insert
+                            </button>
+                            <button
+                              className="sp_buttons discard"
+                              type="button"
+                              onClick={handleDiscard}
+                            >
+                              Discard
+                            </button>
+                            <button
+                              className="sp_buttons"
+                              type="button"
+                              onClick={handleCopy}
+                            >
+                              Copy
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                 </fieldset>
-                <fieldset className="flex flex-col gap-y-3 items-end ">
-                  <div className="flex gap-x-4  gap-y-2 justify-end relative items-center w-full  ">
-                    <div className="absolute left-0 top-0">
-                      <SuggestedActionButtons
-                        email={() => {
-                          // callJobAction("email", highlightedText)
-                        }}
-                        highlightedText={highlightedText?.text!}
-                        prioritize={() => {
-                          // callJobAction("prioritize", highlightedText)
-                        }}
-                        schedule={() => {
-                          // callJobAction("schedule", highlightedText)
-                        }}
-                        summerise={handleSummariseAction}
-                        todo={() => {}}
-                        loadingStates={loadingStates}
-                      />
-                    </div>
-                    <Button
-                      text="Save note"
-                      onClick={() => handleNoteUpload(editor.id)}
-                    />
-                  </div>
+                <fieldset className="flex gap-y-3 w-full items-center justify-between ">
+                  <SuggestedActionButtons
+                    email={() => {
+                      // callJobAction("email", highlightedText)
+                    }}
+                    highlightedText={highlightedText?.text!}
+                    prioritize={() => {
+                      // callJobAction("prioritize", highlightedText)
+                    }}
+                    schedule={handleAiScheduling}
+                    summerise={handleSummariseAction}
+                    todo={() => {}}
+                    loadingStates={loadingStates}
+                  />
+                  <Button
+                    text="Save note"
+                    onClick={() => handleNoteUpload(editor.id)}
+                  />
                 </fieldset>
                 {/* <fieldset
                 className="mt-4 pt-4 block"
@@ -414,23 +488,66 @@ const Editor = () => {
               <></>
             )}
           </form>
-          <div className="mt-14 flex flex-col gap-y-3 w-full justify-start">
-            <h3 className="text-sm subtext">Edit History</h3>
-
-            {jobs.length > 0 &&
-              jobs.map((job) => {
-                if (job.job.job_type === "summarisation") {
-                  return (
-                    <SummaryHistoryItem handleInsert={() => {}} job={job} />
-                  );
+          <div className="mt-14 flex flex-col gap-y-3 pt-3 w-full border_top justify-start">
+            <div className="flex items-center gap-x-2">
+              <button
+                className="sp_buttons"
+                style={
+                  currentJobTab === "task" ? { backgroundColor: "#3a3a43" } : {}
                 }
-                return <></>;
-              })}
+                onClick={() => {
+                  setCurrentJobTab("task");
+                }}
+              >
+                Schedules
+              </button>
+              <button
+                style={
+                  currentJobTab === "email"
+                    ? { backgroundColor: "#3a3a43" }
+                    : {}
+                }
+                className="sp_buttons"
+                onClick={() => {
+                  setCurrentJobTab("email");
+                }}
+              >
+                Emails
+              </button>
+            </div>
 
-            {/* <DraftEmail />
-            <ScheduledTask /> */}
+            {currentJobTab === "task" &&
+              jobs
+                .filter((i) => i.job_type == JobType.scheduled_task)
+                .map((job) => {
+                  const payload = job.payload as {
+                    tasks: ISingleScheduledTask[];
+                  };
+                  return (
+                    <div className="flex flex-col gap-y-2 bg-[#333] w-full">
+                      {payload.tasks.map((task) => {
+                        return (
+                          <div className="flex ">
+                            <div className="flex flex-col gap-y-2 relative ">
+                              <BiDotsVertical className="absolute right-[10px] top-[10px]" />
+                              <KeyValuePair value={task.name} header="Task" />
+                              <KeyValuePair
+                                value={new Date(task.date).toLocaleDateString()}
+                                header="Date"
+                              />
+                              <KeyValuePair
+                                value={new Date(task.date).toLocaleTimeString()}
+                                header="Time"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
           </div>
-        </div>{" "}
+        </div>
       </div>
 
       {showCollabModal && editor && (
@@ -440,6 +557,66 @@ const Editor = () => {
           note_owner_id={editor?.alias_id}
         />
       )}
+
+      {/* {showScheduleModal && (
+        <div
+          className="modal top_space py-5"
+          style={{ background: "#212121f7", backdropFilter: "blur(1px)" }}
+        >
+          <div className="sm:w-[400px]">
+            <BackButton text="Edit Task Schedule" />
+            <form
+              className="flex flex-col items-end gap-y-3"
+              onSubmit={handleTaskEdit}
+            >
+              {mostRecentlyCreatedTask &&
+                mostRecentlyCreatedTask.payload.tasks.map((task) => {
+                  return (
+                    <div className="flex flex-col gap-y-2 ">
+                      <InputWithIcon
+                        placeholder="Task name"
+                        label="Task name"
+                        onChange={(value) => {
+                          handleScheduleTaskEdit({ id: task.id, name: value });
+                        }}
+                        type="text"
+                        value={task.name}
+                      />
+                      <InputWithIcon
+                        placeholder="Date"
+                        label="Date"
+                        onChange={(value) => {
+                          console.log(value);
+                          handleScheduleTaskEdit({
+                            id: task.id,
+                            date: value as any,
+                          });
+                        }}
+                        type="date"
+                        value={new Date(task.date).toLocaleDateString()}
+                      />
+                      <InputWithIcon
+                        disabled={true}
+                        placeholder="Time"
+                        label="Time"
+                        onChange={() => {}}
+                        type="text"
+                        value={new Date(task.date).toLocaleTimeString()}
+                      />
+                      <Dropdown
+                        label="Reminder"
+                        options={task.reminder?.map((i) =>
+                          new Date(i).toTimeString()
+                        )}
+                      />
+                    </div>
+                  );
+                })}
+              <Button onClick={() => {}} text="Save" />
+            </form>
+          </div>
+        </div>
+      )} */}
     </>
   );
 };

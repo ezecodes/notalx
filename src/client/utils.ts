@@ -2,12 +2,13 @@ import baseX from "base-x";
 
 import {
   _IAlias,
+  IAnyJob,
   ApiFetchNote,
   IApiResponse,
   INote,
-  IOtpExpiry,
   IPaginatedResponse,
   ISummaryResponse,
+  IScheduleTaskPayload,
 } from "../type";
 
 export function isSessionExpired(expiry: string): boolean {
@@ -89,6 +90,34 @@ export async function summeriseSelectedText(
   });
   return (await f.json()) as Promise<IApiResponse<ISummaryResponse>>;
 }
+
+type ab12 = Promise<IApiResponse<IAnyJob<IScheduleTaskPayload>[]>>;
+export async function createScheduleTask(
+  note_id: string,
+  highlightedText: {
+    text: string;
+    start_index: number;
+    end_index: number;
+  }
+): ab12 {
+  const f = await fetch(`/api/note/${note_id}/job/schedule`, {
+    headers: {
+      "content-type": "application/json",
+    },
+    body: highlightedText ? JSON.stringify(highlightedText) : "",
+    method: "POST",
+  });
+  return (await f.json()) as ab12;
+}
+
+export const fetchAllJobsForAlias = async () => {
+  const f = await fetch(`/api/job`, {
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+  return (await f.json()) as Promise<IApiResponse<IAnyJob<unknown>>>;
+};
 
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();

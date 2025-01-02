@@ -15,8 +15,6 @@ An OTP (One time password) is sent to the email
 Once otp is verified, that alias is now authorized within that ip address and agent to view hidden notes, edit notes , change note secret
 
 NOTE : opt and auth session lasts for 1 hour before it expires and you will have to re-auth 
+ 
 
-
-Transferring note ownership to another alias
-from your auth alias, you will authorize a different alias to own note, there are no reversal, Its one way
-As a note owner, you can add reviewers which all votes of reviewers must be present for an editor's work to go through
+Add ability to mention a user in a note, could be a collaborator or not

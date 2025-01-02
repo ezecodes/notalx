@@ -1,3 +1,5 @@
+import { DataType, DataTypes } from "sequelize";
+
 export type IAlias = {
   id: string;
   name: string;
@@ -12,16 +14,25 @@ export type IJobStatusTrace = {
   timestamp: Date;
   error_code?: string | number;
 };
-
+export interface IAnyJob<PayloadType> extends IJob {
+  payload: PayloadType;
+}
 export type IJob = {
   id: string;
   status_trace: IJobStatusTrace[];
-  job: IJobTypes;
+  job_type: JobType;
+  payload: unknown;
   alias_id: string;
   note_id: string;
   createdAt: Date;
   updatedAt: Date;
 };
+
+export enum JobType {
+  summarisation = "summarisation",
+  scheduled_task = "scheduled_task",
+  email_draft = "email_draft",
+}
 
 export type _IAlias = {
   id: string;
@@ -180,6 +191,10 @@ export enum ErrorCodes {
   FORBIDDEN = "FORBIDDEN",
   INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
   CONFLICT = "CONFLICT",
+  PAYMENT_REQUIRED = "PAYMENT_REQUIRED",
+  INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS",
+  SUBSCRIPTION_EXPIRED = "SUBSCRIPTION_EXPIRED",
+  PAYMENT_VERIFICATION_FAILED = "PAYMENT_VERIFICATION_FAILED",
 }
 
 // Summarisation Job
@@ -191,14 +206,17 @@ export type ISummarisationJob = {
   };
 };
 
-// Task Scheduling Job
-type IScheduleTaskJob = {
-  job_type: "schedule_task";
-  payload: {
-    task_name: string;
-    task_date: Date;
-    calendar_id?: string; // Optional for calendar integration
-  };
+export type IScheduleTaskPayload = {
+  tasks: ISingleScheduledTask[];
+};
+
+export type ISingleScheduledTask = {
+  id: string;
+  name: string;
+  date: Date;
+  reminder: Date;
+  participants?: string[];
+  calendar_id?: string;
 };
 
 // Email Drafting Job
@@ -211,38 +229,6 @@ type IEmailDraftJob = {
     draft_id?: string; // Optional if saving draft
   };
 };
-
-// Task Prioritization Job
-type IPrioritizationJob = {
-  job_type: "task_prioritization";
-  payload: {
-    tasks: { id: string; description: string; priority?: number }[];
-    sorted_tasks?: { id: string; description: string; priority: number }[]; // After processing
-  };
-};
-
-// Agnostic Job (Custom Tasks)
-type ICustomJob = {
-  job_type: "custom";
-  payload: {
-    input: any; // Flexible input
-    output?: any; // Flexible output after completion
-  };
-};
-
-// Union Type for All Jobs
-type IJobTypes =
-  | ISummarisationJob
-  | IScheduleTaskJob
-  | IEmailDraftJob
-  | IPrioritizationJob
-  | ICustomJob;
-
-// Job State for Tracking
-export type IJobState<T extends IJobTypes["job_type"]> = Extract<
-  IJobTypes,
-  { job_type: T }
->;
 
 export type ISummaryResponse = {
   start_index: number;

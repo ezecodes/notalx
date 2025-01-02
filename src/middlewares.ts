@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Note from "./models/Note";
 import { ErrorCodes, IAuthSession, IPagination } from "./type";
-import { CacheKeys, sessionCookieKey } from "./constants";
+import { CacheKeys, JOB_TYPES_ARRAY, sessionCookieKey } from "./constants";
 import memcachedService from "./memcached";
 import {
   ApiError,
@@ -176,6 +176,25 @@ export async function authoriseAliasForNote(
   ) {
     next(
       ApiError.error(ErrorCodes.UNAUTHORIZED, "Collaborator access required")
+    );
+    return;
+  }
+  next();
+}
+
+export async function validateJobType(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const job_type = req.params["job_type"];
+
+  if (!JOB_TYPES_ARRAY.includes(job_type)) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        `Job Type must be one of ${JOB_TYPES_ARRAY.join(", ")}`
+      )
     );
     return;
   }

@@ -1,25 +1,13 @@
-import React, {
-  createContext,
-  Dispatch,
-  FC,
-  ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, Dispatch, FC, ReactNode, useState } from "react";
 import {
   _IAlias,
   ApiFetchNote,
-  ErrorCodes,
   IApiResponse,
-  IJob,
-  IJobState,
   INote,
   INoteCreator,
   IOtpExpiry,
-  ISummaryResponse,
 } from "../type";
 import { fetchAllPublicNotes, fetchAliasPublicAndPrivateNotes } from "./utils";
-import { toast } from "react-toastify";
 
 type IContext = {
   editor: Partial<INoteCreator>;

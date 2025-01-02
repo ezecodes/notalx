@@ -38,6 +38,9 @@
   border: none;
   border-bottom: none;
 }
+li {
+  list-style: none;
+}
 .page {
   @apply flex flex-col justify-center items-center w-full;
 }
@@ -48,6 +51,10 @@ body {
 }
 .primary_button {
   @apply rounded-md hover:bg-[#333] bg-[#2a2a2b] gap-x-2 max-w-[180px] text-sm h-[35px] px-2 button flex items-center justify-center;
+}
+
+.form_input {
+  @apply flex input items-center border justify-between border-gray-300 rounded-lg p-2 w-full;
 }
 .sub_button {
   @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;

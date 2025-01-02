@@ -14,7 +14,7 @@ import { GlobalContext } from "./hook";
 import { MdDeleteOutline } from "react-icons/md";
 import { VscLock } from "react-icons/vsc";
 import { ApiFetchNote } from "../type";
-type Tab = "notes" | "bookmarks" | "public";
+type Tab = "notes" | "tasks" | "public";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   return notes.map((i, key) => (
@@ -33,7 +33,7 @@ const Home = () => {
     otpExpiry,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<Tab>("public");
+  const [activeTab, setActiveTab] = useState<Tab>("notes");
 
   useEffect(() => {
     try {
@@ -78,12 +78,12 @@ const Home = () => {
         )}
 
         <button
-          onClick={() => setActiveTab("bookmarks")}
+          onClick={() => setActiveTab("tasks")}
           className={`sub_button ${
-            activeTab === "bookmarks" ? "text-white" : "subtext"
+            activeTab === "tasks" ? "text-white" : "subtext"
           } `}
         >
-          Bookmarks
+          Tasks
         </button>
       </div>
 

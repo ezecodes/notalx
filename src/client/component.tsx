@@ -7,10 +7,17 @@ import {
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import { _IAlias, IApiResponse, IJob, INote, IOtpExpiry } from "../type";
+import {
+  _IAlias,
+  IApiResponse,
+  IJob,
+  INote,
+  IOtpExpiry,
+  ISingleScheduledTask,
+} from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
-import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
+import { BsArrowDown, BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
 import {
   IoArrowBackOutline,
@@ -25,9 +32,10 @@ import { toast } from "react-toastify";
 import { IoShareSocialOutline } from "react-icons/io5";
 import { SiWhatsapp } from "react-icons/si";
 import { FaTelegram } from "react-icons/fa";
-import { BiLogoTelegram } from "react-icons/bi";
+import { BiDotsVertical, BiLogoTelegram } from "react-icons/bi";
 import { GoArrowRight } from "react-icons/go";
 import { Oval } from "react-loader-spinner";
+import { IoIosArrowDown } from "react-icons/io";
 
 export const NoteEditHistory = () => {};
 
@@ -53,9 +61,12 @@ const HighlightWords: React.FC<HighlightWordsProps> = ({ text }) => {
   );
 };
 
-export const SummaryHistoryItem: FC<{ job: IJob, handleInsert: () => void }> = ({ job , handleInsert}) => {
+export const SummaryHistoryItem: FC<{
+  job: IJob;
+  handleInsert: () => void;
+}> = ({ job, handleInsert }) => {
   const payload = useRef(
-    job.job.payload as { old_content: string; new_content: string }
+    job.payload as { old_content: string; new_content: string }
   );
   return (
     <div className="flex flex-col gap-y-2 bg-[#333] px-3 py-2 rounded-md">
@@ -86,7 +97,13 @@ export const SummaryHistoryItem: FC<{ job: IJob, handleInsert: () => void }> = (
   );
 };
 
-const KeyValuePair = ({ header, value }: { value: string; header: string }) => {
+export const KeyValuePair = ({
+  header,
+  value,
+}: {
+  value: string;
+  header: string;
+}) => {
   return (
     <span className="flex items-center gap-x-1">
       <span className="subtext">{header}: </span>
@@ -113,37 +130,6 @@ export const DraftEmail = () => {
       <div className="flex items-center gap-x-2 justify-end">
         <Button text="Send email" onClick={() => {}} />
         <Button text="Copy email" onClick={() => {}} />
-      </div>
-    </div>
-  );
-};
-export const ScheduledTask = () => {
-  return (
-    <div className="note_history_item">
-      <h6 className="  text-sm subtext">Task Details</h6>
-
-      <ul className="flex flex-col gap-y-2">
-        <li>
-          <KeyValuePair value="Discuss Q4 goals and strategy" header="Task" />
-          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
-          <KeyValuePair value="2:00 PM" header="Time" />
-        </li>
-        <li>
-          <KeyValuePair value="Review marketing budget" header="Task" />
-          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
-          <KeyValuePair value="4:00 PM" header="Time" />
-        </li>
-        <li>
-          <KeyValuePair value="Finalize team presentation" header="Task" />
-          <KeyValuePair value="Friday, Dec 29, 2024" header="Date" />
-          <KeyValuePair value="4:00 PM" header="Time" />
-        </li>
-      </ul>
-
-      <div className="flex items-center gap-x-2 justify-end">
-        <Button text="Confirm Task" onClick={() => {}} />
-        <Button text="Re-order" onClick={() => {}} />
-        <Button text="Edit Task" onClick={() => {}} />
       </div>
     </div>
   );
@@ -181,6 +167,7 @@ type ISuggestedAction = {
   loadingStates: {
     summary: boolean;
   };
+  style?: any;
 };
 export const SuggestedActionButtons: FC<ISuggestedAction> = ({
   email,
@@ -190,9 +177,13 @@ export const SuggestedActionButtons: FC<ISuggestedAction> = ({
   todo,
   highlightedText,
   loadingStates,
+  style,
 }) => {
   return (
-    <div className="flex flex-col items-start gap-y-2 animate__fadeInUp animate__animated">
+    <div
+      style={style}
+      className="flex flex-col items-start gap-y-2 animate__fadeInUp animate__animated"
+    >
       <div className="flex items-center gap-x-2">
         <h3 className="  text-sm subtext">Sugested Actions</h3>
         <BsStars className="text-yellow-200 " />
@@ -205,9 +196,8 @@ export const SuggestedActionButtons: FC<ISuggestedAction> = ({
           onClick={summerise}
           bg="bg-[#333]"
         />
-        <Button text="Schedule" onClick={schedule} />
-        <Button text="Email" onClick={email} />
-        <Button text="New Task" onClick={prioritize} />
+        <Button text="Schedule tasks" onClick={schedule} />
+        <Button text="Draft email" onClick={email} />
       </div>
     </div>
   );
@@ -394,11 +384,12 @@ interface InputWithIconProps {
   type: string;
   placeholder: string;
   icon?: ReactNode;
-  value: string;
+  value: any;
   onChange: (value: string) => void;
   focusListener?: () => void;
   blurListener?: () => void;
   disabled?: boolean;
+  label?: string;
 }
 
 export const InputWithIcon: FC<InputWithIconProps> = ({
@@ -410,22 +401,26 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
   focusListener,
   blurListener,
   disabled,
+  label,
 }) => {
   return (
-    <div className="flex input items-center border border-gray-300 rounded-lg p-2 w-full max-w-xs">
-      {icon && <span className="text-gray-500">{icon}</span>}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-        }}
-        disabled={disabled}
-        onBlur={blurListener}
-        onFocus={focusListener}
-        placeholder={placeholder}
-        className="ml-2 w-full  bg-transparent placeholder-gray-400  "
-      />
+    <div className="label_input">
+      {label && <label>{label}</label>}
+      <div className="form_input">
+        {icon && <span className="text-gray-500">{icon}</span>}
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
+          disabled={disabled}
+          onBlur={blurListener}
+          onFocus={focusListener}
+          placeholder={placeholder}
+          className="ml-2 w-full  bg-transparent placeholder-gray-400  "
+        />
+      </div>
     </div>
   );
 };
@@ -567,6 +562,32 @@ export const ExpirationInfo: FC<IExInfo> = ({ willSelfDestroy, time }) => {
       No expiration
       <TfiTimer />
     </button>
+  );
+};
+
+type DropdownProps = {
+  options: string[];
+  label: string;
+};
+
+export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+
+  return (
+    <div className="label_input">
+      {label && <label>{label}</label>}
+      <select
+        onChange={(e) => setSelectedOption(e.target.value)}
+        name="choice"
+        value={selectedOption ?? "Reminder"}
+        className="bg-[#333] py-4 px-4 w-full rounded-md flex items-center justify-start"
+      >
+        <option value="">-Reminder-</option>;
+        {options.map((option) => {
+          return <option value={option}>{option}</option>;
+        })}
+      </select>
+    </div>
   );
 };
 
@@ -779,7 +800,7 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
               navigator.clipboard
                 .writeText("https://notalx.com/" + note.slug)
                 .then(() => {
-                  toast.success("Link copied to clipboard");
+                  toast.success("Copied!");
                 });
               displayDropdown();
             }}
