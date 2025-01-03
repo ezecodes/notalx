@@ -11,7 +11,13 @@ export type _IAlias = {
   name: string;
   email?: string;
 };
-
+export type ITaskParticipant = {
+  id: string;
+  task_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type IOtp = {
   id: string;
   hash: string;
@@ -53,7 +59,7 @@ export type ITask = {
   name: string;
   date: Date;
   reminder: Date;
-  participants?: _IAlias[];
+  duration?: string;
   calendar_id?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -199,4 +205,13 @@ export type ISummaryResponse = {
   end_index: number;
   new_content: string;
   old_content: string;
+};
+
+export type ICloudflareResponse = {
+  result: {
+    response: string;
+  };
+  success: boolean;
+  errors: [];
+  messages: [];
 };

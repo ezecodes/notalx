@@ -8,6 +8,7 @@ import {
   validateAndSetPagination,
   validateTaskId,
   validateNoteId,
+  authoriseAliasForTask,
 } from "./middlewares";
 
 const router = Router();
@@ -22,7 +23,7 @@ router.use("/otp", otpRouter);
 
 router.param("note_id", validateNoteId);
 router.param("alias_id", validateAliasId);
-router.param("task", validateTaskId);
+router.param("task_id", validateTaskId);
 
 router
   .route("/alias")
@@ -32,11 +33,6 @@ router
 router.get("/alias/search", Controller.searchAlias);
 
 router.get("/alias/note", authoriseAlias, Controller.getAuthorizedAliasNotes);
-router.get(
-  "/alias/:alias_id/note",
-  validateAndSetPagination,
-  Controller.getAliasNotes
-);
 
 router
   .route("/note")
@@ -55,7 +51,7 @@ router
 
 router
   .route("/note/:note_id/task")
-  .post(authoriseAlias, Controller.createTaskSchedule)
+  .post(authoriseAlias, authoriseAliasForNote, Controller.createTaskSchedule)
   .get(authoriseAlias, validateAndSetPagination, Controller.getAllTasksForNote);
 
 router.route("/note/:note_id/draft_email").post(authoriseAlias);
@@ -65,17 +61,25 @@ router
   .get(
     authoriseAlias,
     validateAndSetPagination,
-    Controller.getAllTasksForAlias
+    Controller.getAllTasksForAuthorisedAlias
   );
 
 router
   .route("/task/:task_id")
-  .get(authoriseAlias, Controller.getSingleTask)
-  .put(authoriseAlias, Controller.editTaskSchedule);
+  .get(authoriseAlias, authoriseAliasForTask, Controller.getSingleTask)
+  .put(authoriseAlias, authoriseAliasForTask, Controller.editTaskSchedule);
+
+router
+  .route("/task/:task_id/participants")
+  .delete(
+    authoriseAlias,
+    authoriseAliasForTask,
+    Controller.deleteTaskParticipant
+  );
 
 router
   .route("/note/:note_id/collaborators")
-  .get(authoriseAlias, Controller.getNoteCollaborators)
+  .get(authoriseAlias, authoriseAliasForNote, Controller.getNoteCollaborators)
   .post(authoriseAlias, authoriseAliasForNote, Controller.addNoteCollaborators)
   .delete(
     authoriseAlias,

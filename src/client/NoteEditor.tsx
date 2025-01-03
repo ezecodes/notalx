@@ -81,7 +81,9 @@ const Editor = () => {
   const [currentInsertion, setCurrentInsertion] =
     useState<ISummaryResponse | null>(null);
 
-  const [tasks, setTasks] = useState<ITask[]>([]);
+  const [tasks, setTasks] = useState<
+    { task: ITask; participants: _IAlias[] }[]
+  >([]);
   const [loadingStates, setLoadingStates] = useState({
     summary: false,
   });
@@ -107,7 +109,9 @@ const Editor = () => {
 
   const fetchAllTasksInNote = async () => {
     const f = await fetch(`/api/note/${parsedNoteId.current}/task`);
-    const response: IApiResponse<{ rows: ITask[] }> = await f.json();
+    const response: IApiResponse<{
+      rows: { task: ITask; participants: _IAlias[] }[];
+    }> = await f.json();
 
     response.data && setTasks(response.data.rows);
   };
@@ -339,69 +343,67 @@ const Editor = () => {
                       onChange={(value) => handleUpdate({ title: value })}
                     />
                   </div>
-                  <div>
-                    <div className="w-full max-w-4xl mx-auto note_body">
-                      <ReactQuill
-                        ref={quillRef}
-                        value={editor.content}
-                        onChange={(value) => handleUpdate({ content: value })}
-                        onChangeSelection={handleSelectionChange}
-                        theme="snow"
-                        modules={{
-                          toolbar: [
-                            [{ header: "1" }, { header: "2" }, { font: [] }],
-                            [{ list: "ordered" }, { list: "bullet" }],
-                            ["bold", "italic", "underline", "strike"],
-                            [{ align: [] }],
-                            ["link"],
-                            [{ color: [] }, { background: [] }],
-                            ["image"],
-                            ["clean"],
-                          ],
+                  <div className="w-full max-w-4xl mx-auto add_border rounded-md note_body">
+                    <ReactQuill
+                      ref={quillRef}
+                      value={editor.content}
+                      onChange={(value) => handleUpdate({ content: value })}
+                      onChangeSelection={handleSelectionChange}
+                      theme="snow"
+                      modules={{
+                        toolbar: [
+                          [{ header: "1" }, { header: "2" }, { font: [] }],
+                          [{ list: "ordered" }, { list: "bullet" }],
+                          ["bold", "italic", "underline", "strike"],
+                          [{ align: [] }],
+                          ["link"],
+                          [{ color: [] }, { background: [] }],
+                          ["image"],
+                          ["clean"],
+                        ],
+                      }}
+                      placeholder="Write your note here..."
+                    />
+                    {popupVisible && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: popupPosition.top + 50,
+                          left: popupPosition.left,
                         }}
-                        placeholder="Write your note here..."
-                      />
-                      {popupVisible && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: popupPosition.top + 50,
-                            left: popupPosition.left,
-                          }}
-                          className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c] max-w-[400px] shadow-md px-3 gap-x-2"
-                        >
-                          <div className="text-sm subtext">
-                            {currentInsertion?.new_content}
-                          </div>
-                          <div className="flex items-center justify-start gap-x-2">
-                            <button
-                              className="sp_buttons insert"
-                              type="button"
-                              onClick={handleInsert}
-                            >
-                              Insert
-                            </button>
-                            <button
-                              className="sp_buttons discard"
-                              type="button"
-                              onClick={handleDiscard}
-                            >
-                              Discard
-                            </button>
-                            <button
-                              className="sp_buttons"
-                              type="button"
-                              onClick={handleCopy}
-                            >
-                              Copy
-                            </button>
-                          </div>
+                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c] max-w-[400px] shadow-md px-3 gap-x-2"
+                      >
+                        <div className="text-sm subtext">
+                          {currentInsertion?.new_content}
                         </div>
-                      )}
-                    </div>
+                        <div className="flex items-center justify-start gap-x-2">
+                          <button
+                            className="sp_buttons insert"
+                            type="button"
+                            onClick={handleInsert}
+                          >
+                            Insert
+                          </button>
+                          <button
+                            className="sp_buttons discard"
+                            type="button"
+                            onClick={handleDiscard}
+                          >
+                            Discard
+                          </button>
+                          <button
+                            className="sp_buttons"
+                            type="button"
+                            onClick={handleCopy}
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </fieldset>
-                <fieldset className="flex gap-y-3 w-full items-center justify-between ">
+                <fieldset className="flex gap-y-3 w-full items-start justify-between ">
                   <SuggestedActionButtons
                     email={() => {
                       // callJobAction("email", highlightedText)
@@ -504,9 +506,7 @@ const Editor = () => {
               </div>
             )}
 
-            {currentJobTab === "task" && (
-              <ScheduledTasksWrapper tasks={tasks} />
-            )}
+            {currentJobTab === "task" && <ScheduledTasksWrapper rows={tasks} />}
           </div>
         </div>
       </div>

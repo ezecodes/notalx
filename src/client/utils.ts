@@ -109,7 +109,9 @@ export async function summeriseSelectedText(
   return (await f.json()) as Promise<IApiResponse<ISummaryResponse>>;
 }
 
-type ITaskList = Promise<IPaginatedResponse<ITask>>;
+type ITaskList = Promise<
+  IPaginatedResponse<{ task: ITask; participants: _IAlias[] }>
+>;
 export async function createScheduleTask(
   note_id: string,
   highlightedText: {

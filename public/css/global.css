@@ -34,10 +34,7 @@
 .popup_child .dropdown_item {
   border-bottom: 1px solid var(--border_color);
 }
-.note_title .input {
-  border: none;
-  border-bottom: none;
-}
+
 li {
   list-style: none;
 }

@@ -8,17 +8,23 @@ import {
   getRandomInt,
   getSessionFromReq,
   isExpired,
+  parseLiteralTime,
+  PopulateCollaboratorForNotes,
   PopulateNoteCollaborators,
+  PopulateParticipantForTasks,
+  PopulateTaskParticipants,
   sendEmail,
   setExpiryInUTC,
   validateIncomingNote,
   validateUsername,
 } from "./helpers";
 import {
+  _IAlias,
   ErrorCodes,
   IAlias,
   IAuthSession,
   IncomingNote,
+  INote,
   IOtpSession,
   ITask,
 } from "./type";
@@ -36,6 +42,7 @@ import { Op } from "sequelize";
 import NoteCollaborator from "./models/NoteCollaborator";
 import { isDate } from "util/types";
 import Task from "./models/Task";
+import TaskParticipant from "./models/TaskParticipant";
 
 ("----- getAllAlias ------");
 export async function getAllAlias(
@@ -259,17 +266,25 @@ export async function getAliasById(
     },
   });
 }
+
+type IEditTask = {
+  date: Date;
+  name: string;
+  reminder: Date;
+  participants: _IAlias[];
+  duration: string;
+};
+
 export async function editTaskSchedule(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const task_id = req.params.task_id;
+  console.log(req.body);
 
-  const { date, name, reminder, participants } = req.body as Pick<
-    ITask,
-    "date" | "name" | "participants" | "reminder"
-  >;
+  const { date, name, participants, reminder, duration } =
+    req.body as IEditTask;
 
   const findTask = await Task.findByPkWithCache(task_id);
 
@@ -290,6 +305,61 @@ export async function editTaskSchedule(
   if (reminder) {
     newTask = { ...newTask, reminder };
   }
+
+  if (duration) {
+    const time = parseLiteralTime(duration);
+    if (!time) {
+      next(
+        ApiError.error(
+          ErrorCodes.VALIDATION_ERROR,
+          "The duration must be provided in a valid 'number unit' format."
+        )
+      );
+      return;
+    }
+
+    newTask = { ...newTask, duration };
+  }
+
+  if (
+    participants &&
+    (!Array.isArray(participants) ||
+      participants.some((i) => !validate(i.id)) ||
+      participants.length === 0)
+  ) {
+    next(
+      ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid participants list")
+    );
+    return;
+  }
+  const previousParticipants = await PopulateTaskParticipants(task_id);
+
+  for (let alias of previousParticipants as IAlias[]) {
+    const find = participants?.find((i) => i.id === alias.id);
+    if (find) {
+      next(
+        ApiError.error(
+          ErrorCodes.CONFLICT,
+          `${alias.name} is already a participant`
+        )
+      );
+      return;
+    }
+  }
+
+  participants &&
+    participants.forEach(async (i) => {
+      await TaskParticipant.findOrCreate({
+        defaults: {
+          alias_id: i.id,
+          task_id,
+        },
+        where: {
+          alias_id: i.id,
+          task_id,
+        },
+      });
+    });
 
   Task.updateByIdWithCache(task_id, newTask);
 
@@ -319,6 +389,7 @@ export async function createTaskSchedule(
     name: "Study prep",
     date: scheduledDate,
     reminder,
+    duration: "30 minutes",
   });
 
   res.json({
@@ -368,11 +439,14 @@ export async function getSingleTask(
 ) {
   const task_id = req.params.task_id;
 
-  const task = await Task.findByPk(task_id);
+  const task = await Task.findByPkWithCache(task_id);
 
   res.json({
     status: "ok",
-    data: task,
+    data: {
+      task,
+      participants: await PopulateTaskParticipants(task_id, task?.alias_id!),
+    },
   });
 }
 export async function getAllTasksForNote(
@@ -381,43 +455,45 @@ export async function getAllTasksForNote(
   next: NextFunction
 ) {
   const pagination = req.__pagination__;
-  const rows = await Task.findAll({
+  const rows = (await Task.findAll({
     where: {
       note_id: req.params.note_id,
     },
     limit: pagination!.page_size,
     offset: (pagination!.page - 1) * pagination!.page_size,
     order: [["createdAt", "DESC"]],
-  });
+    raw: true,
+  })) as any as ITask[];
 
   res.json({
     status: "ok",
     data: {
-      rows,
+      rows: await PopulateParticipantForTasks(rows),
       pagination: req.__pagination__,
     },
   });
 }
 
-export async function getAllTasksForAlias(
+export async function getAllTasksForAuthorisedAlias(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const pagination = req.__pagination__;
-  const rows = await Task.findAll({
+  const rows = (await Task.findAll({
     where: {
       alias_id: req.__alias!.id,
     },
     limit: pagination!.page_size,
     offset: (pagination!.page - 1) * pagination!.page_size,
     order: [["createdAt", "DESC"]],
-  });
+    raw: true,
+  })) as any as ITask[];
 
   res.json({
     status: "ok",
     data: {
-      rows,
+      rows: await PopulateParticipantForTasks(rows),
       pagination: req.__pagination__,
     },
   });
@@ -548,7 +624,7 @@ export async function getAuthorizedAliasNotes(
 ) {
   const alias_id = req.__alias?.id!;
 
-  let notes = await Note.findAll({
+  let notes = (await Note.findAll({
     where: {
       alias_id,
       [Op.or]: [
@@ -557,23 +633,14 @@ export async function getAuthorizedAliasNotes(
         { is_hidden: false } as any,
       ],
     },
+    raw: true,
     attributes: NoteAttributes,
-  });
+  })) as any as INote[];
 
-  let rows = await Promise.all(
-    notes.map(async (i) => ({
-      collaborators: await PopulateNoteCollaborators(
-        i.dataValues.id!,
-        alias_id
-      ),
-      note: i,
-    }))
-  );
-  JSON.parse(JSON.stringify(rows));
   res.json({
     status: "ok",
     data: {
-      rows,
+      rows: await PopulateCollaboratorForNotes(notes),
     },
   });
 }
@@ -584,60 +651,33 @@ export async function getAllNotes(
   res: Response,
   next: NextFunction
 ) {
-  let notes = await Note.findAll({
+  let notes = (await Note.findAll({
     where: { [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any] },
     attributes: NoteAttributes,
-  });
+    raw: true,
+  })) as any as INote[];
 
-  let rows = await Promise.all(
-    notes.map(async (i) => ({
-      collaborators: await PopulateNoteCollaborators(
-        i.dataValues.id!,
-        i.dataValues.alias_id
-      ),
-      note: i,
-    }))
-  );
-  JSON.parse(JSON.stringify(rows)),
-    res.json({
-      status: "ok",
-      data: {
-        rows,
-      },
-    });
+  res.json({
+    status: "ok",
+    data: {
+      rows: await PopulateCollaboratorForNotes(notes),
+    },
+  });
 }
 
-("----- getAliasNotes ------");
-export async function getAliasNotes(
+export async function getTaskParticipants(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const alias_id = req.params.alias_id;
+  const task_id = req.params.task_id;
 
-  let notes = await Note.findAll({
-    where: {
-      alias_id,
-      [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any],
+  res.json({
+    status: "ok",
+    data: {
+      rows: await PopulateTaskParticipants(task_id),
     },
-    attributes: NoteAttributes,
   });
-  let rows = await Promise.all(
-    notes.map(async (i) => ({
-      collaborators: await PopulateNoteCollaborators(
-        i.dataValues.id!,
-        i.dataValues.alias_id
-      ),
-      note: i,
-    }))
-  );
-  (rows = JSON.parse(JSON.stringify(rows))),
-    res.json({
-      status: "ok",
-      data: {
-        rows,
-      },
-    });
 }
 
 export async function getNoteCollaborators(
@@ -713,6 +753,32 @@ export async function addNoteCollaborators(
   });
 }
 
+export async function deleteTaskParticipant(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { task_id, alias_id } = req.body;
+
+  const find = await Task.findByPk(task_id, { attributes: ["alias_id"] });
+
+  if (find && find.dataValues.alias_id === alias_id) {
+    next(
+      ApiError.error(
+        ErrorCodes.FORBIDDEN,
+        "You cannot delete the default participant"
+      )
+    );
+    return;
+  }
+
+  TaskParticipant.destroy({ where: { task_id, alias_id } });
+  res.json({
+    status: "ok",
+    message: "Participant deleted",
+  });
+}
+
 export async function deleteNoteCollaborator(
   req: Request,
   res: Response,
@@ -725,7 +791,7 @@ export async function deleteNoteCollaborator(
   if (find && find.dataValues.alias_id === alias_id) {
     next(
       ApiError.error(
-        ErrorCodes.UNAUTHORIZED,
+        ErrorCodes.FORBIDDEN,
         "You cannot delete the default collaborator"
       )
     );
@@ -745,7 +811,7 @@ export async function createNote(
   res: Response,
   next: NextFunction
 ) {
-  const { note }: { note: IncomingNote } = req.body;
+  const note: IncomingNote = req.body;
   const valid = validateIncomingNote(note, "create");
 
   if (!valid.isValid) {

@@ -86,13 +86,13 @@ Task.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    duration: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     date: {
       type: DataTypes.DATE,
       allowNull: false,
-    },
-    participants: {
-      type: DataTypes.JSON,
-      allowNull: true,
     },
     reminder: {
       type: DataTypes.DATE,

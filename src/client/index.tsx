@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
 import { fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
-import { ApiFetchNote, ITask } from "../type";
+import { _IAlias, ApiFetchNote, ITask } from "../type";
 type Tab = "notes" | "tasks" | "public";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
@@ -24,7 +24,9 @@ const Home = () => {
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>("notes");
-  const [scheduledTasks, setScheduledTasks] = useState<ITask[]>([]);
+  const [scheduledTasks, setScheduledTasks] = useState<
+    { task: ITask; participants: _IAlias[] }[]
+  >([]);
 
   useEffect(() => {
     try {
@@ -89,7 +91,7 @@ const Home = () => {
             {activeTab === "notes" && <RenderNotes notes={authAliasNotes} />}
 
             {activeTab === "tasks" && (
-              <ScheduledTasksWrapper tasks={scheduledTasks} />
+              <ScheduledTasksWrapper rows={scheduledTasks} />
             )}
           </div>
         </section>

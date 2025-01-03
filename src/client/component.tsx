@@ -150,7 +150,7 @@ export const SuggestedActionButtons: FC<ISuggestedAction> = ({
         <BsStars className="text-yellow-200 " />
       </div>
 
-      <div className="flex items-center gap-x-3 swirl_parent ">
+      <div className="flex items-center flex-wrap gap-y-2 gap-x-3 swirl_parent ">
         <Button
           text="Summerise"
           icon={loadingStates.summary ? <RingsLoader /> : <></>}
@@ -242,7 +242,7 @@ export const CollaboratorsModal: FC<{
       className="modal top_space py-5"
       style={{ background: "#212121f7", backdropFilter: "blur(1px)" }}
     >
-      <div className="top_space sm:w-[400px]">
+      <div className="top_space sm:w-[450px] 3micro:w-[90%] w-full">
         <BackButton text="Manage note collaborators" onClick={onClose} />
         <br />
         <SearchDropdown
@@ -404,11 +404,15 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const [options, setOptions] = useState<_IAlias[]>([]);
   const [input, setInput] = useState<string>("");
   const { otpExpiry } = useContext(GlobalContext)!;
+  const hasCalled = useRef(false);
 
   useEffect(() => {
-    fetchAllAlias().then((res) => {
-      res.data && setOptions(res.data.rows);
-    });
+    if (!hasCalled.current) {
+      fetchAllAlias().then((res) => {
+        res.data && setOptions(res.data.rows);
+      });
+    }
+    hasCalled.current = true;
   }, []);
 
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,7 +430,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   };
 
   const handleBlur = () => {
-    setTimeout(() => setShowDropdown(false), 100);
+    setTimeout(() => setShowDropdown(false), 180);
   };
 
   const handleFilter = (option: _IAlias) => {
@@ -555,25 +559,27 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
   );
 };
 
-export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
+export const ScheduledTasksWrapper: FC<{
+  rows: { task: ITask; participants: _IAlias[] }[];
+}> = ({ rows }) => {
   const navigate = useNavigate();
   return (
     <div className="w-full flex flex-wrap gap-4 mt-4">
-      {tasks.map((task) => {
+      {rows.map((row) => {
         return (
           <div
-            key={task.id}
-            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[170px] rounded-sm w-[300px]"
+            key={row.task.id}
+            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[170px] rounded-sm w-full 3micro:w-[300px]"
           >
             <h4 className=" subtext flex justify-between items-center border_bottom py-2  text-sm px-2">
-              <span className="font-[500] ">{task.name}</span>
+              <span className="font-[500] ">{row.task.name}</span>
 
               <span className="flex items-center gap-x-2">
-                <TaskSharingPopup task={task} />
+                <TaskSharingPopup task={row.task} />
                 <MdOutlineEditCalendar
                   className="  subtext  "
                   onClick={() => {
-                    navigate(`/task/${encodeToBase62(task.id)}`);
+                    navigate(`/task/${encodeToBase62(row.task.id)}`);
                   }}
                 />
               </span>
@@ -581,20 +587,20 @@ export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
 
             <div className=" flex flex-col">
               <span className="flex items-center font-[500] text-center justify-center text-white gap-y-2 text-md">
-                {new Date(task.date).toDateString()}
+                {new Date(row.task.date).toDateString()}
                 <br />
-                {new Date(task.date).toLocaleTimeString()}
+                {new Date(row.task.date).toLocaleTimeString()}
               </span>
             </div>
             <div className="px-3 flex justify-center">
-              {task.participants && (
-                <AvatarGroup size="2" avatars={[{ name: "Jah" }]} />
+              {row.participants && (
+                <AvatarGroup size="2" avatars={row.participants} />
               )}
             </div>
 
             <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
-                {new Date() < new Date(task.date) ? (
+                {new Date() < new Date(row.task.date) ? (
                   <>
                     <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />{" "}
                     Upcoming
@@ -607,7 +613,7 @@ export const ScheduledTasksWrapper: FC<{ tasks: ITask[] }> = ({ tasks }) => {
                 )}
               </span>
               <span className="text-sm subtext">
-                {formatRelativeTime(task.date)}
+                {formatRelativeTime(row.task.date)}
               </span>
             </div>
           </div>
@@ -786,7 +792,11 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
     >
       <div className="flex justify-between px-4">
         <span className="font-[500] text-md">{note.title}</span>
-        {note.is_hidden && <VscLock className="text-[#a7a7a7]" />}
+        {note.is_hidden ? (
+          <VscLock className="text-[#a7a7a7]" />
+        ) : (
+          <BsUnlock className="text-[#a7a7a7]" />
+        )}
       </div>
 
       <Link

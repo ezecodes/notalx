@@ -15,8 +15,10 @@ import { MdDeleteOutline } from "react-icons/md";
 const TaskEditor = () => {
   const { otpExpiry } = useContext(GlobalContext)!;
   const [task, setTask] = useState<ITask | null>(null);
+  const [taskParticipants, setTaskParticipants] = useState<_IAlias[]>([]);
   const params = useParams<{ task_id: string }>();
   const hasCalled = useRef(false);
+  const parsedTaskId = useRef(decodeFromBase62(params.task_id!));
 
   const [selectedParticipants, setSelectedParticipants] = useState<_IAlias[]>(
     []
@@ -25,24 +27,30 @@ const TaskEditor = () => {
     useState<_IAlias | null>(null);
 
   const fetchTask = async () => {
-    const f = await fetch("/api/task/" + decodeFromBase62(params.task_id!));
-    const response: IApiResponse<ITask> = await f.json();
-    response.status === "ok" && setTask(response.data!);
+    const f = await fetch("/api/task/" + parsedTaskId.current!);
+    const response: IApiResponse<{ task: ITask; participants: _IAlias[] }> =
+      await f.json();
+    if (response.status === "ok") {
+      setSelectedParticipants([]);
+      setTaskParticipants(response.data!.participants!);
+      setTask(response.data?.task!);
+    }
   };
 
   const updateTask = async () => {
-    const f = await fetch("/api/task/" + decodeFromBase62(params.task_id!), {
+    const body = task as any;
+    if (selectedParticipants.length > 0) {
+      body.participants = selectedParticipants;
+    }
+    const f = await fetch("/api/task/" + parsedTaskId.current!, {
       method: "PUT",
-      body: JSON.stringify({
-        ...task!,
-        participants: selectedParticipants,
-      }),
+      body: JSON.stringify(body),
       headers: {
         "content-type": "application/json",
       },
     });
     const response: IApiResponse<ITask> = await f.json();
-    fetchTask();
+    response.status === "ok" && fetchTask();
     toast.info(response.message);
   };
 
@@ -52,13 +60,27 @@ const TaskEditor = () => {
       hasCalled.current = true;
     }
   }, []);
-
+  async function sendRemove(alias_id: string) {
+    const f = await fetch(`/api/task/${parsedTaskId.current!}/participants`, {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ task_id: parsedTaskId.current, alias_id }),
+    });
+    const response: IApiResponse<null> = await f.json();
+    if (response.status === "err") toast.error(response.message);
+    else {
+      setTaskParticipants((prev) =>
+        prev.filter((alias) => alias.id !== alias_id)
+      );
+      toast.success(response.message);
+    }
+  }
   const handleTaskEdit = (edit: Partial<ITask>) => {
     let prev = task!;
 
-    let newTask = { ...prev, ...edit };
-
-    setTask({ ...task, task: newTask } as any);
+    setTask({ ...prev, ...edit } as any);
   };
   function handleParticipantUpdate(participant: _IAlias | null) {
     setSelectedParticipant(participant);
@@ -83,8 +105,6 @@ const TaskEditor = () => {
     );
   }
 
-  async function sendRemove(alias_id: string) {}
-
   if (!task) return <></>;
 
   return (
@@ -92,7 +112,7 @@ const TaskEditor = () => {
       className="modal top_space py-8"
       style={{ background: "#212121f7", backdropFilter: "blur(1px)" }}
     >
-      <div className="sm:w-[450px] w-[90%]">
+      <div className="sm:w-[450px] 3micro:w-[90%] w-full">
         <BackButton text="Manage Task Schedule" />
         <form
           className="flex flex-col items-end gap-y-7"
@@ -152,6 +172,16 @@ const TaskEditor = () => {
               </select>
             </div>
 
+            <div className="label_input">
+              <label className="subtext">Duration for task</label>
+              <InputWithIcon
+                placeholder="e.g 2 seconds"
+                type="text"
+                value={task.duration}
+                onChange={(value) => handleTaskEdit({ duration: value })}
+              />
+            </div>
+
             <div className="w-full label_input">
               <label>Participants</label>
               <SearchDropdown
@@ -176,9 +206,9 @@ const TaskEditor = () => {
               </div>
               <div className="flex w-full flex-col gap-y-2 pt-2 border_top mt-2">
                 <span className="text-sm subtext">Exisiting Participants</span>
-                {task.participants &&
-                  task.participants.length > 0 &&
-                  task.participants.map((i) => {
+                {taskParticipants &&
+                  taskParticipants.length > 0 &&
+                  taskParticipants.map((i) => {
                     return (
                       <li className="dropdown_item w-full relative">
                         {i.name}

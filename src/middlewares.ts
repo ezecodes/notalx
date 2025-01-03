@@ -8,6 +8,7 @@ import {
   Is_Alias_In_Session_Same_As_Alias,
   isExpired,
   PopulateNoteCollaborators,
+  PopulateTaskParticipants,
 } from "./helpers";
 import Alias from "./models/Alias";
 import { validate } from "uuid";
@@ -156,6 +157,37 @@ export async function authoriseAliasToViewNote(
     req.__note = { id: find.dataValues.id! };
     next();
   }
+}
+
+export async function authoriseAliasForTask(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const find = await Task.findByPkWithCache(req.params.task_id);
+
+  if (find && find.alias_id === req.__alias?.id) {
+    next();
+    return;
+  }
+
+  const participants = await PopulateTaskParticipants(req.params.task_id);
+  const collaborators = await PopulateNoteCollaborators(find!.note_id);
+  if (
+    collaborators.length === 0 ||
+    !collaborators.find((i) => i?.id === req.__alias?.id) ||
+    participants.length === 0 ||
+    !participants.find((i) => i?.id === req.__alias?.id)
+  ) {
+    next(
+      ApiError.error(
+        ErrorCodes.UNAUTHORIZED,
+        "Permission denied. Please contact the administrator to request access."
+      )
+    );
+    return;
+  }
+  next();
 }
 
 export async function authoriseAliasForNote(

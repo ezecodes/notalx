@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import Note from "./models/Note";
-import { ErrorCodes, IncomingNote, INote } from "./type";
+import { _IAlias, ErrorCodes, IncomingNote, INote, ITask } from "./type";
 import { randomBytes } from "crypto";
 import {
   Branding_NotalX,
@@ -17,6 +17,7 @@ import Alias from "./models/Alias";
 import { hashSync } from "bcrypt";
 import OpenAI from "openai";
 import { ChatCompletionMessage } from "openai/resources";
+import TaskParticipant from "./models/TaskParticipant";
 const openai = new OpenAI({
   apiKey: X_API_KEY,
   baseURL: "https://api.x.ai/v1",
@@ -71,11 +72,11 @@ export function generateSlug(
 const validTimeRegex =
   /^\d+\s*(second|seconds|minute|minutes|day|days|year|years)$/i;
 
-export function validateSelfDestroyTime(input: string): boolean {
+export function validateLiteralTime(input: string): boolean {
   if (input.split(" ").length !== 2) return false;
   return validTimeRegex.test(input);
 }
-export function parseSelfDestroyTimeToDate(input: string): Date | boolean {
+export function parseLiteralTime(input: string): Date | boolean {
   if (input.split(" ").length !== 2 || !validTimeRegex.test(input))
     return false;
 
@@ -146,6 +147,44 @@ interface IUserSession {
   alias_id: string;
 }
 
+export async function PopulateCollaboratorForNotes(notes: INote[]) {
+  return await Promise.all(
+    notes.map(async (i) => ({
+      note: i,
+      collaborators: await PopulateNoteCollaborators(i.id!, i.alias_id),
+    }))
+  );
+}
+
+export async function PopulateParticipantForTasks(tasks: ITask[]) {
+  return await Promise.all(
+    tasks.map(async (i) => ({
+      task: i,
+      participants: await PopulateTaskParticipants(i.id!, i.alias_id),
+    }))
+  );
+}
+
+export async function PopulateTaskParticipants(
+  task_id: string,
+  task_owner_id?: string
+) {
+  const find = await TaskParticipant.findAll({
+    where: { task_id },
+  });
+
+  const rows = await Promise.all(
+    find.map(async (i) => await Alias.findByPkWithCache(i.dataValues.alias_id))
+  );
+
+  // Add the owner to the collaborator if task_owner_id exists
+  if (task_owner_id) {
+    const findOwner = await Alias.findByPkWithCache(task_owner_id);
+    rows.unshift(findOwner);
+  }
+
+  return rows;
+}
 export async function PopulateNoteCollaborators(
   note_id: string,
   note_owner_id?: string
@@ -320,7 +359,7 @@ export function validateIncomingNote(
   }
 
   if (self_destroy_time) {
-    const validTime = parseSelfDestroyTimeToDate(self_destroy_time);
+    const validTime = parseLiteralTime(self_destroy_time);
     if (!validTime) {
       return {
         isValid: false,
