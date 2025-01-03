@@ -62,7 +62,7 @@ const ViewNote: FC<IViewNote> = () => {
   if (!note) return <></>;
 
   return (
-    <div className="modal   relative animate__animated animate__slideInDown">
+    <div className="modal   relative animate__animated animate__fadeIn">
       <div className="flex modal_child flex-col gap-y-3 ">
         <BackButton text={note.note.title} url={-1} />
 

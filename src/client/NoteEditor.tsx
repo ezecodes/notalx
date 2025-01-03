@@ -64,6 +64,12 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   );
 };
 
+type IHighlightedText = {
+  text: string;
+  start_index: number;
+  end_index: number;
+};
+
 const Editor = () => {
   const [editor, setEditor] = useState<INoteEditor | null>(null);
   const [showCollabModal, setCollabModal] = useState(false);
@@ -105,11 +111,8 @@ const Editor = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [highlightedText, setHighlightedText] = useState<{
-    text: string;
-    start_index: number;
-    end_index: number;
-  } | null>(null);
+  const [highlightedText, setHighlightedText] =
+    useState<IHighlightedText | null>(null);
 
   const fetchAllTasksInNote = async () => {
     const f = await fetch(`/api/note/${parsedNoteId.current}/task`);
@@ -196,17 +199,16 @@ const Editor = () => {
   const handleSelectionChange = (selection: any, source: any, editor: any) => {
     if (selection && selection.length > 0) {
       const selectedText = editor.getText(selection.index, selection.length);
-
-      setHighlightedText({
-        start_index: selection.index!,
+      const data = {
         end_index: selection.length,
+        start_index: selection.index!,
         text: selectedText,
-      });
+      };
+      setHighlightedText(data);
       handlePopupPosition();
 
       setAiActionsVisible(true);
     } else {
-      setHighlightedText(null);
       setAiActionsVisible(false);
     }
   };
@@ -268,7 +270,7 @@ const Editor = () => {
       const { start, end, originalText } = previewRange;
 
       // Restore original text in the preview range
-      replaceText(start, end, originalText);
+      // replaceText(start, end, originalText);
 
       // Clear preview
       setPopupVisible(false);
@@ -304,8 +306,9 @@ const Editor = () => {
       return;
     }
 
-    fetchAllTasksInNote();
-    navigate("?page=schedule");
+    if (response.status === "ok") {
+      fetchAllTasksInNote();
+    }
   };
 
   const handlePopupPosition = () => {
@@ -335,7 +338,13 @@ const Editor = () => {
       (editor as any).history.undo(); // Perform first undo
     }
   };
-  const handleTaskEdit = () => {};
+  const handleRefinement = () => {
+    handleDiscard();
+    performUndoTwice();
+    setAiActionsVisible(true);
+
+    handleSummariseAction();
+  };
 
   if (!otpExpiry?.is_valid_auth) return <></>;
 
@@ -407,6 +416,15 @@ const Editor = () => {
                             onClick={handleInsert}
                           >
                             Insert
+                          </button>
+                          <button
+                            className="sp_buttons"
+                            type="button"
+                            onClick={() => {
+                              handleRefinement();
+                            }}
+                          >
+                            Refine
                           </button>
                           <button
                             className="sp_buttons discard"

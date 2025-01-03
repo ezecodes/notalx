@@ -1167,8 +1167,8 @@ video {
   --top_gap: 10px;
 }
 
-.animate__animated {
-  --animate-duration: 250ms;
+.animate__animated.animate__fadeIn {
+  --animate-duration: 450ms;
 }
 
 body,
@@ -1372,6 +1372,7 @@ label {
   align-items: center;
   background: var(--bg_color);
   overflow-y: scroll;
+  padding-bottom: 50px;
 }
 
 .primary_button svg {
