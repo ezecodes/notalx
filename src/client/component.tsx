@@ -564,7 +564,7 @@ export const ScheduledTasksWrapper: FC<{
 }> = ({ rows }) => {
   const navigate = useNavigate();
   return (
-    <div className="w-full flex flex-wrap gap-4 mt-4">
+    <div className="w-full flex flex-wrap gap-4 mt-2">
       {rows.map((row) => {
         return (
           <div
@@ -792,7 +792,7 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
 }) => {
   return (
     <div
-      className="shadow-sm w-full  pt-3 pb-1 h-[180px] 3micro:w-[350px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+      className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[350px] rounded-md gap-y-2 flex flex-col overflow-hidden"
       style={{ border: "1px solid #353535" }}
       key={note.id}
     >

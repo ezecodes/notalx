@@ -82,7 +82,7 @@ const AliasAuth = () => {
           <>
             <div className="flex flex-col gap-y-3">
               <div className="label_input">
-                <label>Authorised Alias</label>
+                <label>Logged In As:</label>
                 <InputWithIcon
                   placeholder=""
                   type="text"
@@ -92,14 +92,7 @@ const AliasAuth = () => {
                 />
               </div>
               <div className="flex w-full gap-x-3 justify-end">
-                <Button
-                  text="Delete Auth"
-                  onClick={() => deleteAuth("homePage")}
-                />
-                <Button
-                  text="Re authorise"
-                  onClick={() => deleteAuth("currentPage")}
-                />
+                <Button text="Log out" onClick={() => deleteAuth("homePage")} />
               </div>
             </div>
           </>

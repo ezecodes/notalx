@@ -40,7 +40,6 @@ export async function validateAliasId(
   next: NextFunction
 ) {
   const aliasId = req.params.alias_id;
-  console.log(req.params);
   if (!validate(aliasId)) {
     next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Alias ID is invalid"));
     return;
@@ -75,7 +74,7 @@ export async function authoriseAlias(
     next(
       ApiError.error(
         ErrorCodes.UNAUTHORIZED,
-        "Auth session expired. Verify OTP to continue"
+        "Your session has expired. Please verify your OTP to continue."
       )
     );
     return;
