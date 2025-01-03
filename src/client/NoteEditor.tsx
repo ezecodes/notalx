@@ -9,6 +9,7 @@ import AvatarGroup, {
   InputWithIcon,
   IsHiddenInfo,
   KeyValuePair,
+  RingsLoader,
   ScheduledTasksWrapper,
   SuggestedActionButtons,
 } from "./component";
@@ -34,6 +35,7 @@ import {
   createScheduleTask,
   summeriseSelectedText,
 } from "./utils";
+import { BsStars } from "react-icons/bs";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
@@ -91,6 +93,8 @@ const Editor = () => {
 
   const quillRef = useRef<ReactQuill | null>(null);
   const [popupVisible, setPopupVisible] = useState<boolean>(false);
+  const [aiActionsVisible, setAiActionsVisible] = useState<boolean>(false);
+
   const [previewRange, setPreviewRange] = useState<{
     start: number;
     end: number;
@@ -198,8 +202,12 @@ const Editor = () => {
         end_index: selection.length,
         text: selectedText,
       });
+      handlePopupPosition();
+
+      setAiActionsVisible(true);
     } else {
       setHighlightedText(null);
+      setAiActionsVisible(false);
     }
   };
 
@@ -228,14 +236,6 @@ const Editor = () => {
           end: end_index,
           originalText,
           previewText: new_content,
-        });
-        const globalSection = window.getSelection();
-        const range = globalSection!.getRangeAt(0);
-
-        const rect = range.getBoundingClientRect();
-        setPopupPosition({
-          top: rect.top + window.scrollY,
-          left: rect.left + window.scrollX,
         });
         setPopupVisible(true);
       }
@@ -289,8 +289,8 @@ const Editor = () => {
 
       // Temporarily format preview text
       editor.formatText(start, end - start, { background: "#32eb0457" });
-      // editor.deleteText(start, end - start);
-      // editor.insertText(start, previewText, { background: "#32eb0457" });
+      editor.deleteText(start, end - start);
+      editor.insertText(start, previewText, { background: "#32eb0457" });
     }
   }, [previewRange]);
 
@@ -308,6 +308,33 @@ const Editor = () => {
     navigate("?page=schedule");
   };
 
+  const handlePopupPosition = () => {
+    const globalSection = window.getSelection();
+
+    if (globalSection && globalSection.rangeCount > 0) {
+      const range = globalSection.getRangeAt(0);
+      const rect = range.getClientRects()[0]; // Get the precise bounding rect of the selection
+
+      if (rect) {
+        setPopupPosition({
+          top: Math.min(
+            rect.top + window.scrollY,
+            document.body.scrollHeight - 200
+          ),
+          left: Math.min(
+            rect.left + window.scrollX,
+            document.body.scrollWidth - 200
+          ),
+        });
+      }
+    }
+  };
+  const performUndoTwice = () => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor(); // Get the Quill instance
+      (editor as any).history.undo(); // Perform first undo
+    }
+  };
   const handleTaskEdit = () => {};
 
   if (!otpExpiry?.is_valid_auth) return <></>;
@@ -367,15 +394,12 @@ const Editor = () => {
                     {popupVisible && (
                       <div
                         style={{
-                          position: "absolute",
-                          top: popupPosition.top + 50,
+                          position: "fixed",
+                          top: popupPosition.top - 50,
                           left: popupPosition.left,
                         }}
-                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c] max-w-[400px] shadow-md px-3 gap-x-2"
+                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2"
                       >
-                        <div className="text-sm subtext">
-                          {currentInsertion?.new_content}
-                        </div>
                         <div className="flex items-center justify-start gap-x-2">
                           <button
                             className="sp_buttons insert"
@@ -387,7 +411,10 @@ const Editor = () => {
                           <button
                             className="sp_buttons discard"
                             type="button"
-                            onClick={handleDiscard}
+                            onClick={() => {
+                              performUndoTwice();
+                              handleDiscard();
+                            }}
                           >
                             Discard
                           </button>
@@ -398,6 +425,31 @@ const Editor = () => {
                           >
                             Copy
                           </button>
+                        </div>
+                      </div>
+                    )}
+                    {aiActionsVisible && (
+                      <div
+                        style={{
+                          position: "fixed",
+                          top: popupPosition.top - 100,
+                          left: popupPosition.left,
+                        }}
+                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2"
+                      >
+                        <h6 className="flex items-center gap-x-2 text-sm subtext">
+                          <BsStars className="text-yellow-200 " />
+                          Suggested actions
+                        </h6>
+                        <div className="flex items-center justify-start gap-x-2">
+                          <Button
+                            text="Summerise"
+                            onClick={handleSummariseAction}
+                            icon={
+                              loadingStates.summary ? <RingsLoader /> : <></>
+                            }
+                          />
+                          <Button text="Draft email" onClick={() => {}} />
                         </div>
                       </div>
                     )}

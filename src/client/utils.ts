@@ -99,7 +99,7 @@ export async function summeriseSelectedText(
     end_index: number;
   }
 ): Promise<IApiResponse<ISummaryResponse>> {
-  const f = await fetch(`/api/note/${note_id}/job/summerise`, {
+  const f = await fetch(`/api/note/${note_id}/summerise`, {
     headers: {
       "content-type": "application/json",
     },

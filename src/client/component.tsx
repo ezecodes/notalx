@@ -991,7 +991,7 @@ const TextSelectionPopup: FC<{ note: INote }> = ({ note }) => {
   );
 };
 
-const RingsLoader = () => (
+export const RingsLoader = () => (
   <Oval
     visible={true}
     height="20"

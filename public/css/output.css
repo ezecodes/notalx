@@ -558,6 +558,10 @@ video {
   visibility: visible;
 }
 
+.fixed {
+  position: fixed;
+}
+
 .absolute {
   position: absolute;
 }
@@ -720,10 +724,6 @@ video {
 
 .max-w-4xl {
   max-width: 56rem;
-}
-
-.max-w-\[400px\] {
-  max-width: 400px;
 }
 
 .cursor-pointer {
@@ -1165,6 +1165,12 @@ video {
 
 .animate__animated.animate__slideInDown {
   --animate-duration: 50ms;
+}
+
+body,
+html {
+  position: relative;
+  height: 100%;
 }
 
 * {
