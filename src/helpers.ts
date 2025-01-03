@@ -420,3 +420,11 @@ export class ApiError extends Error {
     return new ApiError(error_code, message, determine_status_code(error_code));
   }
 }
+export function isValidEmail(email: string): boolean {
+  if (!email) return false;
+
+  // Regular Expression for robust email validation
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  return emailRegex.test(email.trim());
+}

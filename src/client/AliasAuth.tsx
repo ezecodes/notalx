@@ -73,11 +73,9 @@ const AliasAuth = () => {
 
   return (
     <div className="modal  ">
-      <div className="flex mt-7 flex-col gap-y-3 relative modal_child px-5 py-5  ">
+      <div className="flex mt-7 flex-col gap-y-3 relative sm:w-[450px] 3micro:w-[90%] w-full px-5 py-5  ">
         <BackButton
-          text={
-            isAuthorised() ? "You are authorised" : "Authorize alias with OTP"
-          }
+          text={isAuthorised() ? "You are logged in" : "Login with OTP"}
           url={-1}
         />
         {isAuthorised() ? (
@@ -108,7 +106,7 @@ const AliasAuth = () => {
         ) : (
           <>
             <div className="flex flex-col gap-y-3">
-              <div className="flex items-end gap-x-3">
+              <div className="flex flex-col items-end gap-3">
                 <div className="label_input">
                   <label>Select alias</label>
                   <SearchDropdown
@@ -119,7 +117,7 @@ const AliasAuth = () => {
                 {selectedAlias && <Button text="Send OTP" onClick={send} />}
               </div>
 
-              <div className="flex items-end gap-x-3">
+              <div className="flex flex-col items-end gap-3">
                 <div className="label_input">
                   <label>OTP</label>
                   <InputWithIcon

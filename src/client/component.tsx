@@ -318,7 +318,7 @@ export const Button = ({
       onClick={onClick}
       type={type ?? "button"}
     >
-      {text} {icon && icon}
+      {icon && icon} {text}
     </button>
   );
 };
@@ -668,7 +668,13 @@ interface IAuthorisedInfo {
   otpExpiry: IOtpExpiry | null;
 }
 
-export const AuthorisedInfo = ({ otpExpiry, clickUrl }: any) => {
+export const AuthorisedInfo = ({
+  otpExpiry,
+  clickUrl,
+}: {
+  otpExpiry: IOtpExpiry | null;
+  clickUrl: any;
+}) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
   const navigate = useNavigate();
 
@@ -687,7 +693,7 @@ export const AuthorisedInfo = ({ otpExpiry, clickUrl }: any) => {
         } text-[25px]`}
       />
       <span className="subtext hidden 3micro:inline text-sm">
-        {otpExpiry?.name}
+        {otpExpiry?.is_valid_auth ? otpExpiry?.name : "Login"}
       </span>
     </div>
   );
@@ -700,7 +706,7 @@ export const SharedHeader = () => {
     <header className="flex flex-col py-4 gap-y-5 w-full items-center top_space">
       <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
         <Button
-          text="New alias"
+          text="Create Account"
           icon={<IoPersonAdd />}
           onClick={() => navigate("/newalias")}
         />
@@ -711,7 +717,7 @@ export const SharedHeader = () => {
             navigate("/newnote");
           }}
         />
-        <AuthorisedInfo clickUrl="/auth-with-alias" otpExpiry={otpExpiry} />
+        <AuthorisedInfo clickUrl="/login" otpExpiry={otpExpiry} />
       </div>
     </header>
   );

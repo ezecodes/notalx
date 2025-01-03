@@ -14,7 +14,7 @@ const reactRoutes = [
   "/newnote",
   "/newalias",
   "/edit/:note_slug",
-  "/auth-with-alias",
+  "/login",
   "/:note_slug",
   "/faq",
   "/note/:note_id",

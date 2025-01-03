@@ -29,8 +29,8 @@ const CreateAlias: FC<ICreateAlias> = () => {
 
   return (
     <div className="modal  ">
-      <div className="flex mt-7 flex-col gap-y-3 relative modal_child px-5 py-5 rounded-md">
-        <BackButton text={"Create an alias"} url={-1} />
+      <div className="flex mt-7 flex-col gap-y-3 relative  sm:w-[450px] 3micro:w-[90%] w-full px-5 py-5 rounded-md">
+        <BackButton text={"Create an account"} url={-1} />
         {/* <div className="flex items-start gap-x-3 ">
           <ImInfo />
           <ol className="text-gray-300 text-sm list-decimal pl-4">
@@ -51,9 +51,9 @@ const CreateAlias: FC<ICreateAlias> = () => {
 
         <div className="flex flex-col gap-y-3">
           <div className="label_input">
-            <label>Choose your alias</label>
+            <label>Enter a name</label>
             <InputWithIcon
-              placeholder="Chose an alias"
+              placeholder="Start typing.."
               type="text"
               value={alias.name}
               onChange={(value) =>
@@ -63,7 +63,7 @@ const CreateAlias: FC<ICreateAlias> = () => {
           </div>
 
           <div className="label_input">
-            <label>Recovery email (Optional)</label>
+            <label>Recovery email</label>
             <InputWithIcon
               placeholder=""
               type="email"

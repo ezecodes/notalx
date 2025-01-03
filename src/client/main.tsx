@@ -41,7 +41,7 @@ const route = createBrowserRouter([
       },
 
       {
-        path: "auth-with-alias",
+        path: "login",
         element: <AliasAuth />,
       },
 

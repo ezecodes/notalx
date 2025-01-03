@@ -8,6 +8,7 @@ import {
   getRandomInt,
   getSessionFromReq,
   isExpired,
+  isValidEmail,
   parseLiteralTime,
   PopulateCollaboratorForNotes,
   PopulateNoteCollaborators,
@@ -68,7 +69,7 @@ export async function requestOtp(
     return;
   }
 
-  const user = await Alias.findByPkWithCache(alias_id);
+  const user = (await Alias.findByPk(alias_id, { raw: true })) as any as IAlias;
 
   if (!user) {
     next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Alias not found"));
@@ -99,6 +100,7 @@ export async function requestOtp(
   };
   memcachedService.set(CacheKeys.otp(otpSessionSlug), cache, 3600);
 
+  console.log(user);
   sendEmail({
     html: `Your code ${code}`,
     receiver: user.email,
@@ -507,11 +509,11 @@ export async function registerAlias(
 ) {
   const body: Partial<IAlias> = req.body;
   let { name, email } = body;
-  if (!name || !email) {
+  if (!name || !email || !isValidEmail(email)) {
     next(
       ApiError.error(
         ErrorCodes.VALIDATION_ERROR,
-        "Alias must have a name an a recovery email"
+        "Please enter a valid name and email address"
       )
     );
 

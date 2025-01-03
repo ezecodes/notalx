@@ -23,7 +23,9 @@ const Home = () => {
     otpExpiry,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<Tab>("notes");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    otpExpiry?.is_valid_auth ? "notes" : "public"
+  );
   const [scheduledTasks, setScheduledTasks] = useState<
     { task: ITask; participants: _IAlias[] }[]
   >([]);
