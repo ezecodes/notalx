@@ -1,21 +1,18 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import AvatarGroup, {
+import {
   BackButton,
   Button,
   CollaboratorsModal,
   DisplayDateCreated,
-  Dropdown,
   ExpirationInfo,
   InputWithIcon,
-  IsHiddenInfo,
-  KeyValuePair,
   RingsLoader,
   ScheduledTasksWrapper,
   SuggestedActionButtons,
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
-import ReactQuill, { Quill, Range } from "react-quill";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import ReactQuill, { Range } from "react-quill";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   _IAlias,
   IApiResponse,
@@ -124,7 +121,6 @@ const Editor = () => {
     const note = response.data?.note!;
     setEditor({
       content: note.content,
-      hidden: note.is_hidden,
       title: note.title,
       willSelfDestroy: note.will_self_destroy,
       createdAt: note.createdAt,
@@ -347,7 +343,6 @@ const Editor = () => {
                       time={editor.selfDestroyTime}
                       willSelfDestroy={editor.willSelfDestroy}
                     />
-                    <IsHiddenInfo hidden={editor.hidden} />
                     <DisplayDateCreated date={editor.createdAt} />{" "}
                     <Settings setCollabModal={() => setCollabModal(true)} />
                   </div>

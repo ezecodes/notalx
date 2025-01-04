@@ -6,6 +6,7 @@ import {
   ICloudflareResponse,
   IncomingNote,
   INote,
+  INoteCollaborator,
   ITask,
 } from "./type";
 import { randomBytes } from "crypto";
@@ -34,15 +35,7 @@ export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
 };
 
-export function generateSlug(
-  title: string,
-  maxWords: number = 3,
-  is_hidden: boolean
-): string {
-  if (is_hidden) {
-    return randomBytes(9).toString("base64url");
-  }
-
+export function generateSlug(title: string, maxWords: number = 3): string {
   const randomString = Math.random().toString(36).substring(2, 7); // Generate a 5-char random string
 
   const slug = title
@@ -181,12 +174,13 @@ export async function PopulateNoteCollaborators(
   note_id: string,
   note_owner_id?: string
 ) {
-  const find = await NoteCollaborator.findAll({
+  const findAll: INoteCollaborator[] = (await NoteCollaborator.findAll({
     where: { note_id },
-  });
+    raw: true,
+  })) as any;
 
   const rows = await Promise.all(
-    find.map(async (i) => await Alias.findByPkWithCache(i.dataValues.alias_id))
+    findAll.map(async (i) => await Alias.findByPkWithCache(i.alias_id))
   );
 
   // Add the owner to the collaborator if note_owner_id exists
@@ -323,14 +317,7 @@ export function validateIncomingNote(
   if (!note) {
     return { isValid: false, error: "Invalid note data provided" };
   }
-  const {
-    content,
-    title,
-    self_destroy_time,
-    will_self_destroy,
-    is_hidden,
-    secret,
-  } = note;
+  const { content, title, self_destroy_time, will_self_destroy } = note;
 
   const data: any = {};
 
@@ -371,14 +358,6 @@ export function validateIncomingNote(
     }
     data.will_self_destroy = true;
     data.self_destroy_time = validTime;
-  }
-
-  if (is_hidden) {
-    data.is_hidden = true;
-  }
-
-  if (secret && secret.trim() !== "") {
-    data.secret = hashSync(secret, 10);
   }
 
   return { isValid: true, data };

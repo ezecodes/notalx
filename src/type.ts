@@ -39,9 +39,6 @@ export type INote = {
   title: string;
   content: string;
   alias_id: string;
-  slug: string;
-  secret: string;
-  is_hidden: boolean;
   will_self_destroy: boolean;
   self_destroy_time: Date;
   createdAt: Date;
@@ -139,15 +136,12 @@ export type IncomingNote = {
   self_destroy_time: string;
   content: string;
   title: string;
-  is_hidden: boolean;
-  secret: string;
   will_self_destroy: boolean;
 };
 export interface INoteEditor {
   id: string;
   title: string;
   content: string;
-  hidden: boolean;
   willSelfDestroy: boolean;
   alias_id: string;
   selfDestroyTime: Date;

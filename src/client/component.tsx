@@ -847,11 +847,6 @@ export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
     >
       <div className="flex justify-between px-4">
         <span className="font-[500] text-md">{note.title}</span>
-        {note.is_hidden ? (
-          <VscLock className="text-[#a7a7a7]" />
-        ) : (
-          <BsUnlock className="text-[#a7a7a7]" />
-        )}
       </div>
 
       <Link
@@ -896,7 +891,7 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
             className="dropdown_item"
             onClick={() => {
               navigator.clipboard
-                .writeText("https://notalx.com/" + note.slug)
+                .writeText("https://notalx.com/" + encodeToBase62(note.id))
                 .then(() => {
                   toast.success("Copied!");
                 });
@@ -910,7 +905,7 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
             onClick={() => {
               window.open(
                 `https://wa.me/?text=${encodeURIComponent(
-                  "https://notalx.com/" + note.slug
+                  "https://notalx.com/" + encodeToBase62(note.id)
                 )}`,
                 "_blank"
               );
@@ -924,7 +919,7 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
             onClick={() => {
               window.open(
                 `https://t.me/share/url?url=${encodeURIComponent(
-                  "https://notalx.com/" + note.slug
+                  "https://notalx.com/" + encodeToBase62(note.id)
                 )}`
               );
               displayDropdown();

@@ -4,7 +4,8 @@ import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
 import { fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { _IAlias, ApiFetchNote, ITask } from "../type";
-type Tab = "notes" | "tasks" | "public";
+
+type Tab = "notes" | "tasks" | "notification";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   return notes.map((i, key) => (
@@ -14,17 +15,11 @@ const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
 
 const Home = () => {
   const navigate = useNavigate();
-  const {
-    getOTPExpiry,
-    fetchNotes,
-    publicNotes,
-    authAliasNotes,
-    fetchAliasNotes,
-    otpExpiry,
-  } = useContext(GlobalContext)!;
+  const { getOTPExpiry, authAliasNotes, fetchAliasNotes, otpExpiry } =
+    useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<Tab>(
-    otpExpiry?.is_valid_auth ? "notes" : "public"
+    otpExpiry?.is_valid_auth ? "notes" : "notification"
   );
   const [scheduledTasks, setScheduledTasks] = useState<
     { task: ITask; participants: _IAlias[] }[]
@@ -38,7 +33,6 @@ const Home = () => {
         navigate(decodeURIComponent(redirect), { replace: true });
       }
 
-      fetchNotes();
       fetchAliasNotes();
       fetchAllScheduledTasksForAlias().then((res) => {
         res.status === "ok" && setScheduledTasks(res.data!.rows!);
@@ -55,15 +49,6 @@ const Home = () => {
       <SharedHeader />
 
       <div className="flex items-start top_space gap-x-3  w-full">
-        <button
-          onClick={() => setActiveTab("public")}
-          className={`sub_button ${
-            activeTab === "public" ? "text-white" : "subtext"
-          } `}
-        >
-          Public notes
-        </button>
-
         {otpExpiry?.is_valid_auth && (
           <>
             <button
@@ -72,7 +57,7 @@ const Home = () => {
                 activeTab === "notes" ? "text-white" : "subtext"
               } `}
             >
-              My notes
+              Notes
             </button>
             <button
               onClick={() => setActiveTab("tasks")}
@@ -81,6 +66,14 @@ const Home = () => {
               } `}
             >
               Schedules
+            </button>{" "}
+            <button
+              onClick={() => setActiveTab("notification")}
+              className={`sub_button ${
+                activeTab === "notification" ? "text-white" : "subtext"
+              } `}
+            >
+              Notifications
             </button>
           </>
         )}
@@ -89,7 +82,6 @@ const Home = () => {
       {
         <section className="w-full top_space py-5 mb-3">
           <div className="flex gap-4 flex-wrap">
-            {activeTab === "public" && <RenderNotes notes={publicNotes} />}
             {activeTab === "notes" && <RenderNotes notes={authAliasNotes} />}
 
             {activeTab === "tasks" && (

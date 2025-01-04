@@ -7,7 +7,7 @@ import {
   INoteCreator,
   IOtpExpiry,
 } from "../type";
-import { fetchAllPublicNotes, fetchAliasPublicAndPrivateNotes } from "./utils";
+import { fetchAuthAliasNotes } from "./utils";
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -26,7 +26,6 @@ type IContext = {
 
   selectedNotes: { collaborators: _IAlias[]; note: INote }[];
 
-  fetchNotes: () => void;
   deleteNote: (noteId: string) => void;
 
   Is_Authorised_Alias_Same_As_Note_Alias: (alias_id: string) => boolean;
@@ -40,12 +39,10 @@ type IContext = {
   >;
   getNoteCollaborators: (note_id: string) => any;
   fetchAliasNotes: () => void;
-  publicNotes: ApiFetchNote[];
   authAliasNotes: ApiFetchNote[];
 };
 const key = "drafts";
 
-type ISelectionActions = "email" | "schedule" | "prioritize" | "summerise";
 const GlobalContext = createContext<IContext | null>(null);
 const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<Partial<INoteCreator>[] | null>([]);
@@ -65,7 +62,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     draft_id: null,
   });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
-  const [publicNotes, setPublicNotes] = useState<ApiFetchNote[]>([]);
   const [authAliasNotes, setAuthAliasNotes] = useState<ApiFetchNote[]>([]);
 
   const deleteNote = async (id: string) => {
@@ -98,16 +94,8 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
       setCollaborators({ note_id, collaborators: response.data!.rows });
   }
 
-  const fetchNotes = () => {
-    fetchAllPublicNotes().then((res) => {
-      if (res.status === "ok" && res.data) {
-        setPublicNotes(res.data.rows);
-      }
-    });
-  };
-
   const fetchAliasNotes = () => {
-    fetchAliasPublicAndPrivateNotes().then((res) => {
+    fetchAuthAliasNotes().then((res) => {
       if (res.status === "ok" && res.data) {
         setAuthAliasNotes(res.data.rows);
       }
@@ -217,14 +205,12 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     otpExpiry,
     setOtpExpiry,
     selectedNotes,
-    fetchNotes,
     deleteNote,
     Is_Authorised_Alias_A_Note_Collaborator,
     getNoteCollaborators,
     collaborators,
     setCollaborators,
     fetchAliasNotes,
-    publicNotes,
     authAliasNotes,
   };
 

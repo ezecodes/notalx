@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { _IAlias, ErrorCodes, INote } from "../type";
+import { _IAlias, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
 import { decodeFromBase62, encodeToBase62, fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
@@ -8,7 +8,6 @@ import {
   Button,
   DisplayDateCreated,
   ExpirationInfo,
-  IsHiddenInfo,
 } from "./component";
 import { toast } from "react-toastify";
 
@@ -31,18 +30,10 @@ const ViewNote: FC<IViewNote> = () => {
   const navigate = useNavigate();
 
   function handleNoteFetch(slug: string, secret?: string) {
-    if (retries.current === 2) {
-      document.location.href = "/";
-    }
     fetchNote(slug, secret as string).then((res) => {
-      retries.current = retries.current + 1;
       if (res.status === "err") {
-        if (res.error_code === ErrorCodes.UNAUTHORIZED) {
-          const handler = prompt("Note is locked. Enter secret to proceed:");
-          handleNoteFetch(slug, handler as string);
-        } else {
-          toast(res.message);
-        }
+        toast.error(res.message);
+        return;
       }
 
       res.data && setNote(res.data);
@@ -77,7 +68,6 @@ const ViewNote: FC<IViewNote> = () => {
               time={note.note.self_destroy_time}
               willSelfDestroy={note.note.will_self_destroy}
             />
-            <IsHiddenInfo hidden={note.note.is_hidden} />
             <DisplayDateCreated date={note.note.createdAt} />
           </div>
 

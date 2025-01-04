@@ -13,6 +13,7 @@ import AliasAuth from "./AliasAuth";
 import Faq from "./Faq";
 import { Slide, ToastContainer } from "react-toastify";
 import TaskEditor from "./TaskEditor";
+import { register as registerSW } from "./service-worker-registration";
 
 const route = createBrowserRouter([
   {
@@ -71,3 +72,5 @@ createRoot(document.getElementById("root")!).render(
     />
   </Provider>
 );
+// Call this at the end of the render process
+registerSW();

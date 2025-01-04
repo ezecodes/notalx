@@ -2,13 +2,13 @@ import { Router } from "express";
 import * as Controller from "./controller";
 import {
   authoriseAlias,
-  authoriseAliasForNote,
-  authoriseAliasToViewNote,
   validateAliasId,
   validateAndSetPagination,
   validateTaskId,
   validateNoteId,
   authoriseAliasForTask,
+  authorize_alias_as_note_owner,
+  authorize_alias_as_note_collaborator,
 } from "./middlewares";
 
 const router = Router();
@@ -32,18 +32,26 @@ router
 
 router.get("/alias/search", Controller.searchAlias);
 
-router.get("/alias/note", authoriseAlias, Controller.getAuthorizedAliasNotes);
-
 router
   .route("/note")
-  .get(validateAndSetPagination, Controller.getAllNotes)
-  .post(authoriseAlias, Controller.createNote);
+  .post(authoriseAlias, Controller.createNote)
+  .get(authoriseAlias, Controller.getAuthorizedAliasNotes);
 
 router
   .route("/note/:note_id")
-  .delete(authoriseAlias, Controller.deleteNote)
-  .put(authoriseAlias, authoriseAliasForNote, Controller.editNote)
-  .get(authoriseAliasToViewNote, Controller.getNoteById);
+  .delete(authoriseAlias, authorize_alias_as_note_owner, Controller.deleteNote)
+  .put(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    Controller.editNote
+  )
+  .get(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    Controller.getNoteById
+  );
 
 router
   .route("/note/:note_id/summerise")
@@ -51,10 +59,19 @@ router
 
 router
   .route("/note/:note_id/task")
-  .post(authoriseAlias, authoriseAliasForNote, Controller.createTaskSchedule)
-  .get(authoriseAlias, validateAndSetPagination, Controller.getAllTasksForNote);
-
-router.route("/note/:note_id/draft_email").post(authoriseAlias);
+  .post(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    Controller.createTaskSchedule
+  )
+  .get(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    validateAndSetPagination,
+    Controller.getAllTasksForNote
+  );
 
 router
   .route("/task")
@@ -79,11 +96,21 @@ router
 
 router
   .route("/note/:note_id/collaborators")
-  .get(authoriseAlias, authoriseAliasForNote, Controller.getNoteCollaborators)
-  .post(authoriseAlias, authoriseAliasForNote, Controller.addNoteCollaborators)
+  .get(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    Controller.getNoteCollaborators
+  )
+  .post(
+    authoriseAlias,
+    authorize_alias_as_note_owner,
+    authorize_alias_as_note_collaborator,
+    Controller.addNoteCollaborators
+  )
   .delete(
     authoriseAlias,
-    authoriseAliasForNote,
+    authorize_alias_as_note_owner,
     Controller.deleteNoteCollaborator
   );
 

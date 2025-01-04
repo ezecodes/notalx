@@ -1,25 +1,16 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import {
-  AuthorisedInfo,
-  BackButton,
-  Button,
-  InputWithIcon,
-  SearchDropdown,
-} from "./component";
+import { BackButton, Button, InputWithIcon } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
 import { IoIosTimer } from "react-icons/io";
 import ReactQuill from "react-quill";
-import { useNavigate } from "react-router-dom";
 import { _IAlias, IApiResponse, INoteCreator } from "../type";
 import { CiLock } from "react-icons/ci";
 import { AiOutlineDelete } from "react-icons/ai";
 import { FaCheck, FaExpand } from "react-icons/fa";
 import { GlobalContext } from "./hook";
-import { encodeToBase62, formatRelativeTime } from "./utils";
+import { formatRelativeTime } from "./utils";
 import { MdRadioButtonUnchecked } from "react-icons/md";
 import { toast } from "react-toastify";
-import { VscLock } from "react-icons/vsc";
-import { BsUnlock } from "react-icons/bs";
 
 const Editor = () => {
   const { editor, setEditor, saveToStore, loadDrafts, deleteDraft } =

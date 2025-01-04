@@ -111,52 +111,6 @@ export async function authoriseAlias(
 //   (socket as any).__alias = { id: cachedSession.alias_id }; // Attach user info to the socket object
 //   next();
 // }
-export async function authoriseAliasToViewNote(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const note_id = req.params.note_id;
-  const secret = req.get("Authorization");
-
-  const find = await Note.findByPk(note_id, {
-    attributes: ["is_hidden", "alias_id", "secret", "id"],
-  });
-
-  if (!find) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Note not found"));
-    return;
-  }
-
-  if (find?.dataValues.is_hidden) {
-    const alias_is_auth = await Is_Alias_In_Session_Same_As_Alias(
-      req,
-      find.dataValues.alias_id
-    );
-    if (alias_is_auth) {
-      req.__note = { id: find.dataValues.id! };
-      next();
-      return;
-    } else {
-      if (!secret || secret.trim() === "") {
-        next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Action not permitted"));
-        return;
-      }
-      const compare = compareSync(secret, find.dataValues.secret);
-      if (!compare) {
-        next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Action not permitted"));
-        return;
-      } else {
-        req.__note = { id: find.dataValues.id! };
-        next();
-        return;
-      }
-    }
-  } else {
-    req.__note = { id: find.dataValues.id! };
-    next();
-  }
-}
 
 export async function authoriseAliasForTask(
   req: Request,
@@ -170,13 +124,10 @@ export async function authoriseAliasForTask(
     return;
   }
 
-  const participants = await PopulateTaskParticipants(req.params.task_id);
   const collaborators = await PopulateNoteCollaborators(find!.note_id);
   if (
     collaborators.length === 0 ||
-    !collaborators.find((i) => i?.id === req.__alias?.id) ||
-    participants.length === 0 ||
-    !participants.find((i) => i?.id === req.__alias?.id)
+    !collaborators.find((i) => i?.id === req.__alias?.id)
   ) {
     next(
       ApiError.error(
@@ -189,17 +140,11 @@ export async function authoriseAliasForTask(
   next();
 }
 
-export async function authoriseAliasForNote(
+export async function authorize_alias_as_note_collaborator(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const find = await Note.findByPkWithCache(req.params.note_id);
-
-  if (find && find.alias_id === req.__alias?.id) {
-    next();
-    return;
-  }
   const collaborators = await PopulateNoteCollaborators(req.params.note_id);
   if (
     collaborators.length === 0 ||
@@ -210,6 +155,21 @@ export async function authoriseAliasForNote(
     );
     return;
   }
+  next();
+}
+export async function authorize_alias_as_note_owner(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const find = await Note.findByPkWithCache(req.params.note_id);
+
+  if (!find || find.alias_id !== req.__alias?.id) {
+    next(
+      ApiError.error(ErrorCodes.UNAUTHORIZED, "Collaborator access required")
+    );
+  }
+
   next();
 }
 

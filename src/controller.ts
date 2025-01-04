@@ -628,7 +628,7 @@ export async function registerAlias(
 }
 
 export async function getNote(req: Request, res: Response, next: NextFunction) {
-  const all = await Note.findAll({ where: { is_hidden: false } });
+  const all = await Note.findAllWithCache(req.__pagination__!);
   res.json({ status: "ok", data: { rows: all } });
 }
 
@@ -686,8 +686,6 @@ export async function getNoteById(
     title: find!.title,
     content: find!.content,
     createdAt: find!.createdAt,
-    slug: find!.slug,
-    is_hidden: find!.is_hidden,
     will_self_destroy: find!.will_self_destroy,
     self_destroy_time: find!.self_destroy_time,
     alias_id: find!.alias_id,
@@ -715,11 +713,6 @@ export async function getAuthorizedAliasNotes(
   let notes = (await Note.findAll({
     where: {
       alias_id,
-      [Op.or]: [
-        { is_hidden: true },
-        { is_hidden: null },
-        { is_hidden: false } as any,
-      ],
     },
     raw: true,
     attributes: NoteAttributes,
@@ -739,11 +732,7 @@ export async function getAllNotes(
   res: Response,
   next: NextFunction
 ) {
-  let notes = (await Note.findAll({
-    where: { [Op.or]: [{ is_hidden: false }, { is_hidden: null } as any] },
-    attributes: NoteAttributes,
-    raw: true,
-  })) as any as INote[];
+  let notes = await Note.findAllWithCache(req.__pagination__!);
 
   res.json({
     status: "ok",
@@ -907,7 +896,6 @@ export async function createNote(
 
     return;
   }
-  const { title, is_hidden } = note;
 
   const findAlias = await Alias.findByPkWithCache(req.__alias?.id!);
 
@@ -916,9 +904,7 @@ export async function createNote(
     return;
   }
 
-  const slug = generateSlug(title!, 5, is_hidden ?? false);
-
-  Note.create({ ...valid.data, slug, alias_id: req.__alias!.id! });
+  Note.create({ ...valid.data, alias_id: req.__alias!.id! });
 
   res.json({ status: "ok", message: "Note has been saved to your alias!" });
 }
