@@ -3,6 +3,7 @@ import Alias from "./models/Alias";
 import { validate } from "uuid";
 import {
   ApiError,
+  CreateAiSummary,
   generateSlug,
   getChatCompletions,
   getRandomInt,
@@ -27,6 +28,7 @@ import {
   IncomingNote,
   INote,
   IOtpSession,
+  ISummaryResponse,
   ITask,
 } from "./type";
 import {
@@ -34,6 +36,7 @@ import {
   CacheKeys,
   otpSessionCookieKey,
   sessionCookieKey,
+  SUMMARY_PROMPT_VARIATIONS,
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
@@ -399,26 +402,42 @@ export async function createTaskSchedule(
     message: "Schedule task complete",
   });
 }
-
+interface ISummarySession extends ISummaryResponse {
+  calls_count: number;
+}
 export async function createNoteSummary(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const { text, start_index, end_index } = req.body;
-
-  const note_id = req.params["note_id"];
-  const find = await Note.findByPkWithCache(note_id);
-
-  const textToSummerise = text ?? find!.content;
+  const { text, summary_id } = req.body;
+  const cacheKey = `summary:${summary_id ?? randomBytes(4).toString("hex")}`;
 
   try {
+    const cache: ISummarySession | null = await memcachedService.get(cacheKey);
+    let prompt =
+      cache && cache.calls_count < SUMMARY_PROMPT_VARIATIONS.length
+        ? SUMMARY_PROMPT_VARIATIONS[cache.calls_count + 1].prompt
+        : SUMMARY_PROMPT_VARIATIONS[0].prompt;
+
+    // const summary = await CreateAiSummary(text, prompt);
+    // if (!summary.success) {
+    //   console.error(summary);
+    //   next(
+    //     ApiError.error(
+    //       ErrorCodes.INTERNAL_SERVER_ERROR,
+    //       "Could not complete summary"
+    //     )
+    //   );
+    //   return;
+    // }
+
     const data = {
-      new_content: text.slice(5, text.length - 5),
-      old_content: text,
-      end_index: start_index + end_index,
-      start_index,
+      summary: "Add ability to mention",
+      summary_id: cacheKey.split("summary:")[1],
     };
+    const calls_count = cache ? cache.calls_count + 1 : 1;
+    memcachedService.set(cacheKey, { ...data, calls_count }, 112); // In 1 mins
 
     res.json({
       status: "ok",
@@ -426,6 +445,7 @@ export async function createNoteSummary(
       data,
     });
   } catch (err) {
+    console.error(err);
     next(
       ApiError.error(
         ErrorCodes.INTERNAL_SERVER_ERROR,

@@ -14,7 +14,7 @@ import AvatarGroup, {
   SuggestedActionButtons,
 } from "./component";
 import { IoPencilOutline } from "react-icons/io5";
-import ReactQuill, { Quill } from "react-quill";
+import ReactQuill, { Quill, Range } from "react-quill";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   _IAlias,
@@ -86,9 +86,6 @@ const Editor = () => {
     "task"
   );
 
-  const [currentInsertion, setCurrentInsertion] =
-    useState<ISummaryResponse | null>(null);
-
   const [tasks, setTasks] = useState<
     { task: ITask; participants: _IAlias[] }[]
   >([]);
@@ -101,17 +98,15 @@ const Editor = () => {
   const [popupVisible, setPopupVisible] = useState<boolean>(false);
   const [aiActionsVisible, setAiActionsVisible] = useState<boolean>(false);
 
-  const [previewRange, setPreviewRange] = useState<{
-    start: number;
-    end: number;
-    originalText: string;
-    previewText: string;
-  } | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [summaryResponse, setSummaryResponse] =
+    useState<ISummaryResponse | null>(null);
 
   const [highlightedText, setHighlightedText] =
+    useState<IHighlightedText | null>(null);
+
+  const [lastHighlightedText, setLastHighlightedText] =
     useState<IHighlightedText | null>(null);
 
   const fetchAllTasksInNote = async () => {
@@ -181,26 +176,30 @@ const Editor = () => {
     }
     try {
       setLoadingStates((prev) => ({ ...prev, summary: true }));
-      const response = await summeriseSelectedText(
-        parsedNoteId.current,
-        highlightedText!
-      );
+      const response = await summeriseSelectedText(parsedNoteId.current, {
+        summary_id: summaryResponse?.summary_id ?? null,
+        text: highlightedText.text,
+      });
       if (response.status === "err") {
         toast.error(response.message!);
         return;
       }
-
-      setCurrentInsertion(response.data!);
+      setSummaryResponse(response.data!);
+      setLastHighlightedText(highlightedText);
     } finally {
       setLoadingStates((prev) => ({ ...prev, summary: false }));
     }
   };
 
-  const handleSelectionChange = (selection: any, source: any, editor: any) => {
+  const handleSelectionChange = (
+    selection: Range,
+    source: any,
+    editor: any
+  ) => {
     if (selection && selection.length > 0) {
       const selectedText = editor.getText(selection.index, selection.length);
       const data = {
-        end_index: selection.length,
+        end_index: selection.index + selection.length,
         start_index: selection.index!,
         text: selectedText,
       };
@@ -213,17 +212,9 @@ const Editor = () => {
     }
   };
 
-  const replaceText = (start: number, end: number, newValue: string) => {
-    if (quillRef.current) {
-      const editor = quillRef.current.getEditor();
-      editor.deleteText(start, end - start);
-      editor.insertText(start, newValue);
-    }
-  };
   useEffect(() => {
-    if (currentInsertion) {
-      const { new_content, old_content, end_index, start_index } =
-        currentInsertion;
+    if (summaryResponse && highlightedText) {
+      const { end_index, start_index } = highlightedText;
 
       if (quillRef.current) {
         const editor = quillRef.current.getEditor();
@@ -232,51 +223,50 @@ const Editor = () => {
           end_index - start_index
         );
 
-        // Save original text and show preview
-        setPreviewRange({
-          start: start_index,
-          end: end_index,
-          originalText,
-          previewText: new_content,
+        // Temporarily format preview text
+
+        editor.deleteText(start_index, end_index - start_index);
+        editor.insertText(start_index, summaryResponse.summary, {
+          background: "#2d2d2d",
         });
         setPopupVisible(true);
       }
     } else {
-      setPreviewRange(null);
       setPopupVisible(false);
     }
-  }, [currentInsertion]);
+  }, [summaryResponse]);
 
   const handleInsert = () => {
-    if (currentInsertion) {
-      const { start_index, end_index, new_content } = currentInsertion;
-      replaceText(start_index, end_index, new_content);
+    if (summaryResponse && lastHighlightedText) {
+      const { end_index, start_index } = lastHighlightedText;
+
+      if (quillRef.current) {
+        const editor = quillRef.current.getEditor();
+        editor.removeFormat(start_index, end_index - start_index);
+      }
       setPopupVisible(false);
-      setPreviewRange(null);
     }
   };
 
   const handleCopy = () => {
-    if (currentInsertion) {
-      navigator.clipboard.writeText(currentInsertion.new_content).then(() => {
-        toast.success("Copied");
-      });
+    if (summaryResponse) {
+      navigator.clipboard
+        .writeText(summaryResponse.summary!)
+        .then(() => {
+          toast.success("Copied");
+        })
+        .catch((err) => {
+          console.error(err);
+          toast.error(err);
+        });
     }
     return;
   };
 
   const handleDiscard = () => {
-    if (previewRange) {
-      const { start, end, originalText } = previewRange;
-
-      // Restore original text in the preview range
-      // replaceText(start, end, originalText);
-
-      // Clear preview
-      setPopupVisible(false);
-      setPreviewRange(null);
-      clearSelection();
-    }
+    setPopupVisible(false);
+    clearSelection();
+    setSummaryResponse(null);
   };
   const clearSelection = () => {
     const quill = quillRef!.current!.getEditor(); // Get the Quill editor instance
@@ -284,17 +274,6 @@ const Editor = () => {
     quill.setSelection(cursorPosition, 0); // Clear the selection by setting range length to 0
   };
   // Apply preview text
-  useEffect(() => {
-    if (quillRef.current && previewRange) {
-      const { start, end, previewText } = previewRange;
-      const editor = quillRef.current.getEditor();
-
-      // Temporarily format preview text
-      editor.formatText(start, end - start, { background: "#32eb0457" });
-      editor.deleteText(start, end - start);
-      editor.insertText(start, previewText, { background: "#32eb0457" });
-    }
-  }, [previewRange]);
 
   const handleAiScheduling = async () => {
     const response = await createScheduleTask(

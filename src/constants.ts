@@ -46,11 +46,14 @@ export const AliasAttributes = ["id", "name"];
 
 export const X_API_KEY = process.env.X_API_KEY;
 
+export const CLOUDFLARE_ID = process.env.CLOUDFLARE_ID;
+export const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+
 export const SUMMARY_PROMPT_VARIATIONS = [
   {
-    decription: "Concise and Focused",
+    description: "Concise and Focused",
     prompt:
-      "Summarize the following text, retaining **only the essential details** and **logical relationships**. Ensure that no assumptions or external context are added. Present the summary in **clear, simple terms**.",
+      "Summarize the following text, retaining **only the essential details** and **logical relationships**. Ensure that no assumptions or external context are added. Present the summary in **clear, simple terms**. Do not start with 'Here is a summary of the text'.",
   },
   {
     description: "Precision with Structured Output",
@@ -59,14 +62,14 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     - **Key Distinctions**: Major differences or conditions mentioned.  
     - **Logical Connections**: Relationships between concepts.
     - **Nuances**: Subtle details that are crucial for understanding.  
-    Ensure the summary is **context-agnostic**, and avoid external assumptions.`,
+    Ensure the summary is **context-agnostic**, and avoid external assumptions. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Instructional with Focus on Clarity",
     prompt: `Summarize the text below while ensuring that:
     - The summary is **self-contained** and does not rely on any inferred or external context.
     - **Critical points** and **relationships** are retained without adding unnecessary details.
-    - The summary is **succinct** and **to the point**.`,
+    - The summary is **succinct** and **to the point**. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Detailed, with Emphasis on Logical Flow",
@@ -75,12 +78,11 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     - **Key elements** and their relationships, such as cause/effect or conditions.
     - **Important nuances** that should not be overlooked.
 
-    Ensure the summary is **direct** and **free of assumptions** about external context.`,
+    Ensure the summary is **direct** and **free of assumptions** about external context. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "High-Level Focus on Key Ideas",
-    prompt: `Summarize the following text by focusing on the **main ideas** and **critical distinctions**. Do not introduce any context beyond what is provided. The summary should be **focused** and **straightforward** without unnecessary elaboration.
-`,
+    prompt: `Summarize the following text by focusing on the **main ideas** and **critical distinctions**. Do not introduce any context beyond what is provided. The summary should be **focused** and **straightforward** without unnecessary elaboration. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Analytical Breakdown",
@@ -89,7 +91,7 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     2. **Relationships**: How do the concepts or ideas relate to each other?
     3. **Important distinctions**: What differences or conditions must be noted?
 
-    Ensure the summary is **context-agnostic** and does not involve assumptions.`,
+    Ensure the summary is **context-agnostic** and does not involve assumptions. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Logical & Nuanced Focus",
@@ -98,14 +100,14 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     - **Conditions** and **distinctions** that are critical to understanding.
     - Avoid introducing any **external context** or assumptions.
 
-    Provide a summary that is **comprehensive** yet **concise**.`,
+    Provide a summary that is **comprehensive** yet **concise**. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Emphasizing Clarity and Completeness",
     prompt: `Summarize the provided text with **attention to detail**, ensuring:
     - All **logical relationships** and **key distinctions** are captured.
     - The summary is **complete** but **concise**, highlighting the most important elements.
-    - The text is summarized **independently**, without any additional context.`,
+    - The text is summarized **independently**, without any additional context. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Focus on Distinctions and Logical Flow",
@@ -114,14 +116,14 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     - The **logical flow** or structure of ideas.
     - Any **implications** that are important for understanding.
 
-    Ensure the summary is **self-contained**, avoiding assumptions about external context.`,
+    Ensure the summary is **self-contained**, avoiding assumptions about external context. Do not start with 'Here is a summary of the text'.`,
   },
   {
     description: "Action-Oriented Summary",
     prompt: `Summarize the provided text by focusing on:
     - **Actionable points** and **key distinctions** that drive the main ideas.
     - **Key relationships** between concepts or conditions.
-    - A **concise** and **clear** summary that doesn\'t assume any external context.`,
+    - A **concise** and **clear** summary that doesn't assume any external context. Do not start with 'Here is a summary of the text'.`,
   },
 ];
 

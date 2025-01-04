@@ -93,17 +93,13 @@ export const fetchAlias = async (id: string) => {
 
 export async function summeriseSelectedText(
   note_id: string,
-  highlightedText: {
-    text: string;
-    start_index: number;
-    end_index: number;
-  }
+  summaryRequest: { text: string; summary_id: string | null }
 ): Promise<IApiResponse<ISummaryResponse>> {
   const f = await fetch(`/api/note/${note_id}/summerise`, {
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify(highlightedText),
+    body: JSON.stringify({ ...summaryRequest }),
     method: "POST",
   });
   return (await f.json()) as Promise<IApiResponse<ISummaryResponse>>;

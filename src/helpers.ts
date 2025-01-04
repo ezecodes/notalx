@@ -1,10 +1,19 @@
 import { Op } from "sequelize";
 import Note from "./models/Note";
-import { _IAlias, ErrorCodes, IncomingNote, INote, ITask } from "./type";
+import {
+  _IAlias,
+  ErrorCodes,
+  ICloudflareResponse,
+  IncomingNote,
+  INote,
+  ITask,
+} from "./type";
 import { randomBytes } from "crypto";
 import {
   Branding_NotalX,
   CacheKeys,
+  CLOUDFLARE_API_TOKEN,
+  CLOUDFLARE_ID,
   mailConfig,
   sessionCookieKey,
   X_API_KEY,
@@ -427,4 +436,35 @@ export function isValidEmail(email: string): boolean {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   return emailRegex.test(email.trim());
+}
+
+export async function CreateAiSummary(textToSummerise: string, prompt: string) {
+  const f = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/meta/llama-3-8b-instruct`,
+    {
+      method: "post",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+      },
+      body: JSON.stringify({
+        prompt: { stream: false },
+        messages: [
+          {
+            role: "system",
+            content: prompt,
+          },
+          {
+            role: "user",
+            content: textToSummerise,
+          },
+        ],
+      }),
+    }
+  );
+
+  const res: ICloudflareResponse<{
+    response: string;
+  }> = await f.json();
+  return res;
 }

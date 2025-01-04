@@ -180,15 +180,6 @@ export enum ErrorCodes {
   PAYMENT_VERIFICATION_FAILED = "PAYMENT_VERIFICATION_FAILED",
 }
 
-// Summarisation Job
-export type ISummarisationJob = {
-  job_type: "summarisation";
-  payload: {
-    old_content: string;
-    new_content?: string; // Set after completion
-  };
-};
-
 // Email Drafting Job
 type IEmailDraftJob = {
   job_type: "email_draft";
@@ -201,15 +192,13 @@ type IEmailDraftJob = {
 };
 
 export type ISummaryResponse = {
-  start_index: number;
-  end_index: number;
-  new_content: string;
-  old_content: string;
+  summary: string;
+  summary_id: string;
 };
 
-export type ICloudflareResponse = {
+export type ICloudflareResponse<T> = {
   result: {
-    response: string;
+    response: T;
   };
   success: boolean;
   errors: [];
