@@ -31,8 +31,9 @@ import { SiWhatsapp } from "react-icons/si";
 import { FaTelegram } from "react-icons/fa";
 import { BiDotsVertical, BiLogoTelegram } from "react-icons/bi";
 import { GoArrowRight } from "react-icons/go";
-import { Oval } from "react-loader-spinner";
+import { RotatingLines } from "react-loader-spinner";
 import { IoIosArrowDown, IoMdCheckmarkCircleOutline } from "react-icons/io";
+import { FiMoreVertical } from "react-icons/fi";
 
 export const NoteEditHistory = () => {};
 
@@ -121,22 +122,15 @@ type ISuggestedActionParam = () => void;
 type ISuggestedAction = {
   summerise: ISuggestedActionParam;
   schedule: ISuggestedActionParam;
-  email: ISuggestedActionParam;
-  prioritize: ISuggestedActionParam;
-  todo: ISuggestedActionParam;
-  highlightedText: string | null;
   loadingStates: {
     summary: boolean;
+    task: boolean;
   };
   style?: any;
 };
 export const SuggestedActionButtons: FC<ISuggestedAction> = ({
-  email,
-  prioritize,
   schedule,
   summerise,
-  todo,
-  highlightedText,
   loadingStates,
   style,
 }) => {
@@ -152,13 +146,18 @@ export const SuggestedActionButtons: FC<ISuggestedAction> = ({
 
       <div className="flex items-center flex-wrap gap-y-2 gap-x-3 swirl_parent ">
         <Button
+          disabled={loadingStates.summary}
           text="Summerise"
           icon={loadingStates.summary ? <RingsLoader /> : <></>}
           onClick={summerise}
           bg="bg-[#333]"
         />
-        <Button text="Schedule tasks" onClick={schedule} />
-        <Button text="Draft email" onClick={email} />
+        <Button
+          disabled={loadingStates.task}
+          text="Schedule tasks"
+          icon={loadingStates.task ? <RingsLoader /> : <></>}
+          onClick={schedule}
+        />
       </div>
     </div>
   );
@@ -304,6 +303,7 @@ export const Button = ({
   icon,
   type,
   bg,
+  disabled,
 }: {
   text: string;
   onClick: () => void;
@@ -311,9 +311,11 @@ export const Button = ({
   type?: "button" | "submit";
   action?: Action;
   bg?: string;
+  disabled?: boolean;
 }) => {
   return (
     <button
+      disabled={disabled}
       className={`primary_button ${bg ?? ""} `}
       onClick={onClick}
       type={type ?? "button"}
@@ -332,6 +334,7 @@ export const BackButton: FC<IBb> = ({ text, url, onClick }) => {
   return (
     <div className="flex my-5 items-center gap-x-3">
       <IoArrowBackOutline
+        title="Go back"
         onClick={() => (onClick ? onClick() : navigateBackOrHome())}
       />
 
@@ -444,15 +447,22 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     <div className="relative w-full  ">
       <div className="w-full p-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
-          <button className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center">
-            <Link
-              to={"/?alias=" + encodeToBase62(selected.id!)}
-              style={{ textOverflow: "ellipsis", overflow: "hidden" }}
+          <button
+            title={selected.name}
+            className="bg-[#535ca3] px-2 w-[130px] h-[30px] gap-x-1 text-sm rounded-full flex items-center justify-center"
+          >
+            <span
+              className="text-sm"
+              style={{
+                textOverflow: "ellipsis",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+              }}
             >
               {selected.name}
-            </Link>
+            </span>
             <ImCancelCircle
-              className="text-sm"
+              className="text-md"
               onClick={() => {
                 onClick(null);
               }}
@@ -488,7 +498,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             </li>
           ))}
           <Link to={"/newalias"} className="text-sm px-4 flex justify-center">
-            New Alias
+            New Account
           </Link>
         </ul>
       )}
@@ -559,61 +569,100 @@ export const Dropdown: React.FC<DropdownProps> = ({ options, label }) => {
   );
 };
 
+const TaskOptionsPopup: FC<{ deleteTask: () => void; manage: () => void }> = ({
+  deleteTask,
+  manage,
+}) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative ">
+      <FiMoreVertical onClick={displayDropdown} />
+      {isDropdownVisible && (
+        <div
+          className={`popup_child z-[1000] animate__animated ${
+            isDropdownVisible
+              ? "animate__zoomIn visible opacity-1"
+              : "animate__zoomOut invisible opacity-0"
+          }`}
+        >
+          <li className="dropdown_item" onClick={manage}>
+            Manage Task
+          </li>
+          <li className="dropdown_item" onClick={deleteTask}>
+            Delete Task
+          </li>
+        </div>
+      )}
+    </div>
+  );
+};
 export const ScheduledTasksWrapper: FC<{
   rows: { task: ITask; participants: _IAlias[] }[];
 }> = ({ rows }) => {
   const navigate = useNavigate();
   return (
-    <div className="w-full flex flex-wrap gap-4 mt-2">
+    <div className="w-full flex flex-wrap gap-x-8 gap-y-3 mt-2">
       {rows.map((row) => {
         return (
           <div
             key={row.task.id}
-            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[170px] rounded-sm w-full 3micro:w-[300px]"
+            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[175px] rounded-sm w-full 3micro:w-[300px]"
           >
-            <h4 className=" subtext flex justify-between items-center border_bottom py-2  text-sm px-2">
-              <span className="font-[500] ">{row.task.name}</span>
-
-              <span className="flex items-center gap-x-2">
-                <TaskSharingPopup task={row.task} />
-                <MdOutlineEditCalendar
-                  className="  subtext  "
-                  onClick={() => {
-                    navigate(`/task/${encodeToBase62(row.task.id)}`);
-                  }}
-                />
+            <div className="  flex justify-between items-center border_bottom py-2   px-2">
+              <span
+                className="text-sm subtext"
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {row.task.name}
               </span>
-            </h4>
+            </div>
 
             <div className=" flex flex-col">
-              <span className="flex items-center font-[500] text-center justify-center text-white gap-y-2 text-md">
+              <span className="flex items-center  text-center justify-center text-white gap-y-2 text-md">
                 {new Date(row.task.date).toDateString()}
                 <br />
                 {new Date(row.task.date).toLocaleTimeString()}
               </span>
-            </div>
-            <div className="px-3 flex justify-center">
-              {row.participants && (
-                <AvatarGroup size="2" avatars={row.participants} />
-              )}
+              <div className="px-3 flex justify-center">
+                {row.participants && (
+                  <AvatarGroup size="2" avatars={row.participants} />
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
                 {new Date() < new Date(row.task.date) ? (
                   <>
-                    <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />{" "}
+                    <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />
                     Upcoming
                   </>
                 ) : (
                   <>
-                    <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />{" "}
+                    <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />
                     Ended
                   </>
                 )}
+                <span className="text-sm subtext">
+                  {formatRelativeTime(row.task.date)}
+                </span>
               </span>
-              <span className="text-sm subtext">
-                {formatRelativeTime(row.task.date)}
+              <span className="flex items-center gap-x-2">
+                <TaskSharingPopup task={row.task} />
+                <TaskOptionsPopup
+                  deleteTask={() => {}}
+                  manage={() =>
+                    navigate(`/task/${encodeToBase62(row.task.id)}`)
+                  }
+                />
               </span>
             </div>
           </div>
@@ -834,8 +883,15 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
   };
   return (
     <div className="relative sharepopup">
+      <IoShareSocialOutline onClick={displayDropdown} />
       {isDropdownVisible && (
-        <div className="popup_child animate__bounceIn animate__animated">
+        <div
+          className={`popup_child animate__animated ${
+            isDropdownVisible
+              ? "animate__zoomIn visible opacity-1"
+              : "animate__zoomOut invisible opacity-0"
+          }`}
+        >
           <li
             className="dropdown_item"
             onClick={() => {
@@ -878,7 +934,6 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
           </li>{" "}
         </div>
       )}
-      <IoShareSocialOutline onClick={displayDropdown} />
     </div>
   );
 };
@@ -891,121 +946,66 @@ const TaskSharingPopup: FC<{ task: ITask }> = ({ task }) => {
   };
   return (
     <div className="relative sharepopup">
-      {isDropdownVisible && (
-        <div className="popup_child animate__bounceIn animate__animated">
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              navigator.clipboard
-                .writeText("https://notalx.com/task" + encodeToBase62(task.id))
-                .then(() => {
-                  toast.success("Copied!");
-                });
-              displayDropdown();
-            }}
-          >
-            <IoShareOutline /> Copy Link
-          </li>
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              window.open(
-                `https://wa.me/?text=${encodeURIComponent(
-                  "https://notalx.com/task" + encodeToBase62(task.id)
-                )}`,
-                "_blank"
-              );
-              displayDropdown();
-            }}
-          >
-            <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
-          </li>
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              window.open(
-                `https://t.me/share/url?url=${encodeURIComponent(
-                  "https://notalx.com/task" + encodeToBase62(task.id)
-                )}`
-              );
-              displayDropdown();
-            }}
-          >
-            <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
-          </li>{" "}
-        </div>
-      )}
-      <IoShareSocialOutline onClick={displayDropdown} />
-    </div>
-  );
-};
-
-const TextSelectionPopup: FC<{ note: INote }> = ({ note }) => {
-  const [isDropdownVisible, setDropdownVisible] = useState(false);
-
-  const displayDropdown = () => {
-    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
-  };
-  return (
-    <div className="relative sharepopup">
-      {isDropdownVisible && (
-        <div className="popup_child animate__bounceIn animate__animated">
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              navigator.clipboard
-                .writeText("https://notalx.com/" + note.slug)
-                .then(() => {
-                  toast.success("Link copied to clipboard");
-                });
-              displayDropdown();
-            }}
-          >
-            <IoShareOutline /> Copy Link
-          </li>
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              window.open(
-                `https://wa.me/?text=${encodeURIComponent(
-                  "https://notalx.com/" + note.slug
-                )}`,
-                "_blank"
-              );
-              displayDropdown();
-            }}
-          >
-            <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
-          </li>
-          <li
-            className="dropdown_item"
-            onClick={() => {
-              window.open(
-                `https://t.me/share/url?url=${encodeURIComponent(
-                  "https://notalx.com/" + note.slug
-                )}`
-              );
-              displayDropdown();
-            }}
-          >
-            <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
-          </li>{" "}
-        </div>
-      )}
+      <div
+        className={`popup_child z-[1000] animate__animated ${
+          isDropdownVisible
+            ? "animate__zoomIn visible opacity-1"
+            : "animate__zoomOut invisible opacity-0"
+        }`}
+      >
+        <li
+          className="dropdown_item"
+          onClick={() => {
+            navigator.clipboard
+              .writeText("https://notalx.com/task" + encodeToBase62(task.id))
+              .then(() => {
+                toast.success("Copied!");
+              });
+            displayDropdown();
+          }}
+        >
+          <IoShareOutline /> Copy Link
+        </li>
+        <li
+          className="dropdown_item"
+          onClick={() => {
+            window.open(
+              `https://wa.me/?text=${encodeURIComponent(
+                "https://notalx.com/task" + encodeToBase62(task.id)
+              )}`,
+              "_blank"
+            );
+            displayDropdown();
+          }}
+        >
+          <SiWhatsapp className="text-[#25D366]" /> Share to WhatsApp
+        </li>
+        <li
+          className="dropdown_item"
+          onClick={() => {
+            window.open(
+              `https://t.me/share/url?url=${encodeURIComponent(
+                "https://notalx.com/task" + encodeToBase62(task.id)
+              )}`
+            );
+            displayDropdown();
+          }}
+        >
+          <BiLogoTelegram className="text-[#0088cc]" /> Share to Telegram
+        </li>{" "}
+      </div>
       <IoShareSocialOutline onClick={displayDropdown} />
     </div>
   );
 };
 
 export const RingsLoader = () => (
-  <Oval
+  <RotatingLines
     visible={true}
-    height="20"
-    width="20"
-    strokeWidth={5}
-    color="#ddd"
-    ariaLabel="oval-loading"
-    wrapperStyle={{}}
-    wrapperClass=""
+    strokeColor="#bbbbbb"
+    width="17"
+    strokeWidth="5"
+    animationDuration="0.75"
+    ariaLabel="rotating-lines-loading"
   />
 );

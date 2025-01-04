@@ -40,6 +40,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@coffeeandfun/google-profanity-words": "^2.1.0",
     "@radix-ui/react-popover": "1.1.4",
     "base-x": "^5.0.0",
     "bcrypt": "^5.1.1",
@@ -54,6 +55,7 @@
     "http-errors": "^2.0.0",
     "memcached": "^2.2.2",
     "morgan": "^1.10.0",
+    "no-profanity": "^1.5.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "openai": "^4.77.0",

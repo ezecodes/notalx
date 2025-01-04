@@ -7,7 +7,7 @@
   --border_color: #555555;
   --top_gap: 10px;
 }
-.animate__animated.animate__fadeIn {
+.animate__animated {
   --animate-duration: 450ms;
 }
 

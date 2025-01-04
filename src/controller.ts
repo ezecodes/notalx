@@ -3,9 +3,8 @@ import Alias from "./models/Alias";
 import { validate } from "uuid";
 import {
   ApiError,
-  CreateAiSummary,
+  QueryLLM1,
   generateSlug,
-  getChatCompletions,
   getRandomInt,
   getSessionFromReq,
   isExpired,
@@ -37,6 +36,8 @@ import {
   otpSessionCookieKey,
   sessionCookieKey,
   SUMMARY_PROMPT_VARIATIONS,
+  TASK_SCHEDULING_PROMPT_VARIATIONS,
+  RESTRICTED_WORDS,
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
@@ -48,7 +49,7 @@ import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
 
-("----- getAllAlias ------");
+console.log("----- getAllAlias ------");
 export async function getAllAlias(
   req: Request,
   res: Response,
@@ -373,6 +374,17 @@ export async function editTaskSchedule(
     message: "Schedule updated",
   });
 }
+type ITaskFromLLM = {
+  success: boolean;
+  message?: string;
+  tasks: {
+    task_title: string;
+    date: string;
+    time: string;
+    participants: string[];
+    location: string | string[];
+  }[];
+};
 export async function createTaskSchedule(
   req: Request,
   res: Response,
@@ -384,17 +396,63 @@ export async function createTaskSchedule(
     next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
     return;
   }
-  const scheduledDate = setExpiryInUTC(2) as any;
 
-  const reminder = setExpiryInUTC(1) as any;
+  const note = await Note.findByPkWithCache(req.params.note_id);
+  const newTask = await QueryLLM1(
+    note?.content!,
+    TASK_SCHEDULING_PROMPT_VARIATIONS[0].prompt
+  );
+  console.log(newTask);
+  let parsedTask: ITaskFromLLM = JSON.parse(newTask.result.response);
 
-  Task.create({
-    alias_id: req.__alias!.id!,
-    note_id: req.params.note_id,
-    name: "Study prep",
-    date: scheduledDate,
-    reminder,
-    duration: "30 minutes",
+  if (!parsedTask.success) {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "Task could not be generated from the provided note content"
+      )
+    );
+    return;
+  }
+
+  const tasks = parsedTask.tasks.map((task) => {
+    const dateTimeString = `${task.date} ${task.time}`;
+    const newTask: any = {
+      name: task.task_title,
+      participants: task.participants,
+      location: task.location,
+    };
+
+    // Create a new Date object
+    let dateTime = new Date(dateTimeString);
+    const now = new Date();
+
+    if (dateTime < now) {
+      dateTime = new Date(now.getTime() + 60 * 60 * 1000);
+    }
+
+    if (isNaN(dateTime as any)) {
+      newTask.date = setExpiryInUTC(2);
+      newTask.reminder = setExpiryInUTC(1);
+    } else {
+      newTask.date = dateTime;
+      newTask.reminder = new Date(dateTime.getTime() - 15 * 60 * 1000);
+    }
+
+    return newTask;
+  });
+
+  console.log(tasks);
+
+  tasks.forEach(async (task) => {
+    await Task.create({
+      alias_id: req.__alias!.id!,
+      note_id: req.params.note_id,
+      name: task.name,
+      date: task.date,
+      reminder: task.reminder,
+      duration: "1 hour",
+    });
   });
 
   res.json({
@@ -413,11 +471,11 @@ export async function createNoteSummary(
   const { text, summary_id } = req.body;
   const cacheKey = `summary:${summary_id ?? randomBytes(4).toString("hex")}`;
 
-  if (!text || text.trim() === "") {
+  if (!text || text.trim() === "" || text.split(" ").length < 10) {
     next(
       ApiError.error(
         ErrorCodes.VALIDATION_ERROR,
-        "Please provide text to summarize."
+        "The provided text is either empty or too short to summarize. Please select with at least 10 words."
       )
     );
     return;
@@ -430,19 +488,19 @@ export async function createNoteSummary(
         ? SUMMARY_PROMPT_VARIATIONS[cache.calls_count + 1].prompt
         : SUMMARY_PROMPT_VARIATIONS[0].prompt;
 
-    // const summary = await CreateAiSummary(text, prompt);
-    // if (!summary.success) {
-    //   next(
-    //     ApiError.error(
-    //       ErrorCodes.INTERNAL_SERVER_ERROR,
-    //       "Could not complete summary"
-    //     )
-    //   );
-    //   return;
-    // }
+    const summary = await QueryLLM1(text, prompt);
+    if (!summary.success) {
+      next(
+        ApiError.error(
+          ErrorCodes.INTERNAL_SERVER_ERROR,
+          "Could not complete summary"
+        )
+      );
+      return;
+    }
 
     const data = {
-      summary: "summary.result.response",
+      summary: summary.result.response,
       summary_id: cacheKey.split("summary:")[1],
     };
     const calls_count = cache ? cache.calls_count + 1 : 1;
@@ -542,13 +600,12 @@ export async function registerAlias(
     next(
       ApiError.error(
         ErrorCodes.VALIDATION_ERROR,
-        "Please enter a valid name and email address"
+        "Please provide a valid name and email address to proceed."
       )
     );
 
     return;
   }
-  name = name.toLowerCase();
 
   const valid = validateUsername(name);
   if (!valid.isValid) {

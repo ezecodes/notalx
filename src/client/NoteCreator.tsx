@@ -18,6 +18,8 @@ import { GlobalContext } from "./hook";
 import { encodeToBase62, formatRelativeTime } from "./utils";
 import { MdRadioButtonUnchecked } from "react-icons/md";
 import { toast } from "react-toastify";
+import { VscLock } from "react-icons/vsc";
+import { BsUnlock } from "react-icons/bs";
 
 const Editor = () => {
   const { editor, setEditor, saveToStore, loadDrafts, deleteDraft } =
@@ -60,8 +62,9 @@ const Editor = () => {
       },
     });
     const response: IApiResponse<null> = await f.json();
-    toast(response.message);
-    if (response.status === "ok") {
+    if (response.status === "err") toast.error(response.message);
+    else {
+      toast.success(response.message);
       deleteDraft(editor.draft_id!);
       document.location.href = "/";
     }
@@ -113,17 +116,6 @@ const Editor = () => {
               ) : (
                 <MdRadioButtonUnchecked />
               )}
-            </button>
-
-            <button
-              className={`sub_button ${
-                editor.hidden ? "success_text" : "subtext"
-              } `}
-              onClick={() => handleUpdate({ hidden: !editor.hidden })}
-              type={"button"}
-            >
-              Mark as hidden{" "}
-              {editor.hidden ? <FaCheck /> : <MdRadioButtonUnchecked />}
             </button>
           </fieldset>
 

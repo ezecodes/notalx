@@ -126,69 +126,205 @@ export const SUMMARY_PROMPT_VARIATIONS = [
     - A **concise** and **clear** summary that doesn't assume any external context. Do not start with 'Here is a summary of the text'.`,
   },
 ];
-
 export const TASK_SCHEDULING_PROMPT_VARIATIONS = [
   {
     description: "Task Extraction with Time & Date Inference",
     prompt: `
-      You are an advanced assistant designed to extract and organize multiple tasks from a note. The tasks may vary in detail, and some information (such as date and time) may need to be inferred based on the current date (similar to how new Date() works in JavaScript).
+      You are an advanced assistant designed to extract and organize multiple tasks from a note. Your response must be in strict JSON format without any additional text, explanations, or formatting (e.g., no markdown or plain text).
 
-    For each task, extract and format the following details:
-    1. **Task Title/Description**: Identify the primary action or event (e.g., "Meeting with client", "Call with John").
-    2. **Date**: 
-        - If a **specific date** (e.g., "January 10") is mentioned, use that date directly.
-        - If a **day of the week** is mentioned (e.g., "Monday", "Friday"), calculate the date based on the current date (e.g., if today is Thursday and "Monday" is mentioned, infer the **next Monday's date**).
-        - If **relative terms** like "tomorrow", "next week", or "in 3 days" are used, calculate the date based on the current date, using today's date to infer the date.
-    3. **Time**: 
-        - If a **specific time** (e.g., "2 PM", "10:30 AM") is mentioned, extract the time directly.
-        - If **relative time** (e.g., "in the morning", "late afternoon", "at noon") is used, infer the actual time based on standard time conventions.
-    4. **Participants**: Identify people or roles mentioned (e.g., "John", "team", "client").
-    5. **Location**: If a location is mentioned (e.g., "office", "Zoom"), include it.
+      For each task, extract and format the following details:
+      1. **Task Title/Description**: Identify the primary action or event (e.g., "Meeting with client", "Call with John").
+      2. **Date**: 
+          - If a **specific date** (e.g., "January 10") is mentioned, use that date directly.
+          - If a **day of the week** is mentioned (e.g., "Monday", "Friday"), calculate the date based on the current date (e.g., if today is Thursday and "Monday" is mentioned, infer the **next Monday's date**).
+          - If **relative terms** like "tomorrow", "next week", or "in 3 days" are used, calculate the date based on the current date, using today's date to infer the date.
+      3. **Time**: 
+          - If a **specific time** (e.g., "2 PM", "10:30 AM") is mentioned, extract the time directly.
+          - If **relative time** (e.g., "in the morning", "late afternoon", "at noon") is used, infer the actual time based on standard time conventions.
+      4. **Participants**: Identify people or roles mentioned (e.g., "John", "team", "client").
+      5. **Location**: If a location is mentioned (e.g., "office", "Zoom"), include it.
 
-    ### Inference Details:
-    - Use **current date and time** (like new Date()) to calculate relative time (e.g., "tomorrow", "next Monday").
-    - Consider **time ranges** like "in the morning", "late afternoon", or "noon" and convert them to **precise hours** (e.g., "in the morning" = 9 AM, "noon" = 12 PM).
-    - If **no time** is provided but a **date** is given, assume a **standard workday** time (e.g., 9 AM to 5 PM) unless specified otherwise.
+      ### Example Input:
+      "Meeting with Sarah at 2 PM tomorrow. Call with client on Monday at 10 AM in the conference room. Lunch with team at noon next week."
 
-    ### Output Format:
-    Return each task in **JSON format** with the following fields:
-    - **task_title**: The description or action of the task.
-    - **date**: The inferred date in YYYY-MM-DD format.
-    - **time**: The inferred time in HH:MM AM/PM format (if applicable).
-    - **participants**: An array of people involved in the task (can be empty if not mentioned).
-    - **location**: The location of the task (can be empty if not mentioned).
-
-    ### Example Input:
-    "Meeting with Sarah at 2 PM tomorrow. Call with client on Monday at 10 AM in the conference room. Lunch with team at noon next week."
-
-    ### Expected Output (JSON):
-    Assuming today is **Thursday, January 2, 2025**:
-    
-    [
+      ### Expected Output (Strict JSON Only):
       {
-        "task_title": "Meeting with Sarah",
-        "date": "2025-01-03",
-        "time": "2:00 PM",
-        "participants": ["Sarah"],
-        "location": ""
-      },
-      {
-        "task_title": "Call with client",
-        "date": "2025-01-05",
-        "time": "10:00 AM",
-        "participants": ["client"],
-        "location": "conference room"
-      },
-      {
-        "task_title": "Lunch with team",
-        "date": "2025-01-09",
-        "time": "12:00 PM",
-        "participants": ["team"],
-        "location": ""
+        "success": true,
+        "message": "Tasks successfully extracted.",
+        "tasks": [
+          {
+            "task_title": "Meeting with Sarah",
+            "date": "2025-01-03",
+            "time": "2:00 PM",
+            "participants": ["Sarah"],
+            "location": ""
+          },
+          {
+            "task_title": "Call with client",
+            "date": "2025-01-06",
+            "time": "10:00 AM",
+            "participants": ["client"],
+            "location": "conference room"
+          },
+          {
+            "task_title": "Lunch with team",
+            "date": "2025-01-09",
+            "time": "12:00 PM",
+            "participants": ["team"],
+            "location": ""
+          }
+        ]
       }
-    ]
 
+      ### Example Input:
+      "Hello world, this has nothing useful"
+
+      ### Expected Output (Strict JSON Only):
+      {
+        "success": false,
+        "message": "No valid tasks could be extracted from the input."
+      }
+
+      - **IMPORTANT**: Ensure the response begins and ends with JSON and contains no other text, explanation, or additional formatting.
+      - **Invalid Output Examples**: Responses with text like "Here is your JSON" or markdown fences (\`\`\`) will be rejected.
+    `,
+  },
+];
+
+export const EAMIL_DRAFTING_PROMPT_VARIATIONS = [
+  {
+    description: "",
+    prompt: `You are an advanced language model tasked with generating professional and effective emails from unstructured notes. Based on the provided note, your objective is to create a clear, concise, and well-structured email suitable for its context and audience.
+
+    Instructions:
+    Understand the Note: Extract the purpose, key details, tone, and audience of the email from the note.
+    Email Components: Ensure the email includes:
+    Subject Line: A concise and relevant subject summarizing the email\'s purpose.
+    Greeting: Address the recipient appropriately based on the note.
+    Opening: Provide a brief introduction or context for the email.
+    Body: Organize the main points logically, addressing any actions, requests, or information clearly and professionally.
+    Closing: Include a polite conclusion and, if necessary, specify next steps or actions.
+    Signature: Use a professional closing line and generic placeholder for the sender\'s name, title, and contact information.
+    Adhere to Tone and Style:
+    If the note specifies a tone (e.g., formal, casual, persuasive), follow it.
+    If no tone is mentioned, default to a professional yet approachable tone.
+    Address Ambiguities: Where the note lacks specific details (e.g., recipient name, exact dates), use placeholders (e.g., “[Recipient\'s Name]”, “[Date]”).
+    ### Expected Output (JSON):
+      {
+        "success": true,
+        "email": {
+          "subject": "[Generated subject line]",
+          "body": "[Generated email body including greeting, opening, body content, closing, and signature]"
+        }
+      }
+      If you cannot draft an email due to insufficient details in the note, respond with:
+      
+      {
+        "success": false,
+        "message": "[Reason why an email could not be generated]"
+      }
+
+      Example Input: 
+      Note: "Reminder to the team about the project deadline on Friday. Make sure they submit reports by Thursday evening. Thank them for their hard work so far."
+
+      Example Output:
+      {
+        "success": true,
+        "email": {
+          "subject": "Reminder: Project Deadline and Report Submission",
+          "body": "Dear Team,\n\nI hope this message finds you well. This is a friendly reminder about our project deadline scheduled for this Friday. Please ensure that all reports are submitted by Thursday evening.\n\nThank you for your hard work and dedication so far—I truly appreciate your efforts.\n\nBest regards,\n[Your Name]\n[Your Title]\n[Your Contact Information]"
+        }
+      }
+
+      Guidelines:
+      Maintain accuracy and professionalism.
+      Generate content that is actionable, concise, and polished.
+      Use placeholders for missing information to ensure clarity for the user.
 
     `,
   },
+];
+
+export const RESTRICTED_WORDS = [
+  "ass",
+  "bitch",
+  "crap",
+  "damn",
+  "fuck",
+  "shit",
+  "slut",
+  "whore",
+  "bastard",
+  "dick",
+  "pussy",
+  "cock",
+  "cunt",
+  "nigger",
+  "fag",
+  "faggot",
+  "retard",
+  "spaz",
+  "twat",
+  "wank",
+  "jerkoff",
+  "phuck",
+  "arse",
+  "bollocks",
+  "bugger",
+  "shag",
+  "slag",
+  "tosser",
+  "wanker",
+  "motherfucker",
+  "douche",
+  "douchebag",
+  "turd",
+  "cum",
+  "sex",
+  "s3x",
+  "69",
+  "porn",
+  "pornhub",
+  "xnxx",
+  "xxx",
+  "boob",
+  "boobs",
+  "tit",
+  "tits",
+  "vagina",
+  "penis",
+  "testicle",
+  "scrotum",
+  "clit",
+  "clitoris",
+  "orgasm",
+  "ejaculation",
+  "masturbate",
+  "masturbation",
+  "anal",
+  "rectum",
+  "hentai",
+  "kinky",
+  "suck",
+  "blowjob",
+  "b00b",
+  "a55",
+  "s3x",
+  "d1ck",
+  "sh1t",
+  "phag",
+  "f*ck",
+  "f@ck",
+  "fu*k",
+  "f#ck",
+  "b!tch",
+  "b@stard",
+  "b!tch",
+  "sh!t",
+  "c*ck",
+  "c@nt",
+  "cu*t",
+  "p*ssy",
+  "n*gger",
+  "f*ggot",
 ];

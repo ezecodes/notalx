@@ -61,8 +61,22 @@ export type ITask = {
   reminder: Date;
   duration?: string;
   calendar_id?: string;
+  location?: any;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type IEmailDraft = {
+  status: "pending" | "processing" | "sent" | "failed";
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  attachments?: {
+    fileName: string;
+    fileUrl: string;
+  }[];
 };
 
 export type IAgent = {
@@ -197,9 +211,7 @@ export type ISummaryResponse = {
 };
 
 export type ICloudflareResponse<T> = {
-  result: {
-    response: T;
-  };
+  result: T;
   success: boolean;
   errors: [];
   messages: [];

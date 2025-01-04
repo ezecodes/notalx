@@ -15,6 +15,7 @@ import {
   CLOUDFLARE_API_TOKEN,
   CLOUDFLARE_ID,
   mailConfig,
+  RESTRICTED_WORDS,
   sessionCookieKey,
   X_API_KEY,
 } from "./constants";
@@ -27,29 +28,7 @@ import { hashSync } from "bcrypt";
 import OpenAI from "openai";
 import { ChatCompletionMessage } from "openai/resources";
 import TaskParticipant from "./models/TaskParticipant";
-const openai = new OpenAI({
-  apiKey: X_API_KEY,
-  baseURL: "https://api.x.ai/v1",
-});
-export async function getChatCompletions(
-  prompt: string
-): Promise<ChatCompletionMessage> {
-  const completion = await openai.chat.completions.create({
-    model: "grok-2-latest",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an AI assistant specialized in text summarization. Your goal is to provide concise and accurate summaries of the provided text.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
-  return completion.choices[0].message;
-}
+import { isProfane } from "no-profanity";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -79,7 +58,7 @@ export function generateSlug(
 }
 
 const validTimeRegex =
-  /^\d+\s*(second|seconds|minute|minutes|day|days|year|years)$/i;
+  /^\d+\s*(second|seconds|minute|minutes|hour|hours|day|days|year|years)$/i;
 
 export function validateLiteralTime(input: string): boolean {
   if (input.split(" ").length !== 2) return false;
@@ -101,6 +80,10 @@ export function parseLiteralTime(input: string): Date | boolean {
     case "minute":
     case "minutes":
       now.setMinutes(now.getMinutes() + num);
+      break;
+    case "hour":
+    case "hours":
+      now.setHours(now.getHours() + num);
       break;
     case "day":
     case "days":
@@ -267,12 +250,12 @@ export function validateUsername(username: string): {
   }
 
   // Check for invalid characters
-  const validPattern = /^[a-zA-Z0-9_.]+$/;
+  const validPattern = /^[a-zA-Z0-9_.\s]+$/;
   if (!validPattern.test(username)) {
     return {
       isValid: false,
       error:
-        "Alias can only contain letters, numbers, underscores, and periods.",
+        "Alias can only contain letters, numbers, underscores, periods, and spaces.",
     };
   }
 
@@ -294,17 +277,18 @@ export function validateUsername(username: string): {
     };
   }
 
-  // Check for spaces
-  if (/\s/.test(username)) {
+  // Optional: Check for restricted words (e.g., profanity)
+
+  if (!username || typeof username !== "string") {
     return {
       isValid: false,
-      error: "Alias cannot contain spaces.",
+      error: "Username must be a non-empty string.",
     };
   }
-
-  // Optional: Check for restricted words (e.g., profanity)
-  const restrictedWords = ["admin", "root", "moderator", "notal"];
-  if (restrictedWords.some((word) => username.toLowerCase().includes(word))) {
+  if (
+    RESTRICTED_WORDS.some((word) => username.toLowerCase().includes(word)) ||
+    isProfane(username)
+  ) {
     return {
       isValid: false,
       error: "Alias contains restricted words.",
@@ -357,8 +341,18 @@ export function validateIncomingNote(
   }
 
   if (title) {
+    if (
+      RESTRICTED_WORDS.some((word) => title.toLowerCase().includes(word)) ||
+      isProfane(title)
+    ) {
+      return {
+        isValid: false,
+        error: "The title contains words that are not allowed.",
+      };
+    }
     data.title = title;
   }
+
   if (content) {
     data.content = content;
   }
@@ -438,7 +432,7 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email.trim());
 }
 
-export async function CreateAiSummary(textToSummerise: string, prompt: string) {
+export async function QueryLLM1(text: string, prompt: string) {
   const f = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/meta/llama-3-8b-instruct`,
     {
@@ -456,7 +450,7 @@ export async function CreateAiSummary(textToSummerise: string, prompt: string) {
           },
           {
             role: "user",
-            content: textToSummerise,
+            content: text,
           },
         ],
       }),

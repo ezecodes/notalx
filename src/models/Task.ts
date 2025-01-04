@@ -102,6 +102,10 @@ Task.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    location: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   },
   { sequelize, modelName: "Task" }
 );

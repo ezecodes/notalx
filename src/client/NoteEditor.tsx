@@ -28,38 +28,34 @@ import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
 import { GoPeople } from "react-icons/go";
-import { IoMdTime } from "react-icons/io";
-import { GoLock } from "react-icons/go";
 import {
   decodeFromBase62,
   createScheduleTask,
   summeriseSelectedText,
 } from "./utils";
 import { BsStars } from "react-icons/bs";
+import { CiCircleChevDown } from "react-icons/ci";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
-  const navigate = useNavigate();
 
   const displayDropdown = () => {
     setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
   };
   return (
     <div className="relative ">
-      {isDropdownVisible && (
-        <div className="popup_child animate__bounceIn animate__animated">
-          <li className="dropdown_item" onClick={setCollabModal}>
-            <GoPeople /> Collaborators
-          </li>
-          <li className="dropdown_item" onClick={() => navigate("/notes")}>
-            <IoMdTime /> Set expiration
-          </li>
-          <li className="dropdown_item" onClick={() => navigate("/notes")}>
-            <GoLock /> Mark as hidden
-          </li>
-        </div>
-      )}
       <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
+      <div
+        className={`popup_child animate__animated ${
+          isDropdownVisible
+            ? "animate__zoomIn visible opacity-1"
+            : "animate__zoomOut invisible opacity-0"
+        }`}
+      >
+        <li className="dropdown_item" onClick={setCollabModal}>
+          <GoPeople /> Collaborators
+        </li>
+      </div>
     </div>
   );
 };
@@ -91,6 +87,7 @@ const Editor = () => {
   >([]);
   const [loadingStates, setLoadingStates] = useState({
     summary: false,
+    task: false,
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
 
@@ -167,6 +164,10 @@ const Editor = () => {
   };
 
   const handleSummariseAction = async (summeriseAll?: boolean) => {
+    if (loadingStates.task) {
+      toast.error("Task scheduling is still being processed. Please wait.");
+      return;
+    }
     if (!highlightedText && !summeriseAll) {
       toast.error("Select text to summerise");
       return;
@@ -194,7 +195,6 @@ const Editor = () => {
     editor: any
   ) => {
     if (selection && selection.length > 0) {
-      console.log(selection);
       const selectedText = editor.getText(selection.index, selection.length);
       const data = {
         end_index: selection.index + selection.length,
@@ -206,7 +206,7 @@ const Editor = () => {
 
       setAiActionsVisible(true);
     } else {
-      setAiActionsVisible(false);
+      !loadingStates.summary && setAiActionsVisible(false);
     }
   };
 
@@ -221,7 +221,7 @@ const Editor = () => {
 
         editor.deleteText(start_index, end_index - start_index);
         editor.insertText(start_index, summaryResponse.summary, {
-          background: "#2d2d2d",
+          background: "#243c1a",
         });
         setPopupVisible(true);
       }
@@ -270,17 +270,26 @@ const Editor = () => {
   // Apply preview text
 
   const handleAiScheduling = async () => {
-    const response = await createScheduleTask(
-      parsedNoteId.current,
-      highlightedText!
-    );
-    if (response.status === "err") {
-      toast.error(response.message);
+    if (loadingStates.summary) {
+      toast.error("Summary generation is still in progress. Please wait.");
       return;
     }
+    try {
+      setLoadingStates((prev) => ({ ...prev, task: true }));
+      const response = await createScheduleTask(
+        parsedNoteId.current,
+        highlightedText!
+      );
+      if (response.status === "err") {
+        toast.error(response.message);
+        return;
+      }
 
-    if (response.status === "ok") {
-      fetchAllTasksInNote();
+      if (response.status === "ok") {
+        fetchAllTasksInNote();
+      }
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, task: false }));
     }
   };
 
@@ -318,6 +327,8 @@ const Editor = () => {
 
     handleSummariseAction();
   };
+
+  const handleDraftEmail = () => {};
 
   if (!otpExpiry?.is_valid_auth) return <></>;
 
@@ -373,95 +384,87 @@ const Editor = () => {
                       }}
                       placeholder="Write your note here..."
                     />
-                    {popupVisible && (
-                      <div
-                        style={{
-                          position: "fixed",
-                          top: popupPosition.top - 50,
-                          left: popupPosition.left,
-                        }}
-                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2"
-                      >
-                        <div className="flex items-center justify-start gap-x-2">
-                          <button
-                            className="sp_buttons insert"
-                            type="button"
-                            onClick={handleInsert}
-                          >
-                            Insert
-                          </button>
-                          <button
-                            className="sp_buttons"
-                            type="button"
-                            onClick={() => {
-                              handleRefinement();
-                            }}
-                          >
-                            Refine
-                          </button>
-                          <button
-                            className="sp_buttons discard"
-                            type="button"
-                            onClick={() => {
-                              performUndoTwice();
-                              handleDiscard();
-                            }}
-                          >
-                            Discard
-                          </button>
-                          <button
-                            className="sp_buttons"
-                            type="button"
-                            onClick={handleCopy}
-                          >
-                            Copy
-                          </button>
-                        </div>
+                    <div
+                      style={{
+                        position: "fixed",
+                        top: popupPosition.top - 50,
+                        left: popupPosition.left,
+                      }}
+                      className={`z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2 ${
+                        popupVisible
+                          ? "animate__zoomIn visible opacity-1"
+                          : "animate__zoomOut invisible opacity-0"
+                      }`}
+                    >
+                      <div className="flex items-center justify-start gap-x-2">
+                        <button
+                          className="sp_buttons insert"
+                          type="button"
+                          onClick={handleInsert}
+                        >
+                          Insert
+                        </button>
+                        <button
+                          className="sp_buttons"
+                          type="button"
+                          onClick={() => {
+                            handleRefinement();
+                          }}
+                        >
+                          Refine
+                        </button>
+                        <button
+                          className="sp_buttons discard"
+                          type="button"
+                          onClick={() => {
+                            performUndoTwice();
+                            handleDiscard();
+                          }}
+                        >
+                          Discard
+                        </button>
+                        <button
+                          className="sp_buttons"
+                          type="button"
+                          onClick={handleCopy}
+                        >
+                          Copy
+                        </button>
                       </div>
-                    )}
-                    {aiActionsVisible && (
-                      <div
-                        style={{
-                          position: "fixed",
-                          top: popupPosition.top - 100,
-                          left: popupPosition.left,
-                        }}
-                        className="animate__bounceIn z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2"
-                      >
-                        <h6 className="flex items-center gap-x-2 text-sm subtext">
-                          <BsStars className="text-yellow-200 " />
-                          Suggested actions
-                        </h6>
-                        <div className="flex items-center justify-start gap-x-2">
-                          <Button
-                            text="Summerise"
-                            onClick={handleSummariseAction}
-                            icon={
-                              loadingStates.summary ? <RingsLoader /> : <></>
-                            }
-                          />
-                          <Button text="Draft email" onClick={() => {}} />
-                        </div>
+                    </div>
+                    <div
+                      style={{
+                        position: "fixed",
+                        top: popupPosition.top - 100,
+                        left: popupPosition.left,
+                      }}
+                      className={`${
+                        aiActionsVisible
+                          ? "animate__fadeIn visible opacity-1"
+                          : "animate__backOutDown invisible opacity-0"
+                      } z-[1000] flex-col gap-y-3 animate__animated flex items-end py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2`}
+                    >
+                      <div className="flex items-center justify-start gap-x-2">
+                        <BsStars className="text-yellow-200 " />
+                        <Button
+                          disabled={loadingStates.summary}
+                          text="Summerise"
+                          onClick={handleSummariseAction}
+                          icon={loadingStates.summary ? <RingsLoader /> : <></>}
+                        />
+                        <CiCircleChevDown className="subtext " />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </fieldset>
                 <fieldset className="flex gap-y-3 w-full items-start justify-between ">
                   <SuggestedActionButtons
-                    email={() => {
-                      // callJobAction("email", highlightedText)
-                    }}
-                    highlightedText={highlightedText?.text!}
-                    prioritize={() => {
-                      // callJobAction("prioritize", highlightedText)
-                    }}
                     schedule={handleAiScheduling}
                     summerise={() => {
                       quillRef.current?.editor?.setSelection(0, 9999999999);
 
                       handleSummariseAction(true);
                     }}
-                    todo={() => {}}
                     loadingStates={loadingStates}
                   />
                   <Button
@@ -527,19 +530,6 @@ const Editor = () => {
                 }}
               >
                 Schedules
-              </button>
-              <button
-                style={
-                  currentJobTab === "email"
-                    ? { backgroundColor: "#3a3a43" }
-                    : {}
-                }
-                className="sp_buttons"
-                onClick={() => {
-                  setCurrentJobTab("email");
-                }}
-              >
-                Emails
               </button>
             </div>
 

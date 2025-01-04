@@ -20,10 +20,12 @@ const CreateAlias: FC<ICreateAlias> = () => {
       },
     });
     const response = await f.json();
-    toast(response.message);
 
     if (response.status === "ok") {
-      navigate("/");
+      toast.success(response.message);
+      navigate("/login");
+    } else {
+      toast.error(response.message);
     }
   };
 
