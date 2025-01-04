@@ -754,18 +754,25 @@ export const SharedHeader = () => {
   return (
     <header className="flex flex-col py-4 gap-y-5 w-full items-center top_space">
       <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
-        <Button
-          text="Create Account"
-          icon={<IoPersonAdd />}
-          onClick={() => navigate("/newalias")}
-        />
-        <Button
-          text="Create note"
-          icon={<IoCreateOutline />}
-          onClick={() => {
-            navigate("/newnote");
-          }}
-        />
+        {otpExpiry?.is_valid_auth ? (
+          <>
+            <Button
+              text="Create note"
+              icon={<IoCreateOutline />}
+              onClick={() => {
+                navigate("/newnote");
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Button
+              text="Create Account"
+              icon={<IoPersonAdd />}
+              onClick={() => navigate("/newalias")}
+            />
+          </>
+        )}
         <AuthorisedInfo clickUrl="/login" otpExpiry={otpExpiry} />
       </div>
     </header>

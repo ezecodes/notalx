@@ -18,7 +18,6 @@ const ViewNote: FC<IViewNote> = () => {
     note: INote;
     collaborators: _IAlias[];
   } | null>(null);
-  const retries = useRef(0);
   const hasCalled = useRef(false);
   const {
     Is_Authorised_Alias_Same_As_Note_Alias,
@@ -29,8 +28,9 @@ const ViewNote: FC<IViewNote> = () => {
 
   const navigate = useNavigate();
 
-  function handleNoteFetch(slug: string, secret?: string) {
-    fetchNote(slug, secret as string).then((res) => {
+  function handleNoteFetch() {
+    const slug = params.note_slug ? decodeFromBase62(params.note_slug) : null;
+    fetchNote(slug as string).then((res) => {
       if (res.status === "err") {
         toast.error(res.message);
         return;
@@ -41,10 +41,9 @@ const ViewNote: FC<IViewNote> = () => {
   }
 
   useEffect(() => {
-    const slug = params.note_slug ? decodeFromBase62(params.note_slug) : null;
-    slug && handleNoteFetch(slug);
     if (!hasCalled.current) {
       getOTPExpiry();
+      handleNoteFetch();
 
       hasCalled.current = true;
     }

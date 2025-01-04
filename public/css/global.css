@@ -39,6 +39,7 @@ html {
 }
 .popup_child .dropdown_item {
   border-bottom: 1px solid var(--border_color);
+  height: 40px;
 }
 
 li {

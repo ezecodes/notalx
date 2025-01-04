@@ -63,11 +63,10 @@ export const searchAliasByName = async (name: string) => {
   return (await f.json()) as IPaginatedResponse<_IAlias>;
 };
 
-export const fetchNote = async (slug: string, secret: string) => {
+export const fetchNote = async (slug: string) => {
   const f = await fetch("/api/note/" + slug, {
     headers: {
       "content-type": "application/json",
-      Authorization: secret,
       Accept: "application/json",
     },
   });

@@ -4,6 +4,7 @@ import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
 import { fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { _IAlias, ApiFetchNote, ITask } from "../type";
+import { toast } from "react-toastify";
 
 type Tab = "notes" | "tasks" | "notification";
 
@@ -37,8 +38,6 @@ const Home = () => {
       fetchAllScheduledTasksForAlias().then((res) => {
         res.status === "ok" && setScheduledTasks(res.data!.rows!);
       });
-
-      getOTPExpiry();
     } catch (err) {
       console.error(err);
     }

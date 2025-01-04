@@ -14,23 +14,40 @@ import Faq from "./Faq";
 import { Slide, ToastContainer } from "react-toastify";
 import TaskEditor from "./TaskEditor";
 import { register as registerSW } from "./service-worker-registration";
+import AuthWrapper from "./AuthWrapper";
 
 const route = createBrowserRouter([
   {
     path: "newnote",
-    element: <NoteCreator />,
+    element: (
+      <AuthWrapper>
+        <NoteCreator />
+      </AuthWrapper>
+    ),
   },
   {
     path: "note/:note_slug",
-    element: <NoteEditor />,
+    element: (
+      <AuthWrapper>
+        <NoteEditor />
+      </AuthWrapper>
+    ),
   },
   {
     path: ":note_slug",
-    element: <ViewNote />,
+    element: (
+      <AuthWrapper>
+        <ViewNote />
+      </AuthWrapper>
+    ),
   },
   {
     path: "task/:task_id",
-    element: <TaskEditor />,
+    element: (
+      <AuthWrapper>
+        <TaskEditor />
+      </AuthWrapper>
+    ),
   },
   {
     path: "/",

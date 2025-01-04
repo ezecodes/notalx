@@ -1,4 +1,11 @@
-import React, { createContext, Dispatch, FC, ReactNode, useState } from "react";
+import React, {
+  createContext,
+  Dispatch,
+  FC,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import {
   _IAlias,
   ApiFetchNote,
@@ -63,6 +70,10 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
   const [authAliasNotes, setAuthAliasNotes] = useState<ApiFetchNote[]>([]);
+
+  useEffect(() => {
+    getOTPExpiry();
+  }, []);
 
   const deleteNote = async (id: string) => {
     const e = prompt("Are you sure ? Type yes to confirm");

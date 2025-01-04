@@ -1063,11 +1063,6 @@ video {
   color: rgb(37 211 102 / var(--tw-text-opacity, 1));
 }
 
-.text-\[\#a7a7a7\] {
-  --tw-text-opacity: 1;
-  color: rgb(167 167 167 / var(--tw-text-opacity, 1));
-}
-
 .text-blue-200 {
   --tw-text-opacity: 1;
   color: rgb(191 219 254 / var(--tw-text-opacity, 1));
@@ -1232,6 +1227,7 @@ html {
 
 .popup_child .dropdown_item {
   border-bottom: 1px solid var(--border_color);
+  height: 40px;
 }
 
 li {
