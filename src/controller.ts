@@ -413,6 +413,16 @@ export async function createNoteSummary(
   const { text, summary_id } = req.body;
   const cacheKey = `summary:${summary_id ?? randomBytes(4).toString("hex")}`;
 
+  if (!text || text.trim() === "") {
+    next(
+      ApiError.error(
+        ErrorCodes.VALIDATION_ERROR,
+        "Please provide text to summarize."
+      )
+    );
+    return;
+  }
+
   try {
     const cache: ISummarySession | null = await memcachedService.get(cacheKey);
     let prompt =
@@ -422,7 +432,6 @@ export async function createNoteSummary(
 
     // const summary = await CreateAiSummary(text, prompt);
     // if (!summary.success) {
-    //   console.error(summary);
     //   next(
     //     ApiError.error(
     //       ErrorCodes.INTERNAL_SERVER_ERROR,
@@ -433,7 +442,7 @@ export async function createNoteSummary(
     // }
 
     const data = {
-      summary: "Add ability to mention",
+      summary: "summary.result.response",
       summary_id: cacheKey.split("summary:")[1],
     };
     const calls_count = cache ? cache.calls_count + 1 : 1;

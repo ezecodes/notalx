@@ -106,9 +106,6 @@ const Editor = () => {
   const [highlightedText, setHighlightedText] =
     useState<IHighlightedText | null>(null);
 
-  const [lastHighlightedText, setLastHighlightedText] =
-    useState<IHighlightedText | null>(null);
-
   const fetchAllTasksInNote = async () => {
     const f = await fetch(`/api/note/${parsedNoteId.current}/task`);
     const response: IApiResponse<{
@@ -169,23 +166,23 @@ const Editor = () => {
     }
   };
 
-  const handleSummariseAction = async () => {
-    if (!highlightedText) {
+  const handleSummariseAction = async (summeriseAll?: boolean) => {
+    if (!highlightedText && !summeriseAll) {
       toast.error("Select text to summerise");
       return;
     }
     try {
       setLoadingStates((prev) => ({ ...prev, summary: true }));
+
       const response = await summeriseSelectedText(parsedNoteId.current, {
         summary_id: summaryResponse?.summary_id ?? null,
-        text: highlightedText.text,
+        text: editor?.content!,
       });
       if (response.status === "err") {
         toast.error(response.message!);
         return;
       }
       setSummaryResponse(response.data!);
-      setLastHighlightedText(highlightedText);
     } finally {
       setLoadingStates((prev) => ({ ...prev, summary: false }));
     }
@@ -197,6 +194,7 @@ const Editor = () => {
     editor: any
   ) => {
     if (selection && selection.length > 0) {
+      console.log(selection);
       const selectedText = editor.getText(selection.index, selection.length);
       const data = {
         end_index: selection.index + selection.length,
@@ -218,10 +216,6 @@ const Editor = () => {
 
       if (quillRef.current) {
         const editor = quillRef.current.getEditor();
-        const originalText = editor.getText(
-          start_index,
-          end_index - start_index
-        );
 
         // Temporarily format preview text
 
@@ -237,12 +231,12 @@ const Editor = () => {
   }, [summaryResponse]);
 
   const handleInsert = () => {
-    if (summaryResponse && lastHighlightedText) {
-      const { end_index, start_index } = lastHighlightedText;
+    if (summaryResponse && highlightedText) {
+      const { end_index, start_index } = highlightedText;
 
       if (quillRef.current) {
         const editor = quillRef.current.getEditor();
-        editor.removeFormat(start_index, end_index - start_index);
+        editor.removeFormat(start_index, 100000);
       }
       setPopupVisible(false);
     }
@@ -462,7 +456,11 @@ const Editor = () => {
                       // callJobAction("prioritize", highlightedText)
                     }}
                     schedule={handleAiScheduling}
-                    summerise={handleSummariseAction}
+                    summerise={() => {
+                      quillRef.current?.editor?.setSelection(0, 9999999999);
+
+                      handleSummariseAction(true);
+                    }}
                     todo={() => {}}
                     loadingStates={loadingStates}
                   />
