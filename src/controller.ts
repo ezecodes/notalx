@@ -807,7 +807,6 @@ export async function getNotesSharedWithAlias(
   )) as any as INote[];
   notes = notes.filter((note) => note);
 
-  console.log(notes);
   res.json({
     status: "ok",
     data: {

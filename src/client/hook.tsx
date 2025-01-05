@@ -123,9 +123,10 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const fetchNotesSharedWithAlias = async () => {
-    const f = await fetch("/api/notes/shared");
+    const f = await fetch("/api/note/shared");
     const res: IPaginatedResponse<ApiFetchNote> = await f.json();
-    setNotesSharedWithAlias(res.data?.rows!);
+
+    res.status == "ok" && setNotesSharedWithAlias(res.data?.rows!);
   };
 
   const loadDrafts = () => {

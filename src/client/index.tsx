@@ -136,6 +136,7 @@ const RenderNotes: FC<{
   ownedNotes: ApiFetchNote[];
 }> = ({ sharedNotes, ownedNotes }) => {
   const [currentTab, setCurrentTab] = useState<"shared" | "owned">("owned");
+
   return (
     <div className="flex flex-col gap-y-4">
       <div className="flex items-center gap-x-3">
