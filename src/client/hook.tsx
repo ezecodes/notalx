@@ -13,6 +13,7 @@ import {
   INote,
   INoteCreator,
   IOtpExpiry,
+  IPaginatedResponse,
 } from "../type";
 import { fetchAuthAliasNotes } from "./utils";
 
@@ -49,6 +50,8 @@ type IContext = {
   >;
   getNoteCollaborators: (note_id: string) => any;
   fetchAliasNotes: () => void;
+  fetchNotesSharedWithAlias: () => void;
+  notesSharedWithAlias: ApiFetchNote[];
   authAliasNotes: ApiFetchNote[];
 };
 const key = "drafts";
@@ -72,6 +75,9 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
   const [authAliasNotes, setAuthAliasNotes] = useState<ApiFetchNote[]>([]);
+  const [notesSharedWithAlias, setNotesSharedWithAlias] = useState<
+    ApiFetchNote[]
+  >([]);
   const [isOtpExpiryLoading, setOtpExpiryLoading] = useState(true);
 
   useEffect(() => {
@@ -114,6 +120,12 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
         setAuthAliasNotes(res.data.rows);
       }
     });
+  };
+
+  const fetchNotesSharedWithAlias = async () => {
+    const f = await fetch("/api/notes/shared");
+    const res: IPaginatedResponse<ApiFetchNote> = await f.json();
+    setNotesSharedWithAlias(res.data?.rows!);
   };
 
   const loadDrafts = () => {
@@ -231,6 +243,8 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     fetchAliasNotes,
     authAliasNotes,
     isOtpExpiryLoading,
+    fetchNotesSharedWithAlias,
+    notesSharedWithAlias,
   };
 
   return (

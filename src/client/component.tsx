@@ -171,14 +171,14 @@ export const CollaboratorsModal: FC<{
   const [collaborators, setCollaborators] = useState<_IAlias[]>([]);
   const [newCollaborators, setNewCollaborators] = useState<_IAlias[]>([]);
 
-  async function getNoteCollaborators(note_id: string) {
+  async function getNoteCollaborators() {
     const f = await fetch(`/api/note/${note_id}/collaborators`);
     const response: IApiResponse<{ rows: _IAlias[] }> = await f.json();
 
     response.status === "ok" && setCollaborators(response.data!.rows);
   }
   useEffect(() => {
-    getNoteCollaborators(note_id);
+    getNoteCollaborators();
   }, []);
 
   const [selected, setSelected] = useState<_IAlias | null>(null);
@@ -234,6 +234,12 @@ export const CollaboratorsModal: FC<{
     if (response.status === "err") toast.error(response.message);
     else {
       toast.success(response.message);
+      setTimeout(() => {
+        getNoteCollaborators().then(() => {
+          setNewCollaborators([]);
+          setSelected(null);
+        });
+      }, 500);
     }
   }
   return (

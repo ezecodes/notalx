@@ -38,6 +38,10 @@ router
   .get(authoriseAlias, Controller.getAuthorizedAliasNotes);
 
 router
+  .route("/note/shared")
+  .get(authoriseAlias, Controller.getNotesSharedWithAlias);
+
+router
   .route("/note/:note_id")
   .delete(authoriseAlias, authorize_alias_as_note_owner, Controller.deleteNote)
   .put(

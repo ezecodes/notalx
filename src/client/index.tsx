@@ -21,10 +21,154 @@ import {
   NotificationType,
 } from "../type";
 
-const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
-  return notes.map((i, key) => (
-    <SingleNote collaborators={i.collaborators} note={i.note} key={i.note.id} />
-  ));
+const Home = () => {
+  const navigate = useNavigate();
+  const {
+    authAliasNotes,
+    fetchAliasNotes,
+    notesSharedWithAlias,
+    fetchNotesSharedWithAlias,
+    otpExpiry,
+  } = useContext(GlobalContext)!;
+  const [searchParams] = useSearchParams();
+
+  const [scheduledTasks, setScheduledTasks] = useState<
+    { task: ITask; participants: _IAlias[] }[]
+  >([]);
+
+  const [currentPage, setCurrentPage] = useState("notes");
+
+  useEffect(() => {
+    try {
+      const redirect = searchParams.get("r");
+      const page = searchParams.get("page");
+      if (redirect) {
+        navigate(decodeURIComponent(redirect), { replace: true });
+      }
+
+      page && setCurrentPage(page);
+
+      fetchAliasNotes();
+      fetchAllScheduledTasksForAlias().then((res) => {
+        res.status === "ok" && setScheduledTasks(res.data!.rows!);
+      });
+      fetchNotesSharedWithAlias();
+    } catch (err) {
+      console.error(err);
+    }
+  }, [navigate, searchParams]);
+
+  return (
+    <section className="page">
+      <SharedHeader />
+
+      <div className="flex items-start top_space gap-x-3  w-full">
+        {otpExpiry?.is_valid_auth && (
+          <>
+            <Link
+              to="?page=notes"
+              className={`sub_button ${
+                currentPage === "notes" ? "text-white" : "subtext"
+              } `}
+            >
+              Notes
+            </Link>
+            <Link
+              to="?page=tasks"
+              className={`sub_button ${
+                currentPage === "tasks" ? "text-white" : "subtext"
+              } `}
+            >
+              Schedules
+            </Link>{" "}
+            <Link
+              to="?page=notification"
+              className={`sub_button ${
+                currentPage === "notification" ? "text-white" : "subtext"
+              } `}
+            >
+              Notifications
+            </Link>
+          </>
+        )}
+      </div>
+
+      {
+        <section className="w-full top_space py-5 mb-3">
+          <div className="flex gap-4 flex-wrap">
+            {currentPage === "notes" && (
+              <RenderNotes
+                sharedNotes={notesSharedWithAlias}
+                ownedNotes={authAliasNotes}
+              />
+            )}
+
+            {currentPage === "tasks" && (
+              <ScheduledTasksWrapper rows={scheduledTasks} />
+            )}
+
+            {currentPage === "notification" && <Notifications />}
+          </div>
+        </section>
+      }
+      <Outlet />
+    </section>
+  );
+};
+
+const SmallButton: FC<{
+  active: boolean;
+  listener: () => void;
+  text: string;
+}> = ({ active, listener, text }) => {
+  return (
+    <button
+      className="sp_buttons"
+      style={active ? { backgroundColor: "#3a3a43" } : {}}
+      onClick={listener}
+    >
+      {text}
+    </button>
+  );
+};
+const RenderNotes: FC<{
+  sharedNotes: ApiFetchNote[];
+  ownedNotes: ApiFetchNote[];
+}> = ({ sharedNotes, ownedNotes }) => {
+  const [currentTab, setCurrentTab] = useState<"shared" | "owned">("owned");
+  return (
+    <div className="flex flex-col gap-y-4">
+      <div className="flex items-center gap-x-3">
+        <SmallButton
+          text="Created By Me"
+          active={currentTab === "owned"}
+          listener={() => setCurrentTab("owned")}
+        />
+        <SmallButton
+          text="Shared With Me"
+          active={currentTab === "shared"}
+          listener={() => setCurrentTab("shared")}
+        />
+      </div>
+      {currentTab === "owned" &&
+        ownedNotes.map((i, key) => (
+          <SingleNote
+            collaborators={i.collaborators}
+            note={i.note}
+            key={i.note.id}
+          />
+        ))}
+
+      {currentTab === "shared" &&
+        sharedNotes.map((i, key) => (
+          <SingleNote
+            collaborators={i.collaborators}
+            note={i.note}
+            key={i.note.id}
+          />
+        ))}
+    </div>
+  );
 };
 
 const Notifications = ({}) => {
@@ -83,89 +227,4 @@ const Notifications = ({}) => {
     </div>
   );
 };
-
-const Home = () => {
-  const navigate = useNavigate();
-  const { authAliasNotes, fetchAliasNotes, otpExpiry } =
-    useContext(GlobalContext)!;
-  const [searchParams] = useSearchParams();
-
-  const [scheduledTasks, setScheduledTasks] = useState<
-    { task: ITask; participants: _IAlias[] }[]
-  >([]);
-
-  const [currentPage, setCurrentPage] = useState("notes");
-
-  useEffect(() => {
-    try {
-      const redirect = searchParams.get("r");
-      const page = searchParams.get("page");
-      if (redirect) {
-        navigate(decodeURIComponent(redirect), { replace: true });
-      }
-
-      page && setCurrentPage(page);
-
-      fetchAliasNotes();
-      fetchAllScheduledTasksForAlias().then((res) => {
-        res.status === "ok" && setScheduledTasks(res.data!.rows!);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  }, [navigate, searchParams]);
-
-  return (
-    <section className="page">
-      <SharedHeader />
-
-      <div className="flex items-start top_space gap-x-3  w-full">
-        {otpExpiry?.is_valid_auth && (
-          <>
-            <Link
-              to="?page=notes"
-              className={`sub_button ${
-                currentPage === "notes" ? "text-white" : "subtext"
-              } `}
-            >
-              Notes
-            </Link>
-            <Link
-              to="?page=tasks"
-              className={`sub_button ${
-                currentPage === "tasks" ? "text-white" : "subtext"
-              } `}
-            >
-              Schedules
-            </Link>{" "}
-            <Link
-              to="?page=notification"
-              className={`sub_button ${
-                currentPage === "notification" ? "text-white" : "subtext"
-              } `}
-            >
-              Notifications
-            </Link>
-          </>
-        )}
-      </div>
-
-      {
-        <section className="w-full top_space py-5 mb-3">
-          <div className="flex gap-4 flex-wrap">
-            {currentPage === "notes" && <RenderNotes notes={authAliasNotes} />}
-
-            {currentPage === "tasks" && (
-              <ScheduledTasksWrapper rows={scheduledTasks} />
-            )}
-
-            {currentPage === "notification" && <Notifications />}
-          </div>
-        </section>
-      }
-      <Outlet />
-    </section>
-  );
-};
-
 export default Home;

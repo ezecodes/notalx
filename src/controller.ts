@@ -27,6 +27,7 @@ import {
   IAuthSession,
   IncomingNote,
   INote,
+  INoteCollaborator,
   IOtpSession,
   ISummaryResponse,
   ITask,
@@ -778,7 +779,41 @@ export async function getAuthorizedAliasNotes(
     },
   });
 }
+export async function getNotesSharedWithAlias(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const alias_id = req.__alias?.id!;
 
+  const findJoins = (await NoteCollaborator.findAll({
+    where: { alias_id },
+    raw: true,
+  })) as any as INoteCollaborator[];
+  if (findJoins.length === 0) {
+    res.json({
+      status: "ok",
+      data: { rows: [], pagination: req.__pagination__! },
+    });
+    return;
+  }
+
+  let notes = findJoins
+    .map(async (item) => {
+      const note = await Note.findByPkWithCache(item.note_id);
+      if (!note) return;
+      return note;
+    })
+    .filter((i) => typeof i !== undefined || i !== undefined) as any as INote[];
+
+  res.json({
+    status: "ok",
+    data: {
+      rows: await PopulateCollaboratorForNotes(notes),
+      paginaton: req.__pagination__!,
+    },
+  });
+}
 ("----- getAllNotes ------");
 export async function getAllNotes(
   req: Request,

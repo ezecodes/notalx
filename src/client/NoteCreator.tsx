@@ -192,7 +192,11 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
 
   return (
     <aside
-      className="z-[90] add_bg flex flex-col gap-y-4 sm:absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[350px] shadow-md add_border"
+      className={`z-[90] add_bg flex flex-col gap-y-4 sm:absolute right-[50px] top-[50px] px-4 py-3 rounded-md w-[350px] animate__animated  shadow-md add_border ${
+        isOpen
+          ? "animate__zoomInRight visible opacity-1"
+          : "animate__zoomOutRight invisible opacity-0"
+      }`}
       style={{ backdropFilter: "blur(1px)" }}
     >
       <div className="flex justify-between items-center">
@@ -223,29 +227,28 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
                   }}
                 />
                 <div className="flex gap-x-2 items-center justify-end   mt-3">
-                  <span> {formatRelativeTime(i.createdAt!)} </span>
+                  <span className="text-sm">
+                    {" "}
+                    {formatRelativeTime(i.createdAt!)}{" "}
+                  </span>
 
                   <button
-                    className="draft_actions"
+                    className="text-sm text-red-500 flex items-center gap-x-2"
                     onClick={() => deleteDraft(i.draft_id!)}
                   >
-                    <AiOutlineDelete />
+                    Delete
                   </button>
                   <button
-                    className="draft_actions"
+                    className="text-sm flex items-center gap-x-2"
                     onClick={() => expandDraft(i.draft_id!)}
                   >
-                    <FaExpand />
+                    Use Draft
                   </button>
                 </div>
               </div>
             );
           })}
         </div>
-        <p className="text-sm ">
-          This ensures your progress is safe while giving you full control over
-          managing your notes.
-        </p>
       </div>
     </aside>
   );
