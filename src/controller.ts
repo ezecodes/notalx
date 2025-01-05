@@ -628,7 +628,7 @@ export async function registerAlias(
 
     return;
   }
-
+  name = name.trim();
   const valid = validateUsername(name);
   if (!valid.isValid) {
     next(ApiError.error(ErrorCodes.VALIDATION_ERROR, valid.error));
