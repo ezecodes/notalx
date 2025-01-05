@@ -702,6 +702,10 @@ video {
   height: 30px;
 }
 
+.h-\[35px\] {
+  height: 35px;
+}
+
 .h-\[60\%\] {
   height: 60%;
 }
@@ -1176,7 +1180,7 @@ video {
 }
 
 .animate__animated {
-  --animate-duration: 450ms;
+  --animate-duration: 300ms;
 }
 
 body,
@@ -1227,7 +1231,7 @@ html {
 
 .popup_child .dropdown_item {
   border-bottom: 1px solid var(--border_color);
-  height: 40px;
+  height: 45px;
 }
 
 li {

@@ -42,13 +42,11 @@ router
   .delete(authoriseAlias, authorize_alias_as_note_owner, Controller.deleteNote)
   .put(
     authoriseAlias,
-    authorize_alias_as_note_owner,
     authorize_alias_as_note_collaborator,
     Controller.editNote
   )
   .get(
     authoriseAlias,
-    authorize_alias_as_note_owner,
     authorize_alias_as_note_collaborator,
     Controller.getNoteById
   );
@@ -61,13 +59,11 @@ router
   .route("/note/:note_id/task")
   .post(
     authoriseAlias,
-    authorize_alias_as_note_owner,
     authorize_alias_as_note_collaborator,
     Controller.createTaskSchedule
   )
   .get(
     authoriseAlias,
-    authorize_alias_as_note_owner,
     authorize_alias_as_note_collaborator,
     validateAndSetPagination,
     Controller.getAllTasksForNote
@@ -98,14 +94,12 @@ router
   .route("/note/:note_id/collaborators")
   .get(
     authoriseAlias,
-    authorize_alias_as_note_owner,
     authorize_alias_as_note_collaborator,
     Controller.getNoteCollaborators
   )
   .post(
     authoriseAlias,
     authorize_alias_as_note_owner,
-    authorize_alias_as_note_collaborator,
     Controller.addNoteCollaborators
   )
   .delete(

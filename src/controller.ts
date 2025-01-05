@@ -49,7 +49,6 @@ import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
 
-console.log("----- getAllAlias ------");
 export async function getAllAlias(
   req: Request,
   res: Response,
@@ -104,7 +103,6 @@ export async function requestOtp(
   };
   memcachedService.set(CacheKeys.otp(otpSessionSlug), cache, 3600);
 
-  console.log(user);
   sendEmail({
     html: `Your code ${code}`,
     receiver: user.email,
@@ -287,7 +285,6 @@ export async function editTaskSchedule(
   next: NextFunction
 ) {
   const task_id = req.params.task_id;
-  console.log(req.body);
 
   const { date, name, participants, reminder, duration } =
     req.body as IEditTask;
@@ -402,7 +399,6 @@ export async function createTaskSchedule(
     note?.content!,
     TASK_SCHEDULING_PROMPT_VARIATIONS[0].prompt
   );
-  console.log(newTask);
   let parsedTask: ITaskFromLLM = JSON.parse(newTask.result.response);
 
   if (!parsedTask.success) {
@@ -697,7 +693,7 @@ export async function getNoteById(
     message: "Note retrieved",
     data: {
       note,
-      collaborators: await PopulateNoteCollaborators(note.id!, find!.alias_id),
+      collaborators: await PopulateNoteCollaborators(note.id!),
     },
   });
 }

@@ -136,7 +136,7 @@ export async function PopulateCollaboratorForNotes(notes: INote[]) {
   return await Promise.all(
     notes.map(async (i) => ({
       note: i,
-      collaborators: await PopulateNoteCollaborators(i.id!, i.alias_id),
+      collaborators: await PopulateNoteCollaborators(i.id!),
     }))
   );
 }
@@ -170,10 +170,9 @@ export async function PopulateTaskParticipants(
 
   return rows;
 }
-export async function PopulateNoteCollaborators(
-  note_id: string,
-  note_owner_id?: string
-) {
+export async function PopulateNoteCollaborators(note_id: string) {
+  const note = await Note.findByPkWithCache(note_id);
+
   const findAll: INoteCollaborator[] = (await NoteCollaborator.findAll({
     where: { note_id },
     raw: true,
@@ -184,10 +183,8 @@ export async function PopulateNoteCollaborators(
   );
 
   // Add the owner to the collaborator if note_owner_id exists
-  if (note_owner_id) {
-    const findOwner = await Alias.findByPkWithCache(note_owner_id);
-    rows.unshift(findOwner);
-  }
+  const findOwner = await Alias.findByPkWithCache(note!.alias_id);
+  rows.unshift(findOwner);
 
   return rows;
 }

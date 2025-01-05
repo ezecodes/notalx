@@ -1,12 +1,9 @@
-import { FC, useContext, useEffect, useState } from "react";
-import { Outlet, useNavigate, useSearchParams } from "react-router-dom";
+import { FC, useContext, useEffect, useRef, useState } from "react";
+import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
 import { fetchAllScheduledTasksForAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { _IAlias, ApiFetchNote, ITask } from "../type";
-import { toast } from "react-toastify";
-
-type Tab = "notes" | "tasks" | "notification";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   return notes.map((i, key) => (
@@ -14,25 +11,31 @@ const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   ));
 };
 
+const Notifications = () => {
+  return <></>;
+};
+
 const Home = () => {
   const navigate = useNavigate();
-  const { getOTPExpiry, authAliasNotes, fetchAliasNotes, otpExpiry } =
+  const { authAliasNotes, fetchAliasNotes, otpExpiry } =
     useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<Tab>(
-    otpExpiry?.is_valid_auth ? "notes" : "notification"
-  );
+
   const [scheduledTasks, setScheduledTasks] = useState<
     { task: ITask; participants: _IAlias[] }[]
   >([]);
 
+  const [currentPage, setCurrentPage] = useState("notes");
+
   useEffect(() => {
     try {
       const redirect = searchParams.get("r");
-
+      const page = searchParams.get("page");
       if (redirect) {
         navigate(decodeURIComponent(redirect), { replace: true });
       }
+
+      page && setCurrentPage(page);
 
       fetchAliasNotes();
       fetchAllScheduledTasksForAlias().then((res) => {
@@ -50,30 +53,30 @@ const Home = () => {
       <div className="flex items-start top_space gap-x-3  w-full">
         {otpExpiry?.is_valid_auth && (
           <>
-            <button
-              onClick={() => setActiveTab("notes")}
+            <Link
+              to="?page=notes"
               className={`sub_button ${
-                activeTab === "notes" ? "text-white" : "subtext"
+                currentPage === "notes" ? "text-white" : "subtext"
               } `}
             >
               Notes
-            </button>
-            <button
-              onClick={() => setActiveTab("tasks")}
+            </Link>
+            <Link
+              to="?page=tasks"
               className={`sub_button ${
-                activeTab === "tasks" ? "text-white" : "subtext"
+                currentPage === "tasks" ? "text-white" : "subtext"
               } `}
             >
               Schedules
-            </button>{" "}
-            <button
-              onClick={() => setActiveTab("notification")}
+            </Link>{" "}
+            <Link
+              to="?page=notification"
               className={`sub_button ${
-                activeTab === "notification" ? "text-white" : "subtext"
+                currentPage === "notification" ? "text-white" : "subtext"
               } `}
             >
               Notifications
-            </button>
+            </Link>
           </>
         )}
       </div>
@@ -81,11 +84,13 @@ const Home = () => {
       {
         <section className="w-full top_space py-5 mb-3">
           <div className="flex gap-4 flex-wrap">
-            {activeTab === "notes" && <RenderNotes notes={authAliasNotes} />}
+            {currentPage === "notes" && <RenderNotes notes={authAliasNotes} />}
 
-            {activeTab === "tasks" && (
+            {currentPage === "tasks" && (
               <ScheduledTasksWrapper rows={scheduledTasks} />
             )}
+
+            {currentPage === "notification" && <Notifications />}
           </div>
         </section>
       }

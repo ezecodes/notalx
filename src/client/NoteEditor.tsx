@@ -528,16 +528,6 @@ const Editor = () => {
               </button>
             </div>
 
-            {currentJobTab === "task" && (
-              <div className="w-full flex items-center gap-x-3">
-                <h6 className="text-sm subtext">Sort by</h6>
-                <select className="bg-transparent text-sm ">
-                  <option> Upcoming </option>
-                  <option> Ended </option>
-                </select>
-              </div>
-            )}
-
             {currentJobTab === "task" && <ScheduledTasksWrapper rows={tasks} />}
           </div>
         </div>

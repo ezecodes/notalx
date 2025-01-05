@@ -146,6 +146,7 @@ export async function authorize_alias_as_note_collaborator(
   next: NextFunction
 ) {
   const collaborators = await PopulateNoteCollaborators(req.params.note_id);
+  console.log(collaborators);
   if (
     collaborators.length === 0 ||
     !collaborators.find((i) => i?.id === req.__alias?.id)

@@ -600,17 +600,53 @@ const TaskOptionsPopup: FC<{ deleteTask: () => void; manage: () => void }> = ({
     </div>
   );
 };
+
+const determine_row_visibility = (row: ITask, sort: string | null) => {
+  if (sort === "none") {
+    return "block";
+  }
+  if (sort === "upcoming") {
+    if (new Date(row.date) > new Date()) {
+      return "block";
+    } else {
+      return "hidden";
+    }
+  }
+  if (sort === "ended") {
+    if (new Date(row.date) < new Date()) {
+      return "block";
+    } else {
+      return "hidden";
+    }
+  }
+};
+
 export const ScheduledTasksWrapper: FC<{
   rows: { task: ITask; participants: _IAlias[] }[];
 }> = ({ rows }) => {
   const navigate = useNavigate();
+  const [sort, setSort] = useState<"upcoming" | "ended" | "none">("none");
   return (
     <div className="w-full flex flex-wrap gap-x-8 gap-y-3 mt-2">
+      <div className="w-full flex items-center gap-x-3">
+        <h6 className="text-sm subtext">Sort by</h6>
+        <select
+          className="bg-[#333] text-sm "
+          onChange={(e) => setSort(e.target.value as any)}
+        >
+          <option value="none"> -- </option>
+          <option value="upcoming"> Upcoming </option>
+          <option value="ended"> Ended </option>
+        </select>
+      </div>
       {rows.map((row) => {
         return (
           <div
             key={row.task.id}
-            className="flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[175px] rounded-sm w-full 3micro:w-[300px]"
+            className={`flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[175px] rounded-sm w-full 3micro:w-[300px] ${determine_row_visibility(
+              row.task,
+              sort
+            )}`}
           >
             <div className="  flex justify-between items-center border_bottom py-2   px-2">
               <span
@@ -638,7 +674,7 @@ export const ScheduledTasksWrapper: FC<{
               </div>
             </div>
 
-            <div className="flex justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
+            <div className="flex h-[35px] justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
                 {new Date() < new Date(row.task.date) ? (
                   <>
@@ -655,7 +691,7 @@ export const ScheduledTasksWrapper: FC<{
                   {formatRelativeTime(row.task.date)}
                 </span>
               </span>
-              <span className="flex items-center gap-x-2">
+              <span className="flex items-center gap-x-4">
                 <TaskSharingPopup task={row.task} />
                 <TaskOptionsPopup
                   deleteTask={() => {}}

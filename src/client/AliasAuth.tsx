@@ -53,8 +53,7 @@ const AliasAuth = () => {
     const response = await f.json();
     toast(response.message);
     if (response.status === "ok") {
-      getOTPExpiry();
-      navigate(-1);
+      document.location.href = "/";
     }
   };
   const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
