@@ -11,14 +11,14 @@ const AuthWrapper: FC<AuthWrapperProps> = ({
   children,
   redirectTo = "/login",
 }) => {
-  const { otpExpiry } = useContext(GlobalContext)!;
+  const { otpExpiry, isOtpExpiryLoading } = useContext(GlobalContext)!;
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!otpExpiry || !otpExpiry.is_valid_auth) {
+    if (!isOtpExpiryLoading && (!otpExpiry || !otpExpiry.is_valid_auth)) {
       navigate(redirectTo);
     }
-  }, []);
+  }, [otpExpiry]);
 
   if (!otpExpiry || !otpExpiry.is_valid_auth) {
     return null;

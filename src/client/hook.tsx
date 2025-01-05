@@ -29,6 +29,9 @@ type IContext = {
   setSelectedAlias: Dispatch<React.SetStateAction<_IAlias | null>>;
   setOtpExpiry: Dispatch<React.SetStateAction<IOtpExpiry | null>>;
   otpExpiry: IOtpExpiry | null;
+
+  isOtpExpiryLoading: boolean;
+
   getOTPExpiry: () => void;
 
   selectedNotes: { collaborators: _IAlias[]; note: INote }[];
@@ -69,6 +72,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   });
   const [otpExpiry, setOtpExpiry] = useState<IOtpExpiry | null>(null);
   const [authAliasNotes, setAuthAliasNotes] = useState<ApiFetchNote[]>([]);
+  const [isOtpExpiryLoading, setOtpExpiryLoading] = useState(true);
 
   useEffect(() => {
     getOTPExpiry();
@@ -167,13 +171,17 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
   const getOTPExpiry = async () => {
-    const f = await fetch("/api/otp/expiry");
-    const response: IApiResponse<IOtpExpiry> = await f.json();
-    if (response.status === "ok") {
-      setOtpExpiry(response.data!);
-      return response.data;
-    } else {
-      return null;
+    try {
+      const f = await fetch("/api/otp/expiry");
+      const response: IApiResponse<IOtpExpiry> = await f.json();
+      if (response.status === "ok") {
+        setOtpExpiry(response.data!);
+        return response.data;
+      } else {
+        return null;
+      }
+    } finally {
+      setOtpExpiryLoading(false);
     }
   };
 
@@ -222,6 +230,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     setCollaborators,
     fetchAliasNotes,
     authAliasNotes,
+    isOtpExpiryLoading,
   };
 
   return (

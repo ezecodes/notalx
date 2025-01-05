@@ -25,7 +25,12 @@ class Notification extends Model<
       limit: pagination.page_size,
       offset: (pagination.page - 1) * pagination.page_size,
       order: [["updatedAt", "DESC"]],
-    })) as any;
+    })) as any as INotification[];
+
+    notifications.forEach(
+      (notification) =>
+        (notification.metadata = JSON.parse(notification.metadata))
+    );
 
     // await memcachedService.set(cacheKey, notifications);
 

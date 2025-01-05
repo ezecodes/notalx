@@ -146,7 +146,6 @@ export async function authorize_alias_as_note_collaborator(
   next: NextFunction
 ) {
   const collaborators = await PopulateNoteCollaborators(req.params.note_id);
-  console.log(collaborators);
   if (
     collaborators.length === 0 ||
     !collaborators.find((i) => i?.id === req.__alias?.id)
@@ -166,9 +165,8 @@ export async function authorize_alias_as_note_owner(
   const find = await Note.findByPkWithCache(req.params.note_id);
 
   if (!find || find.alias_id !== req.__alias?.id) {
-    next(
-      ApiError.error(ErrorCodes.UNAUTHORIZED, "Collaborator access required")
-    );
+    next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Owner access required"));
+    return;
   }
 
   next();
