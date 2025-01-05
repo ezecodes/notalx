@@ -93,7 +93,7 @@ const Home = () => {
         )}
       </div>
 
-      {
+      {otpExpiry && otpExpiry.is_valid_auth && (
         <section className="w-full top_space py-5 mb-3">
           <div className="flex gap-4 flex-wrap">
             {currentPage === "notes" && (
@@ -110,7 +110,7 @@ const Home = () => {
             {currentPage === "notification" && <Notifications />}
           </div>
         </section>
-      }
+      )}
       <Outlet />
     </section>
   );

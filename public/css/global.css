@@ -133,7 +133,7 @@ label {
   @apply text-gray-300;
 }
 .sp_buttons {
-  @apply text-sm bg-[#333] rounded-md h-[25px] px-2;
+  @apply text-sm bg-[#333] rounded-md h-[30px] px-2;
 }
 .sp_buttons.insert {
   @apply bg-[#0848ad];

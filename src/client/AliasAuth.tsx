@@ -1,8 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { BackButton, Button, InputWithIcon, SearchDropdown } from "./component";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { BackButton, Button, InputWithIcon } from "./component";
 import { _IAlias, IApiResponse } from "../type";
-import { decodeFromBase62, fetchAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 

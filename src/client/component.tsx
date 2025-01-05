@@ -10,7 +10,7 @@ import { ImCancelCircle } from "react-icons/im";
 import { _IAlias, IApiResponse, INote, IOtpExpiry, ITask } from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
-import { BsArrowDown, BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
+import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
 import { VscLock } from "react-icons/vsc";
 import {
   IoArrowBackOutline,
@@ -29,7 +29,7 @@ import { toast } from "react-toastify";
 import { IoShareSocialOutline } from "react-icons/io5";
 import { SiWhatsapp } from "react-icons/si";
 import { FaTelegram } from "react-icons/fa";
-import { BiDotsVertical, BiLogoTelegram } from "react-icons/bi";
+import { BiLogoTelegram } from "react-icons/bi";
 import { GoArrowRight } from "react-icons/go";
 import { RotatingLines } from "react-loader-spinner";
 import { IoIosArrowDown, IoMdCheckmarkCircleOutline } from "react-icons/io";

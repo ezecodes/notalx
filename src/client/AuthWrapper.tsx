@@ -1,4 +1,4 @@
-import React, { ReactNode, useContext, FC, useEffect } from "react";
+import { ReactNode, useContext, FC, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GlobalContext } from "./hook";
 

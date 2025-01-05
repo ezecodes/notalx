@@ -270,7 +270,7 @@ export async function getAliasById(
   const find = await Alias.findByPkWithCache(aliasId);
 
   if (!find) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Alias not found"));
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "No account found"));
     return;
   }
 
@@ -637,7 +637,7 @@ export async function registerAlias(
 
   const count = await Alias.count({ where: { name } });
   if (count > 0) {
-    next(ApiError.error(ErrorCodes.CONFLICT, "Alias already exists"));
+    next(ApiError.error(ErrorCodes.CONFLICT, "Account already exists"));
     return;
   }
   const countEmail = await Alias.count({ where: { email } });
@@ -660,7 +660,7 @@ export async function registerAlias(
     [alias.id]
   );
 
-  res.json({ status: "ok", message: "Alias created!" });
+  res.json({ status: "ok", message: "Account created!" });
 }
 
 export async function getNotifications(
@@ -1002,11 +1002,11 @@ export async function createNote(
   const findAlias = await Alias.findByPkWithCache(req.__alias?.id!);
 
   if (!findAlias) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Alias not found"));
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Account not found"));
     return;
   }
 
   Note.create({ ...valid.data, alias_id: req.__alias!.id! });
 
-  res.json({ status: "ok", message: "Note has been saved to your alias!" });
+  res.json({ status: "ok", message: "Note has been saved to your account!" });
 }

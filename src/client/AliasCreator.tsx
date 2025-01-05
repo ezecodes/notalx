@@ -1,5 +1,4 @@
 import { FC, useState } from "react";
-import { ImInfo } from "react-icons/im";
 import { BackButton, Button, InputWithIcon } from "./component";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";

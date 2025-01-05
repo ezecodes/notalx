@@ -1,19 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import Note from "./models/Note";
-import { ErrorCodes, IAuthSession, IPagination } from "./type";
+import { ErrorCodes, IAuthSession } from "./type";
 import { CacheKeys, sessionCookieKey } from "./constants";
 import memcachedService from "./memcached";
-import {
-  ApiError,
-  Is_Alias_In_Session_Same_As_Alias,
-  isExpired,
-  PopulateNoteCollaborators,
-  PopulateTaskParticipants,
-} from "./helpers";
+import { ApiError, isExpired, PopulateNoteCollaborators } from "./helpers";
 import Alias from "./models/Alias";
 import { validate } from "uuid";
-import { compareSync } from "bcrypt";
-import cookie from "cookie";
 import Task from "./models/Task";
 
 export function validateAndSetPagination(
