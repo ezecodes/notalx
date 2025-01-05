@@ -1,9 +1,25 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
-import { ScheduledTasksWrapper, SharedHeader, SingleNote } from "./component";
-import { fetchAllScheduledTasksForAlias } from "./utils";
+import {
+  Button,
+  ScheduledTasksWrapper,
+  SharedHeader,
+  SingleNote,
+} from "./component";
+import {
+  encodeToBase62,
+  fetchAllScheduledTasksForAlias,
+  formatRelativeTime,
+} from "./utils";
 import { GlobalContext } from "./hook";
-import { _IAlias, ApiFetchNote, ITask } from "../type";
+import {
+  _IAlias,
+  ApiFetchNote,
+  INotification,
+  IPaginatedResponse,
+  ITask,
+  NotificationType,
+} from "../type";
 
 const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   return notes.map((i, key) => (
@@ -11,8 +27,61 @@ const RenderNotes: FC<{ notes: ApiFetchNote[] }> = ({ notes }) => {
   ));
 };
 
-const Notifications = () => {
-  return <></>;
+const Notifications = ({}) => {
+  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const fetchNotifications = async () => {
+    const f = await fetch("/api/notification");
+    const res: IPaginatedResponse<INotification> = await f.json();
+    if (res.status === "ok") setNotifications(res.data?.rows!);
+  };
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+  return (
+    <div className="flex flex-col gap-y-4">
+      {notifications.map((notification) => {
+        return (
+          <div className="flex w-[450px] bg-[#333] py-3 gap-y-3 px-5 flex-col">
+            <div className=" flex flex-col gap-y-1 rounded-sm ">
+              <h6 className="font-[500] text-md ">
+                {notification.title}
+                {"  "}
+                <span className="text-sm text-[#bbb] font-[300]">
+                  {formatRelativeTime(notification.createdAt)}
+                </span>
+              </h6>
+              <span className="text-sm subtetx">{notification.message}</span>
+            </div>
+            <div>
+              {notification.type === NotificationType.AddedCollaborator && (
+                <Button
+                  text="View Note"
+                  onClick={() =>
+                    navigate(
+                      `/${encodeToBase62(notification.metadata.note_id)}`
+                    )
+                  }
+                />
+              )}{" "}
+              {notification.type === NotificationType.AddedParticipant && (
+                <Button
+                  text="View Task"
+                  onClick={() =>
+                    navigate(
+                      `/task/${encodeToBase62(notification.metadata.task_id)}`
+                    )
+                  }
+                />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 const Home = () => {

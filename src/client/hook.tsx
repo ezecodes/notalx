@@ -64,7 +64,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
     content: "",
-    hidden: true,
     willSelfDestroy: false,
     draft_id: null,
   });

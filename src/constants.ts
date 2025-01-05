@@ -23,11 +23,9 @@ export const CacheKeys = {
 };
 
 export const NoteAttributes = [
-  "is_hidden",
   "title",
   "content",
   "createdAt",
-  "slug",
   "id",
   "alias_id",
   "will_self_destroy",

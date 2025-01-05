@@ -18,6 +18,7 @@ import {
   setExpiryInUTC,
   validateIncomingNote,
   validateUsername,
+  fanOutNotification,
 } from "./helpers";
 import {
   _IAlias,
@@ -29,6 +30,7 @@ import {
   IOtpSession,
   ISummaryResponse,
   ITask,
+  NotificationType,
 } from "./type";
 import {
   NoteAttributes,
@@ -48,6 +50,7 @@ import NoteCollaborator from "./models/NoteCollaborator";
 import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
+import Notification from "./models/Notification";
 
 export async function getAllAlias(
   req: Request,
@@ -64,18 +67,23 @@ export async function requestOtp(
   res: Response,
   next: NextFunction
 ) {
-  const { alias_id } = req.body;
+  const { email } = req.body;
 
-  if (!alias_id || !validate(alias_id)) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Alias not found"));
+  if (!email || !isValidEmail(email)) {
+    next(
+      ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Provide a valid email")
+    );
 
     return;
   }
 
-  const user = (await Alias.findByPk(alias_id, { raw: true })) as any as IAlias;
+  const user = (await Alias.findOne({
+    where: { email },
+    raw: true,
+  })) as any as IAlias;
 
   if (!user) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Alias not found"));
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Email is invalid"));
 
     return;
   }
@@ -97,7 +105,7 @@ export async function requestOtp(
   };
 
   const cache: IOtpSession = {
-    alias_id,
+    email,
     expiry,
     auth_code_hash,
   };
@@ -119,12 +127,12 @@ export async function verifyOtp(
   res: Response,
   next: NextFunction
 ) {
-  const { alias_id, code } = req.body;
-  if (!alias_id || !validate(alias_id) || !code) {
+  const { email, code } = req.body;
+  if (!email || !isValidEmail(email) || !code) {
     next(
       ApiError.error(
         ErrorCodes.RESOURCE_NOT_FOUND,
-        "Please ensure that both alias ID and OTP code are provided in the request"
+        "Please ensure that both Email and OTP code are provided in the request"
       )
     );
     return;
@@ -148,7 +156,7 @@ export async function verifyOtp(
   }
 
   const valid = await compare(code.toString(), cachedSession.auth_code_hash);
-  if (alias_id !== cachedSession.alias_id || !valid) {
+  if (email !== cachedSession.email || !valid) {
     next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Invalid Otp code"));
     return;
   }
@@ -161,15 +169,18 @@ export async function verifyOtp(
     return;
   }
 
-  const user = await Alias.findByPkWithCache(alias_id);
+  const user = (await Alias.findOne({
+    where: { email },
+    raw: true,
+  })) as any as IAlias;
 
   const sessionObj: IAuthSession = {
     expiry,
     ip_address:
       req.headers["x-forwarded-for"]! || req.connection.remoteAddress!,
     user_agent: req.headers["user-agent"]!,
-    alias_id,
-    socket_auth_hash: hashSync(alias_id, 5),
+    alias_id: user.id,
+    socket_auth_hash: hashSync(user.id, 5),
   };
   const authSessionId = randomBytes(15).toString("base64url");
 
@@ -365,7 +376,17 @@ export async function editTaskSchedule(
     });
 
   Task.updateByIdWithCache(task_id, newTask);
-
+  fanOutNotification(
+    NotificationType.AddedParticipant,
+    {
+      title: "You've Been Added!",
+      message: "You're now a participant. Welcome aboard!",
+      metadata: {
+        task_id,
+      },
+    },
+    participants.map((i) => i.id)
+  );
   res.json({
     status: "ok",
     message: "Schedule updated",
@@ -389,7 +410,7 @@ export async function createTaskSchedule(
 ) {
   const count = await Task.count({ where: { note_id: req.params.note_id } });
 
-  if (count === 2) {
+  if (count >= 2) {
     next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
     return;
   }
@@ -399,6 +420,12 @@ export async function createTaskSchedule(
     note?.content!,
     TASK_SCHEDULING_PROMPT_VARIATIONS[0].prompt
   );
+
+  if (!newTask.success) {
+    next(ApiError.error(ErrorCodes.INTERNAL_SERVER_ERROR, "Could not fetch"));
+    return;
+  }
+
   let parsedTask: ITaskFromLLM = JSON.parse(newTask.result.response);
 
   if (!parsedTask.success) {
@@ -437,8 +464,6 @@ export async function createTaskSchedule(
 
     return newTask;
   });
-
-  console.log(tasks);
 
   tasks.forEach(async (task) => {
     await Task.create({
@@ -619,8 +644,40 @@ export async function registerAlias(
     next(ApiError.error(ErrorCodes.CONFLICT, "Email already exists"));
     return;
   }
-  Alias.create({ name, email: (email as string) ?? null });
+  const alias = (await Alias.create(
+    { name, email: (email as string) ?? null },
+    { returning: true, raw: true }
+  )) as any as IAlias;
+
+  fanOutNotification(
+    NotificationType.WelcomeMessage,
+    {
+      title: "Welcome to Our Platform!",
+      message: "Thank you for registering. We're excited to have you on board!",
+      metadata: {},
+    },
+    [alias.id]
+  );
+
   res.json({ status: "ok", message: "Alias created!" });
+}
+
+export async function getNotifications(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const rows = await Notification.findByAlias(
+    req.__alias!.id!,
+    req.__pagination__!
+  );
+  res.json({
+    status: "ok",
+    data: {
+      rows,
+      pagination: req.__pagination__!,
+    },
+  });
 }
 
 export async function getNote(req: Request, res: Response, next: NextFunction) {
@@ -819,6 +876,19 @@ export async function addNoteCollaborators(
       defaults: { note_id, alias_id: id },
     });
   });
+
+  fanOutNotification(
+    NotificationType.AddedCollaborator,
+    {
+      title: "You've Been Added as a Collaborator!",
+      message:
+        "You have been added as a collaborator to a note. Welcome aboard!",
+      metadata: {
+        note_id,
+      },
+    },
+    collaborators.map((i) => i.id)
+  );
 
   res.json({
     status: "ok",

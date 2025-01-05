@@ -8,6 +8,7 @@ import {
   INote,
   INoteCollaborator,
   ITask,
+  NotificationType,
 } from "./type";
 import { randomBytes } from "crypto";
 import {
@@ -30,6 +31,7 @@ import OpenAI from "openai";
 import { ChatCompletionMessage } from "openai/resources";
 import TaskParticipant from "./models/TaskParticipant";
 import { isProfane } from "no-profanity";
+import Notification from "./models/Notification";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -408,33 +410,67 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email.trim());
 }
 
-export async function QueryLLM1(text: string, prompt: string) {
-  const f = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/meta/llama-3-8b-instruct`,
-    {
-      method: "post",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
-      },
-      body: JSON.stringify({
-        prompt: { stream: false },
-        messages: [
-          {
-            role: "system",
-            content: prompt,
-          },
-          {
-            role: "user",
-            content: text,
-          },
-        ],
-      }),
-    }
-  );
-
-  const res: ICloudflareResponse<{
+export async function QueryLLM1(
+  text: string,
+  prompt: string
+): Promise<
+  ICloudflareResponse<{
     response: string;
-  }> = await f.json();
-  return res;
+  }>
+> {
+  try {
+    const f = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/meta/llama-3-8b-instruct`,
+      {
+        method: "post",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        },
+        body: JSON.stringify({
+          prompt: { stream: false },
+          messages: [
+            {
+              role: "system",
+              content: prompt,
+            },
+            {
+              role: "user",
+              content: text,
+            },
+          ],
+        }),
+      }
+    );
+
+    const res: ICloudflareResponse<{
+      response: string;
+    }> = await f.json();
+    return res;
+  } catch (err) {
+    console.error(err);
+    return {
+      success: false,
+      errors: [],
+      messages: [],
+      result: { response: null as any },
+    };
+  }
+}
+
+export async function fanOutNotification(
+  type: NotificationType,
+  content: { title: string; message: string; metadata: any },
+  receiver_ids: string[]
+) {
+  receiver_ids.forEach(async (id) => {
+    await Notification.create({
+      alias_id: id,
+      is_read: false,
+      message: content.message,
+      title: content.title,
+      metadata: content.metadata,
+      type,
+    });
+  });
 }

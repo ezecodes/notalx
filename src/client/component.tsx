@@ -270,7 +270,7 @@ export const CollaboratorsModal: FC<{
             collaborators.map((i) => {
               return (
                 <li className="dropdown_item relative">
-                  {i.name}
+                  {i.name} {i.id === note_owner_id ? " (You)" : ""}
                   <span
                     onClick={() => sendRemove(i.id)}
                     className="absolute right-[5px] hidden text-sm"
@@ -626,6 +626,15 @@ export const ScheduledTasksWrapper: FC<{
 }> = ({ rows }) => {
   const navigate = useNavigate();
   const [sort, setSort] = useState<"upcoming" | "ended" | "none">("none");
+
+  if (!rows || rows.length === 0) {
+    return (
+      <div>
+        <span>No tasks yet</span>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full flex flex-wrap gap-x-8 gap-y-3 mt-2">
       <div className="w-full flex items-center gap-x-3">
@@ -870,7 +879,8 @@ const AvatarGroup: React.FC<AvatarGroupProps> = ({
 // Helper function to extract initials from a name
 const getInitials = (name?: string): string => {
   if (!name) return "?";
-  const words = name.split(" ");
+  const words = name.trim().split(" ");
+  console.log(words);
   return words.length > 1
     ? `${words[0][0]}${words[1][0]}`.toUpperCase()
     : words[0][0].toUpperCase();

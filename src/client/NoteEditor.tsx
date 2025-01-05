@@ -31,11 +31,11 @@ import {
   summeriseSelectedText,
 } from "./utils";
 import { BsStars } from "react-icons/bs";
-import { CiCircleChevDown } from "react-icons/ci";
+import { CiCircleChevDown, CiStickyNote } from "react-icons/ci";
 
 const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
-
+  const navigate = useNavigate();
   const displayDropdown = () => {
     setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
   };
@@ -49,8 +49,19 @@ const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
             : "animate__zoomOut invisible opacity-0"
         }`}
       >
-        <li className="dropdown_item" onClick={setCollabModal}>
-          <GoPeople /> Collaborators
+        <li
+          className="dropdown_item"
+          style={{ borderBottom: "5px solid #2121218c" }}
+          onClick={setCollabModal}
+        >
+          <GoPeople /> Manage Collaborators
+        </li>
+        <li
+          className="dropdown_item"
+          style={{}}
+          onClick={() => navigate("/newnote")}
+        >
+          <CiStickyNote /> New Note
         </li>
       </div>
     </div>

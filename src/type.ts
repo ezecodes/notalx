@@ -5,6 +5,29 @@ export type IAlias = {
   createdAt: Date;
   updatedAt: Date;
 };
+export enum NotificationType {
+  AddedParticipant = "added_participant",
+  AddedCollaborator = "added_collaborator",
+  TaskReminder = "task_reminder",
+  WelcomeMessage = "welcome_message",
+  LoginAlert = "login_alert",
+}
+
+export type AddedParticipantMetadata = {
+  task_link: string;
+};
+
+export type INotification = {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  alias_id: string;
+  metadata?: any;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type _IAlias = {
   id: string;
@@ -121,7 +144,7 @@ export interface INoteCreator {
 
 export type IOtpSession = {
   expiry: string | Date;
-  alias_id: string;
+  email: string;
   auth_code_hash: string;
 };
 

@@ -1,66 +1,64 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { BackButton, Button, InputWithIcon, SearchDropdown } from "./component";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { _IAlias } from "../type";
+import { _IAlias, IApiResponse } from "../type";
 import { decodeFromBase62, fetchAlias } from "./utils";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 
 const AliasAuth = () => {
-  const [info, setInfo] = useState({ otp: "" });
+  const [info, setInfo] = useState({ otp: "", email: "" });
   const { otpExpiry, getOTPExpiry, isAuthorised } = useContext(GlobalContext)!;
-  const [selectedAlias, setSelectedAlias] = useState<_IAlias | null>(null);
-
   const hasCalled = useRef(false);
-  const [searchParams] = useSearchParams();
+
+  const [displayOtpInput, setOtpInput] = useState(false);
 
   useEffect(() => {
     if (!hasCalled.current) {
-      let alias = searchParams.get("alias");
-      if (alias) {
-        fetchAlias(decodeFromBase62(alias)).then((res) => {
-          res.status === "ok" && setSelectedAlias(res.data!);
-        });
-      }
-
       getOTPExpiry();
 
       hasCalled.current = true;
     }
   }, []);
 
-  const navigate = useNavigate();
-
   const send = async () => {
     const f = await fetch("/api/otp/send", {
       method: "post",
-      body: JSON.stringify({ alias_id: selectedAlias?.id }),
+      body: JSON.stringify({ email: info.email }),
       headers: {
         "content-type": "application/json",
       },
     });
-    const response = await f.json();
-    toast(response.message);
+    const response: IApiResponse<null> = await f.json();
+    if (response.status === "ok") {
+      setOtpInput(true);
+      toast.success(response.message);
+    } else {
+      toast.error(response.message);
+    }
   };
   const verify = async () => {
     const f = await fetch("/api/otp/verify", {
       method: "post",
-      body: JSON.stringify({ alias_id: selectedAlias?.id, code: info.otp }),
+      body: JSON.stringify({ email: info.email, code: info.otp }),
       headers: {
         "content-type": "application/json",
       },
     });
-    const response = await f.json();
-    toast(response.message);
+    const response: IApiResponse<null> = await f.json();
+
     if (response.status === "ok") {
       document.location.href = "/";
+      toast.success(response.message);
+    } else {
+      toast.error(response.message);
     }
   };
   const deleteAuth = async (refreshPath: "currentPage" | "homePage") => {
     const f = await fetch("/api/otp/invalidate", {
       method: "delete",
     });
-    const response = await f.json();
+    const response: IApiResponse<null> = await f.json();
     if (response.status === "err") return;
 
     if (refreshPath === "currentPage") {
@@ -98,31 +96,50 @@ const AliasAuth = () => {
         ) : (
           <>
             <div className="flex flex-col gap-y-3">
-              <div className="flex flex-col items-end gap-3">
+              <form
+                className="flex flex-col items-end gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  send();
+                }}
+              >
                 <div className="label_input">
-                  <label>Select alias</label>
-                  <SearchDropdown
-                    onClick={(value) => setSelectedAlias(value)}
-                    selected={selectedAlias}
-                  />
-                </div>
-                {selectedAlias && <Button text="Send OTP" onClick={send} />}
-              </div>
-
-              <div className="flex flex-col items-end gap-3">
-                <div className="label_input">
-                  <label>OTP</label>
+                  <label>Email</label>
                   <InputWithIcon
-                    placeholder=""
-                    type="text"
-                    value={info.otp}
+                    placeholder="Enter your email"
+                    type="email"
+                    value={info.email}
                     onChange={(value) =>
-                      setInfo((prev) => ({ ...prev, otp: value }))
+                      setInfo((prev) => ({ ...prev, email: value }))
                     }
                   />
                 </div>
-                <Button text="Verify OTP" onClick={verify} />
-              </div>
+                {info.email.trim() !== "" && (
+                  <Button type="submit" text="Send OTP" onClick={() => {}} />
+                )}
+              </form>
+              {displayOtpInput && (
+                <form
+                  className="flex flex-col animate__animated animate__fadeIn items-end gap-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    verify();
+                  }}
+                >
+                  <div className="label_input">
+                    <label>OTP</label>
+                    <InputWithIcon
+                      placeholder="Type OTP code here"
+                      type="number"
+                      value={info.otp}
+                      onChange={(value) =>
+                        setInfo((prev) => ({ ...prev, otp: value }))
+                      }
+                    />
+                  </div>
+                  <Button text="Verify OTP" type="submit" onClick={() => {}} />
+                </form>
+              )}
             </div>
           </>
         )}

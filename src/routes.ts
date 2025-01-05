@@ -91,6 +91,10 @@ router
   );
 
 router
+  .route("/notification")
+  .get(authoriseAlias, validateAndSetPagination, Controller.getNotifications);
+
+router
   .route("/note/:note_id/collaborators")
   .get(
     authoriseAlias,

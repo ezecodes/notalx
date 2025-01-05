@@ -46,7 +46,7 @@ li {
   list-style: none;
 }
 .page {
-  @apply flex flex-col justify-center items-center w-full;
+  @apply flex flex-col justify-center items-center mx-[auto] w-[98%] sm:w-[500px] md:w-[700px] lg:w-[1000px];
 }
 body {
   /* background: var(--main-background); */

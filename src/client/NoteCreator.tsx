@@ -16,7 +16,6 @@ const Editor = () => {
   const { editor, setEditor, saveToStore, loadDrafts, deleteDraft } =
     useContext(GlobalContext)!;
   const hasCalled = useRef(false);
-  const [secretInputType, setSecretInputType] = useState("text");
 
   const [isDraftModalOpen, setDraftModal] = useState(false);
 
@@ -116,26 +115,6 @@ const Editor = () => {
           >
             <div className="flex flex-col gap-y-3   ">
               <div className="grid sm:grid-cols-2 gap-y-3 gap-x-6">
-                {editor.hidden && (
-                  <div className="label_input">
-                    <label className="subtext">
-                      Enter a secret for this note <br />
-                    </label>
-                    <InputWithIcon
-                      icon={<CiLock />}
-                      focusListener={() => setSecretInputType("text")}
-                      blurListener={() => setSecretInputType("password")}
-                      placeholder="Enter a secret"
-                      type={secretInputType}
-                      value={editor.secret ?? ""}
-                      onChange={(value) => handleUpdate({ secret: value })}
-                    />
-                    <span className="subtext text-sm">
-                      A secret lets you access your notes without logging in.
-                      Leave it blank to require logging in for access.
-                    </span>
-                  </div>
-                )}
                 {editor.willSelfDestroy && (
                   <div className="label_input">
                     <label className="subtext">
