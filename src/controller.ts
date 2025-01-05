@@ -798,14 +798,16 @@ export async function getNotesSharedWithAlias(
     return;
   }
 
-  let notes = findJoins
-    .map(async (item) => {
+  let notes = (await Promise.all(
+    findJoins.map(async (item) => {
       const note = await Note.findByPkWithCache(item.note_id);
       if (!note) return;
       return note;
     })
-    .filter((i) => typeof i !== undefined || i !== undefined) as any as INote[];
+  )) as any as INote[];
+  notes = notes.filter((note) => note);
 
+  console.log(notes);
   res.json({
     status: "ok",
     data: {
