@@ -7,22 +7,24 @@ import { Provider } from "./hook";
 import { createRoot } from "react-dom/client";
 import { Slide, ToastContainer } from "react-toastify";
 import { register as registerSW } from "./service-worker-registration";
+import { RingsLoader } from "./component";
 
 // Lazy load components
-import Home from "./index";
-import ViewNote from "./ViewNote";
-import NoteCreator from "./NoteCreator";
-import NoteEditor from "./NoteEditor";
-import CreateAlias from "./AliasCreator";
-import AliasAuth from "./AliasAuth";
-import TaskEditor from "./TaskEditor";
-import AuthWrapper from "./AuthWrapper";
+const Home = React.lazy(() => import("./index"));
+const ViewNote = React.lazy(() => import("./ViewNote"));
+const NoteCreator = React.lazy(() => import("./NoteCreator"));
+const NoteEditor = React.lazy(() => import("./NoteEditor"));
+const CreateAlias = React.lazy(() => import("./AliasCreator"));
+const AliasAuth = React.lazy(() => import("./AliasAuth"));
+const Faq = React.lazy(() => import("./Faq"));
+const TaskEditor = React.lazy(() => import("./TaskEditor"));
+const AuthWrapper = React.lazy(() => import("./AuthWrapper"));
 
 const route = createBrowserRouter([
   {
     path: "newnote",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <AuthWrapper>
           <NoteCreator />
         </AuthWrapper>
@@ -32,7 +34,7 @@ const route = createBrowserRouter([
   {
     path: "note/:note_slug",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <AuthWrapper>
           <NoteEditor />
         </AuthWrapper>
@@ -42,7 +44,7 @@ const route = createBrowserRouter([
   {
     path: ":note_slug",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <AuthWrapper>
           <ViewNote />
         </AuthWrapper>
@@ -52,7 +54,7 @@ const route = createBrowserRouter([
   {
     path: "task/:task_id",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <AuthWrapper>
           <TaskEditor />
         </AuthWrapper>
@@ -62,7 +64,7 @@ const route = createBrowserRouter([
   {
     path: "/",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <Home />
       </Suspense>
     ),
@@ -70,7 +72,7 @@ const route = createBrowserRouter([
   {
     path: "login",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <AliasAuth />
       </Suspense>
     ),
@@ -78,7 +80,7 @@ const route = createBrowserRouter([
   {
     path: "newalias",
     element: (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<RingsLoader />}>
         <CreateAlias />
       </Suspense>
     ),

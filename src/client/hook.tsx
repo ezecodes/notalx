@@ -16,6 +16,7 @@ import {
   IPaginatedResponse,
 } from "../type";
 import { fetchAuthAliasNotes } from "./utils";
+import { toast } from "react-toastify";
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -131,12 +132,16 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const loadDrafts = () => {
     const drafts = localStorage.getItem(key);
-    if (drafts) {
-      let parse = JSON.parse(drafts);
-      if (Array.isArray(parse)) {
-        setDrafts(parse);
-        setDraftCount(parse.length);
-      }
+
+    if (!drafts) {
+      toast.warn("No drafts");
+      return;
+    }
+
+    let parse = JSON.parse(drafts);
+    if (Array.isArray(parse)) {
+      setDrafts(parse);
+      setDraftCount(parse.length);
     }
   };
 
