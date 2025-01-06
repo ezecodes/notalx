@@ -189,7 +189,7 @@ const Notifications = ({}) => {
     <div className="flex flex-col gap-y-4">
       {notifications.map((notification) => {
         return (
-          <div className="flex w-[450px] bg-[#333] py-3 gap-y-3 px-5 flex-col">
+          <div className="flex  border_bottom py-3 gap-y-3 px-5 flex-col">
             <div className=" flex flex-col gap-y-1 rounded-sm ">
               <h6 className="font-[500] text-md ">
                 {notification.title}
@@ -200,7 +200,7 @@ const Notifications = ({}) => {
               </h6>
               <span className="text-sm subtetx">{notification.message}</span>
             </div>
-            <div>
+            <div className="flex justify-end">
               {notification.type === NotificationType.AddedCollaborator && (
                 <Button
                   text="View Note"

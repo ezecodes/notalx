@@ -165,6 +165,10 @@ export function calculateReminderDate(
 export function formatRelativeTime(timestamp: string | Date): string {
   const now = new Date();
   const date = new Date(timestamp);
+
+  now.setHours(now.getHours() - 1);
+  date.setHours(date.getHours() - 1);
+
   const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000); // Notice the change here for future dates
 
   const timeUnits: { unit: string; seconds: number }[] = [

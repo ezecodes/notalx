@@ -50,8 +50,12 @@ const TaskEditor = () => {
       },
     });
     const response: IApiResponse<ITask> = await f.json();
-    response.status === "ok" && fetchTask();
-    toast.info(response.message);
+    if (response.status === "ok") {
+      toast.success(response.message);
+      fetchTask();
+    } else {
+      toast.error(response.message);
+    }
   };
 
   useEffect(() => {
@@ -137,7 +141,9 @@ const TaskEditor = () => {
               <div className=" form_input">
                 <input
                   onChange={(e) => {
-                    handleTaskEdit({ date: new Date(e.target.value) });
+                    handleTaskEdit({
+                      date: new Date(e.target.value).toISOString() as any,
+                    });
                   }}
                   value={new Date(task.date).toISOString().slice(0, 16)}
                   type="datetime-local"

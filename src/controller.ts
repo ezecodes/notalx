@@ -415,72 +415,81 @@ export async function createTaskSchedule(
     next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
     return;
   }
+  try {
+    const note = await Note.findByPkWithCache(req.params.note_id);
+    const newTask = await QueryLLM1(
+      note?.content!,
+      TASK_SCHEDULING_PROMPT_VARIATIONS[0].prompt
+    );
 
-  const note = await Note.findByPkWithCache(req.params.note_id);
-  const newTask = await QueryLLM1(
-    note?.content!,
-    TASK_SCHEDULING_PROMPT_VARIATIONS[0].prompt
-  );
+    if (!newTask.success) {
+      next(ApiError.error(ErrorCodes.INTERNAL_SERVER_ERROR, "Could not fetch"));
+      return;
+    }
 
-  if (!newTask.success) {
-    next(ApiError.error(ErrorCodes.INTERNAL_SERVER_ERROR, "Could not fetch"));
-    return;
-  }
+    let parsedTask: ITaskFromLLM = JSON.parse(newTask.result.response);
 
-  let parsedTask: ITaskFromLLM = JSON.parse(newTask.result.response);
+    if (!parsedTask.success) {
+      next(
+        ApiError.error(
+          ErrorCodes.VALIDATION_ERROR,
+          "Task could not be generated from the provided note content"
+        )
+      );
+      return;
+    }
 
-  if (!parsedTask.success) {
+    const tasks = parsedTask.tasks.map((task) => {
+      const dateTimeString = `${task.date} ${task.time}`;
+      const newTask: any = {
+        name: task.task_title,
+        participants: task.participants,
+        location: task.location,
+      };
+
+      // Create a new Date object
+      let dateTime = new Date(dateTimeString);
+      const now = new Date();
+
+      if (dateTime < now) {
+        dateTime = new Date(now.getTime() + 60 * 60 * 1000);
+      }
+
+      if (isNaN(dateTime as any)) {
+        newTask.date = setExpiryInUTC(2);
+        newTask.reminder = setExpiryInUTC(1);
+      } else {
+        newTask.date = dateTime;
+        newTask.reminder = new Date(dateTime.getTime() - 15 * 60 * 1000);
+      }
+
+      return newTask;
+    });
+
+    tasks.forEach(async (task) => {
+      await Task.create({
+        alias_id: req.__alias!.id!,
+        note_id: req.params.note_id,
+        name: task.name,
+        date: task.date,
+        reminder: task.reminder,
+        duration: "1 hour",
+      });
+    });
+
+    res.json({
+      status: "ok",
+      message: "Schedule task complete",
+    });
+  } catch (err) {
+    console.error(err);
     next(
       ApiError.error(
-        ErrorCodes.VALIDATION_ERROR,
-        "Task could not be generated from the provided note content"
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        "Task generation failed. Please try again later."
       )
     );
-    return;
   }
-
-  const tasks = parsedTask.tasks.map((task) => {
-    const dateTimeString = `${task.date} ${task.time}`;
-    const newTask: any = {
-      name: task.task_title,
-      participants: task.participants,
-      location: task.location,
-    };
-
-    // Create a new Date object
-    let dateTime = new Date(dateTimeString);
-    const now = new Date();
-
-    if (dateTime < now) {
-      dateTime = new Date(now.getTime() + 60 * 60 * 1000);
-    }
-
-    if (isNaN(dateTime as any)) {
-      newTask.date = setExpiryInUTC(2);
-      newTask.reminder = setExpiryInUTC(1);
-    } else {
-      newTask.date = dateTime;
-      newTask.reminder = new Date(dateTime.getTime() - 15 * 60 * 1000);
-    }
-
-    return newTask;
-  });
-
-  tasks.forEach(async (task) => {
-    await Task.create({
-      alias_id: req.__alias!.id!,
-      note_id: req.params.note_id,
-      name: task.name,
-      date: task.date,
-      reminder: task.reminder,
-      duration: "1 hour",
-    });
-  });
-
-  res.json({
-    status: "ok",
-    message: "Schedule task complete",
-  });
 }
 interface ISummarySession extends ISummaryResponse {
   calls_count: number;

@@ -126,26 +126,47 @@ export const SUMMARY_PROMPT_VARIATIONS = [
 ];
 export const TASK_SCHEDULING_PROMPT_VARIATIONS = [
   {
-    description: "Task Extraction with Time & Date Inference",
+    description: "Refined Task Extraction with JSON-Only Output",
     prompt: `
-      You are an advanced assistant designed to extract and organize multiple tasks from a note. Your response must be in strict JSON format without any additional text, explanations, or formatting (e.g., no markdown or plain text).
-
-      For each task, extract and format the following details:
-      1. **Task Title/Description**: Identify the primary action or event (e.g., "Meeting with client", "Call with John").
-      2. **Date**: 
-          - If a **specific date** (e.g., "January 10") is mentioned, use that date directly.
-          - If a **day of the week** is mentioned (e.g., "Monday", "Friday"), calculate the date based on the current date (e.g., if today is Thursday and "Monday" is mentioned, infer the **next Monday's date**).
-          - If **relative terms** like "tomorrow", "next week", or "in 3 days" are used, calculate the date based on the current date, using today's date to infer the date.
-      3. **Time**: 
-          - If a **specific time** (e.g., "2 PM", "10:30 AM") is mentioned, extract the time directly.
-          - If **relative time** (e.g., "in the morning", "late afternoon", "at noon") is used, infer the actual time based on standard time conventions.
-      4. **Participants**: Identify people or roles mentioned (e.g., "John", "team", "client").
-      5. **Location**: If a location is mentioned (e.g., "office", "Zoom"), include it.
-
-      ### Example Input:
-      "Meeting with Sarah at 2 PM tomorrow. Call with client on Monday at 10 AM in the conference room. Lunch with team at noon next week."
-
-      ### Expected Output (Strict JSON Only):
+      You are a highly accurate assistant specialized in extracting structured task details from unstructured text. Your task is to analyze the provided input, identify relevant tasks, with a maximum of 4 tasks and format them into a strict JSON object. Follow the specified rules and schema rigorously.
+  
+      ### Schema:
+      {
+        "success": boolean,            // Indicates whether tasks were successfully extracted.
+        "message": string,             // Success or error message.
+        "tasks": [                     // List of extracted tasks (empty if none found).
+          {
+            "task_title": string,      // Primary action or event title.
+            "date": string,           // ISO 8601 format (YYYY-MM-DD).
+            "time": string,           // Time in 12-hour format (e.g., "2:00 PM").
+            "participants": [string], // Names or roles of participants.
+            "location": string        // Task location (e.g., "office", "Zoom").
+          }
+        ]
+      }
+  
+      ### Input Processing Rules:
+      - **Task Title**: Extract the main action or event (e.g., "Call with John").
+      - **Date**: 
+          - Extract specific dates mentioned explicitly (e.g., "January 10").
+          - Infer dates from relative terms (e.g., "tomorrow", "next week") based on today's date.
+          - Convert day-of-week references (e.g., "Monday") into actual dates based on today's date.
+      - **Time**:
+          - Extract specific times mentioned (e.g., "10:30 AM").
+          - Infer times from relative terms (e.g., "in the morning", "at noon") using standard conventions.
+      - **Participants**: Identify all individuals or roles mentioned in the task.
+      - **Location**: Extract any location details, or leave blank if none are mentioned.
+  
+      ### Response Format:
+      - Your response must be strictly JSON, adhering exactly to the schema.
+      - Do not include any additional text, explanations, markdown, or formatting.
+      - Responses with extra text, even before or after the JSON, will be rejected.
+  
+      ### Examples:
+      #### Example 1:
+      Input: "Meeting with Sarah at 2 PM tomorrow. Call with client on Monday at 10 AM in the conference room. Lunch with team at noon next week."
+  
+      Output:
       {
         "success": true,
         "message": "Tasks successfully extracted.",
@@ -173,18 +194,18 @@ export const TASK_SCHEDULING_PROMPT_VARIATIONS = [
           }
         ]
       }
-
-      ### Example Input:
-      "Hello world, this has nothing useful"
-
-      ### Expected Output (Strict JSON Only):
+  
+      #### Example 2:
+      Input: "Hello world, this has nothing useful."
+  
+      Output:
       {
         "success": false,
-        "message": "No valid tasks could be extracted from the input."
+        "message": "No valid tasks could be extracted from the input.",
+        "tasks": []
       }
-
-      - **IMPORTANT**: Ensure the response begins and ends with JSON and contains no other text, explanation, or additional formatting.
-      - **Invalid Output Examples**: Responses with text like "Here is your JSON" or markdown fences (\`\`\`) will be rejected.
+  
+      - **IMPORTANT**: Any deviation from the schema, such as additional text or incorrect JSON structure, will result in rejection.
     `,
   },
 ];

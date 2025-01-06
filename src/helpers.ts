@@ -428,7 +428,16 @@ export async function QueryLLM1(
           authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
         },
         body: JSON.stringify({
-          prompt: { stream: false },
+          prompt: {
+            stream: false,
+            raw: true,
+            max_tokens: 512,
+            temperature: 0.3,
+            top_p: 0.5,
+            top_k: 10,
+            repetition_penalty: 1.2,
+          },
+
           messages: [
             {
               role: "system",

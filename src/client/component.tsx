@@ -658,7 +658,7 @@ export const ScheduledTasksWrapper: FC<{
         return (
           <div
             key={row.task.id}
-            className={`flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[175px] rounded-sm w-full 3micro:w-[300px] ${determine_row_visibility(
+            className={`flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[180px] rounded-sm w-full 3micro:w-[300px] ${determine_row_visibility(
               row.task,
               sort
             )}`}
@@ -676,11 +676,15 @@ export const ScheduledTasksWrapper: FC<{
               </span>
             </div>
 
-            <div className=" flex flex-col">
+            <div className=" flex flex-col gap-y-2  ">
               <span className="flex items-center  text-center justify-center text-white gap-y-2 text-md">
-                {new Date(row.task.date).toDateString()}
-                <br />
-                {new Date(row.task.date).toLocaleTimeString()}
+                {new Date(row.task.date).toISOString().split("T")[0]}{" "}
+                {/* ISO Date (UTC) */}
+                {new Date(row.task.date)
+                  .toISOString()
+                  .split("T")[1]
+                  .slice(0, 5)}{" "}
+                {/* ISO Time (UTC) */}
               </span>
               <div className="px-3 flex justify-center">
                 {row.participants && (
@@ -691,7 +695,7 @@ export const ScheduledTasksWrapper: FC<{
 
             <div className="flex h-[35px] justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
               <span className="text-sm subtext flex items-center gap-x-2 ">
-                {new Date() < new Date(row.task.date) ? (
+                {new Date().toISOString() < new Date(row.task.date).toISOString() ? (
                   <>
                     <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />
                     Upcoming

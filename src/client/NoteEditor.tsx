@@ -293,6 +293,7 @@ const Editor = () => {
       }
 
       if (response.status === "ok") {
+        toast.success(response.message);
         fetchAllTasksInNote();
       }
     } finally {

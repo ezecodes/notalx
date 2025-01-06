@@ -3,7 +3,12 @@ import Note from "./models/Note";
 import { ErrorCodes, IAuthSession } from "./type";
 import { CacheKeys, sessionCookieKey } from "./constants";
 import memcachedService from "./memcached";
-import { ApiError, isExpired, PopulateNoteCollaborators } from "./helpers";
+import {
+  ApiError,
+  isExpired,
+  PopulateNoteCollaborators,
+  PopulateTaskParticipants,
+} from "./helpers";
 import Alias from "./models/Alias";
 import { validate } from "uuid";
 import Task from "./models/Task";
@@ -75,57 +80,36 @@ export async function authoriseAlias(
   req.__alias = { id: cachedSession.alias_id };
   next();
 }
-
-// export async function authoriseAliasIoConnection(
-//   socket: Socket,
-//   next: (err?: ExtendedError) => void
-// ) {
-//   const cookies = socket.handshake.headers.cookie;
-
-//   if (!cookies) {
-//     return next(new Error("Authentication error"));
-//   }
-
-//   const parsedCookies = cookie.parse(cookies);
-//   const sessionId = parsedCookies[sessionCookieKey];
-//   const cachedSession = await getCachedSession(sessionId);
-
-//   if (!cachedSession) {
-//     next(
-//       ApiError.error(
-//         ErrorCodes.UNAUTHORIZED,
-//         "Auth session expired. Verify OTP to continue"
-//       )
-//     );
-//     return;
-//   }
-
-//   (socket as any).__alias = { id: cachedSession.alias_id }; // Attach user info to the socket object
-//   next();
-// }
-
-export async function authoriseAliasForTask(
+export async function authorize_alias_as_task_owner(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const find = await Task.findByPkWithCache(req.params.task_id);
 
-  if (find && find.alias_id === req.__alias?.id) {
-    next();
+  if (!find || find.alias_id !== req.__alias?.id) {
+    next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Owner access required"));
     return;
   }
 
-  const collaborators = await PopulateNoteCollaborators(find!.note_id);
+  next();
+}
+export async function authorize_alias_as_task_participant(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const task = await Task.findByPkWithCache(req.params.task_id);
+  const participants = await PopulateTaskParticipants(
+    req.params.task_id,
+    task?.alias_id!
+  );
   if (
-    collaborators.length === 0 ||
-    !collaborators.find((i) => i?.id === req.__alias?.id)
+    participants.length === 0 ||
+    !participants.find((i) => i?.id === req.__alias?.id)
   ) {
     next(
-      ApiError.error(
-        ErrorCodes.UNAUTHORIZED,
-        "Permission denied. Please contact the administrator to request access."
-      )
+      ApiError.error(ErrorCodes.UNAUTHORIZED, "Participant access required")
     );
     return;
   }

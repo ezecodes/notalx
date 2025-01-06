@@ -6,7 +6,8 @@ import {
   validateAndSetPagination,
   validateTaskId,
   validateNoteId,
-  authoriseAliasForTask,
+  authorize_alias_as_task_participant,
+  authorize_alias_as_task_owner,
   authorize_alias_as_note_owner,
   authorize_alias_as_note_collaborator,
 } from "./middlewares";
@@ -83,14 +84,22 @@ router
 
 router
   .route("/task/:task_id")
-  .get(authoriseAlias, authoriseAliasForTask, Controller.getSingleTask)
-  .put(authoriseAlias, authoriseAliasForTask, Controller.editTaskSchedule);
+  .get(
+    authoriseAlias,
+    authorize_alias_as_task_participant,
+    Controller.getSingleTask
+  )
+  .put(
+    authoriseAlias,
+    authorize_alias_as_task_owner,
+    Controller.editTaskSchedule
+  );
 
 router
   .route("/task/:task_id/participants")
   .delete(
     authoriseAlias,
-    authoriseAliasForTask,
+    authorize_alias_as_task_owner,
     Controller.deleteTaskParticipant
   );
 
