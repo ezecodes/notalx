@@ -1,6 +1,13 @@
 Real-World Impact: A medical researcher’s casual note on treatment techniques could inspire breakthroughs when made public.
 For Example: A developer sharing a note on debugging tips might find new collaborators or mentees.
 
+Rules on task and notes
+
+As a note owner, I can add collaborators to my note,
+collaborators can view, edit, use AI features(summerise, schedule tasks) on shared note
+Only tasks created by current authenticated user will be shown on a note
+
+
 To view a hidden note, you must either be authenticated using the alias you used to create the note or you must enter a valid secret
 
 While listing all notes within an alias,
@@ -15,6 +22,46 @@ An OTP (One time password) is sent to the email
 Once otp is verified, that alias is now authorized within that ip address and agent to view hidden notes, edit notes , change note secret
 
 NOTE : opt and auth session lasts for 1 hour before it expires and you will have to re-auth 
- 
+
 
 Add ability to mention a user in a note, could be a collaborator or not
+
+Niche Marketing: Tailor features for specific groups like teams, students, or content creators.
+
+Core Features
+Full NLP-Powered Text Search:
+
+Search for notes using natural language queries like:
+"Get the last note on marketing."
+"Find notes created last week about product design."
+Include fuzzy search, synonym detection, and contextual results.
+Task Scheduling Integration:
+
+Convert notes into tasks or reminders automatically (e.g., detect text like "Submit report by Friday" and schedule it).
+View a timeline or calendar of tasks extracted from notes.
+Enable users to link notes to specific calendar events.
+Website Builder from Notes:
+
+One-click transformation of notes into responsive, SEO-friendly websites or blogs.
+Customizable themes and layouts.
+Automatic linking between notes to create a structured website.
+Integrated publishing to platforms like GitHub Pages, Netlify, or a custom domain.
+Internal Documentation Generator:
+
+Use notes to generate and organize team documentation.
+Auto-categorize content into sections like “How-To Guides,” “Meeting Minutes,” and “FAQs.”
+Provide version history for documentation updates.
+Support export to formats like Markdown, PDF, or Confluence.
+
+Templates generators like project outlines, meeting agendas, or personal journals.
+Real-Time Collaboration and Team Spaces:
+
+Smart Workflow Automation: “When a note mentions ‘follow up,’ create a task.” “If a note includes a date, add it to the calendar.”
+
+Voice and Video Note Support: Record audio or video directly in a note.
+
+Premium Services:
+
+AI Features: Access advanced summarization, content generation, and smart search.
+Publishing Features: Offer custom branding for exported websites or documentation.
+Team Plans: Include admin controls, analytics, and extra storage for team accounts.

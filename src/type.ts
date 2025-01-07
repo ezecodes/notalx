@@ -62,8 +62,32 @@ export type INote = {
   title: string;
   content: string;
   alias_id: string;
-  will_self_destroy: boolean;
-  self_destroy_time: Date;
+  will_self_destroy?: boolean;
+  self_destroy_time?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ITemplate = {
+  id: string;
+  title: string;
+  tags: string[];
+  content: string;
+  alias_id?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ITemplateCategory = {
+  template_id: string;
+  category_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ICategory = {
+  id: string;
+  category: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -165,9 +189,9 @@ export interface INoteEditor {
   id: string;
   title: string;
   content: string;
-  willSelfDestroy: boolean;
+  willSelfDestroy?: boolean;
   alias_id: string;
-  selfDestroyTime: Date;
+  selfDestroyTime?: Date;
   createdAt: Date;
 }
 export type IOtpExpiry = {

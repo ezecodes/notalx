@@ -29,6 +29,7 @@ import {
   decodeFromBase62,
   createScheduleTask,
   summeriseSelectedText,
+  encodeToBase62,
 } from "./utils";
 import { BsStars } from "react-icons/bs";
 import { CiCircleChevDown, CiStickyNote } from "react-icons/ci";
@@ -345,7 +346,10 @@ const Editor = () => {
       <div className="modal  note_manager pb-5">
         <div className="modal_child">
           <form className="    gap-y-3 flex flex-col  ">
-            <BackButton text={"Editing note"} onClick={() => navigate("/")} />
+            <BackButton
+              text={"Editing note"}
+              onClick={() => navigate(`/${encodeToBase62(editor?.id!)}`)}
+            />
 
             {editor ? (
               <>
@@ -362,7 +366,6 @@ const Editor = () => {
                 <fieldset className="flex flex-col gap-y-3 mt-4">
                   <div className="note_title">
                     <InputWithIcon
-                      label="Title"
                       icon={<IoPencilOutline />}
                       placeholder="Enter note title"
                       type="text"
@@ -370,7 +373,7 @@ const Editor = () => {
                       onChange={(value) => handleUpdate({ title: value })}
                     />
                   </div>
-                  <div className="w-full max-w-4xl mx-auto add_border rounded-md note_body">
+                  <div className="w-full mx-auto">
                     <ReactQuill
                       ref={quillRef}
                       value={editor.content}
@@ -383,11 +386,20 @@ const Editor = () => {
                           [{ list: "ordered" }, { list: "bullet" }],
                           ["bold", "italic", "underline", "strike"],
                           [{ align: [] }],
-                          ["link"],
+                          ["link", "image", "video"],
                           [{ color: [] }, { background: [] }],
-                          ["image"],
+                          ["blockquote"], // Added quotation button
                           ["clean"],
+                          ["code-block"],
                         ],
+                        clipboard: {
+                          matchVisual: false,
+                        },
+                        history: {
+                          delay: 2000,
+                          maxStack: 500,
+                          userOnly: true,
+                        },
                       }}
                       placeholder="Write your note here..."
                     />
@@ -397,7 +409,7 @@ const Editor = () => {
                         top: popupPosition.top - 50,
                         left: popupPosition.left,
                       }}
-                      className={`z-[1000] flex-col gap-y-3 animate__animated   flex items-start py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2 ${
+                      className={`z-[1000] flex-col gap-y-3 animate__animated flex items-start py-2 bg-[#2c2c2c] shadow-md px-3 gap-x-2 ${
                         popupVisible
                           ? "animate__zoomIn visible opacity-1"
                           : "animate__zoomOut invisible opacity-0"
@@ -449,17 +461,17 @@ const Editor = () => {
                         aiActionsVisible
                           ? "animate__fadeIn visible opacity-1"
                           : "animate__backOutDown invisible opacity-0"
-                      } z-[1000] flex-col gap-y-3 animate__animated flex items-end py-2 bg-[#2c2c2c]  shadow-md px-3 gap-x-2`}
+                      } z-[1000] flex-col gap-y-3 animate__animated flex items-end py-2 bg-[#2c2c2c] shadow-md px-3 gap-x-2`}
                     >
                       <div className="flex items-center justify-start gap-x-2">
-                        <BsStars className="text-yellow-200 " />
+                        <BsStars className="text-yellow-200" />
                         <Button
                           disabled={loadingStates.summary}
-                          text="Summerise"
+                          text="Summarise"
                           onClick={handleSummariseAction}
                           icon={loadingStates.summary ? <RingsLoader /> : <></>}
                         />
-                        <CiCircleChevDown className="subtext " />
+                        <CiCircleChevDown className="subtext" />
                       </div>
                     </div>
                   </div>

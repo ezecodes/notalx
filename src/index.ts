@@ -9,6 +9,15 @@ import cookieParser from "cookie-parser";
 import { ApiError, deleteExpiredNotes } from "./helpers";
 import { Branding_NotalX } from "./constants";
 import router from "./routes";
+import { Server as SocketIOServer } from "socket.io";
+import http from "http";
+import { authoriseAliasIoConnection } from "./middlewares";
+const server = express();
+const httpServer = http.createServer(server);
+
+const io = new SocketIOServer(httpServer);
+
+io.use((socket, next) => authoriseAliasIoConnection(socket, next));
 
 const reactRoutes = [
   "/newnote",
@@ -20,7 +29,6 @@ const reactRoutes = [
   "/note/:note_id",
   "/task/:task_id",
 ];
-const server = express();
 
 server.use(cookieParser(process.env.COOKIE_SECRET));
 server.use(express.json({ limit: "5mb" }));
@@ -74,7 +82,7 @@ server.use(function (
   res.status(status_code).json({ status: "err", message, error_code });
 });
 
-server.listen(4000, () => {
+httpServer.listen(4000, () => {
   console.log(`Listening on 4000 ...`);
   connectDb();
 });
@@ -82,3 +90,4 @@ server.listen(4000, () => {
 cron.schedule("* * * * *", async () => {
   await deleteExpiredNotes(); // Runs every minute
 });
+export { httpServer, io };

@@ -31,6 +31,7 @@ import {
   IOtpSession,
   ISummaryResponse,
   ITask,
+  ITemplate,
   NotificationType,
 } from "./type";
 import {
@@ -52,6 +53,8 @@ import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
 import Notification from "./models/Notification";
+import Template from "./models/Template";
+import TemplateCategory from "./models/TemplateCategory";
 
 export async function getAllAlias(
   req: Request,
@@ -362,7 +365,7 @@ export async function editTaskSchedule(
     }
   }
 
-  participants &&
+  if (participants && participants.length > 0) {
     participants.forEach(async (i) => {
       await TaskParticipant.findOrCreate({
         defaults: {
@@ -375,19 +378,21 @@ export async function editTaskSchedule(
         },
       });
     });
+    fanOutNotification(
+      NotificationType.AddedParticipant,
+      {
+        title: "You've Been Added!",
+        message: "You're now a participant. Welcome aboard!",
+        metadata: {
+          task_id,
+        },
+      },
+      participants.map((i) => i.id)
+    );
+  }
 
   Task.updateByIdWithCache(task_id, newTask);
-  fanOutNotification(
-    NotificationType.AddedParticipant,
-    {
-      title: "You've Been Added!",
-      message: "You're now a participant. Welcome aboard!",
-      metadata: {
-        task_id,
-      },
-    },
-    participants.map((i) => i.id)
-  );
+
   res.json({
     status: "ok",
     message: "Schedule updated",
@@ -404,12 +409,126 @@ type ITaskFromLLM = {
     location: string | string[];
   }[];
 };
+
+export async function getTemplates(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  res.json({
+    status: "ok",
+    data: {
+      rows: await Template.findAllWithCache(req.__pagination__!),
+      paginaton: req.__pagination__!,
+    },
+  });
+}
+
+export async function getTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  res.json({
+    status: "ok",
+    data: await Template.findByPkWithCache(req.params.template_id),
+  });
+}
+
+export async function useTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const template = await Template.findByPkWithCache(req.params.template_id);
+  const note = (await Note.create(
+    {
+      alias_id: req.__alias!.id!,
+      content: template!.content,
+      title: template!.title,
+    },
+    { returning: true, raw: true }
+  )) as any as INote;
+
+  res.json({
+    status: "ok",
+    data: {
+      note_id: note.id,
+    },
+  });
+}
+export async function updateTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { title, category_ids, content, tags } = req.body;
+
+  const data: any = {};
+  if (title) data.title = title;
+  if (content) data.content = content;
+
+  Template.updateByIdWithCache(req.params.template_id, { ...req.body });
+
+  if (category_ids && category_ids.length > 0) {
+    category_ids.forEach(async (id: string) => {
+      await TemplateCategory.findOrCreate({
+        where: { category_id: id, template_id: req.params.template_id },
+      });
+    });
+  }
+
+  res.json({
+    status: "ok",
+    message: "Template updated",
+  });
+}
+
+export async function deleteCategoryFromTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  TemplateCategory.destroy({
+    where: {
+      template_id: req.params.template_id,
+      category_id: req.params.category_id,
+    },
+  });
+  res.json({
+    status: "ok",
+  });
+}
+export async function createTemplate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { title, category_ids, content, tags } = req.body;
+
+  const template = (await Template.create(
+    { title, content, tags },
+    { returning: true, raw: true }
+  )) as any as ITemplate;
+
+  category_ids.forEach(async (id: string) => {
+    await TemplateCategory.findOrCreate({
+      where: { category_id: id, template_id: template.id },
+    });
+  });
+
+  res.json({
+    status: "ok",
+    message: "Template created",
+  });
+}
+
 export async function createTaskSchedule(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const count = await Task.count({ where: { note_id: req.params.note_id } });
+  const count = await Task.count({ where: { alias_id: req.__alias!.id } });
 
   if (count >= 2) {
     next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
@@ -578,6 +697,7 @@ export async function getAllTasksForNote(
   const rows = (await Task.findAll({
     where: {
       note_id: req.params.note_id,
+      alias_id: req.__alias!.id,
     },
     limit: pagination!.page_size,
     offset: (pagination!.page - 1) * pagination!.page_size,

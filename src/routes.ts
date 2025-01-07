@@ -125,4 +125,20 @@ router
     Controller.deleteNoteCollaborator
   );
 
+router
+  .route("/template")
+  .post(Controller.createTemplate)
+  .get(validateAndSetPagination, Controller.getTemplates);
+
+router
+  .route("/template/:template_id")
+  .put(Controller.updateTemplate)
+  .get(Controller.getTemplate);
+
+router
+  .route("/template/:template_id/categories")
+  .delete(Controller.deleteCategoryFromTemplate);
+
+router.route("/use_template").post(authoriseAlias, Controller.useTemplate);
+
 export default router;

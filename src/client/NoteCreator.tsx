@@ -157,7 +157,7 @@ interface NoteEditorProps {
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
   return (
-    <div className="w-full max-w-4xl mx-auto add_border rounded-md note_body">
+    <div className="w-full mx-auto   rounded-md ">
       <ReactQuill
         value={value}
         onChange={onChange}

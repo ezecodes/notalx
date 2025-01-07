@@ -102,8 +102,8 @@ const AliasAuth = () => {
                 }}
               >
                 <div className="label_input">
-                  <label>Email</label>
                   <InputWithIcon
+                    label="Email"
                     placeholder="Enter your email"
                     type="email"
                     value={info.email}

@@ -124,7 +124,7 @@ const TaskEditor = () => {
         >
           <div
             key={task!.id}
-            className="flex p-3 rounded-md items-end bg-[#292929] flex-col w-full gap-y-3 "
+            className="flex p-3 rounded-md items-end flex-col w-full gap-y-3 "
           >
             <InputWithIcon
               placeholder="Task name"
@@ -189,8 +189,8 @@ const TaskEditor = () => {
             </div>
 
             <div className="w-full label_input">
-              <label>Participants</label>
               <SearchDropdown
+                label="Add Participants"
                 filter={(option) => option.id !== otpExpiry?.alias_id}
                 selected={selectedParticipant}
                 onClick={handleParticipantUpdate}

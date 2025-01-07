@@ -7,11 +7,18 @@ import {
   searchAliasByName,
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
-import { _IAlias, IApiResponse, INote, IOtpExpiry, ITask } from "../type";
+import {
+  _IAlias,
+  IApiResponse,
+  INote,
+  IOtpExpiry,
+  ITask,
+  ITemplate,
+} from "../type";
 import { Link, useNavigate } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
-import { VscLock } from "react-icons/vsc";
+import { VscLock, VscNotebookTemplate } from "react-icons/vsc";
 import {
   IoArrowBackOutline,
   IoCreateOutline,
@@ -32,8 +39,14 @@ import { FaTelegram } from "react-icons/fa";
 import { BiLogoTelegram } from "react-icons/bi";
 import { GoArrowRight } from "react-icons/go";
 import { RotatingLines } from "react-loader-spinner";
-import { IoIosArrowDown, IoMdCheckmarkCircleOutline } from "react-icons/io";
+import {
+  IoIosArrowDown,
+  IoMdCheckmarkCircleOutline,
+  IoMdNotificationsOutline,
+} from "react-icons/io";
 import { FiMoreVertical } from "react-icons/fi";
+import { CiCircleMore } from "react-icons/ci";
+import { PiTargetLight } from "react-icons/pi";
 
 export const NoteEditHistory = () => {};
 
@@ -251,6 +264,7 @@ export const CollaboratorsModal: FC<{
         <BackButton text="Manage note collaborators" onClick={onClose} />
         <br />
         <SearchDropdown
+          label="Add Collaborators"
           filter={(option) => option.id !== note_owner_id}
           selected={selected}
           onClick={handleCollabUpdate}
@@ -382,6 +396,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
         <input
           type={type}
           value={value}
+          name={label}
           onChange={(e) => {
             onChange(e.target.value);
           }}
@@ -401,6 +416,7 @@ interface SearchDropdownProps {
   selected: _IAlias | null;
   filter?: (option: _IAlias) => boolean;
   placeholder?: string;
+  label?: string;
 }
 
 export const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -408,6 +424,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   selected,
   filter,
   placeholder,
+  label,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [options, setOptions] = useState<_IAlias[]>([]);
@@ -451,6 +468,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
 
   return (
     <div className="relative w-full  ">
+      {label && <span className="font-[500] block mb-2 text-sm">{label}</span>}
       <div className="w-full p-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
           <button
@@ -512,12 +530,15 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   );
 };
 
-interface IExInfo {
-  willSelfDestroy: boolean;
-  time: Date;
+interface IExpirationInfo {
+  willSelfDestroy?: boolean;
+  time?: Date;
 }
 
-export const ExpirationInfo: FC<IExInfo> = ({ willSelfDestroy, time }) => {
+export const ExpirationInfo: FC<IExpirationInfo> = ({
+  willSelfDestroy,
+  time,
+}) => {
   if (willSelfDestroy) {
     return (
       <button
@@ -525,7 +546,7 @@ export const ExpirationInfo: FC<IExInfo> = ({ willSelfDestroy, time }) => {
         type={"button"}
         disabled
       >
-        {new Date(time).toLocaleString("en-US", {
+        {new Date(time!).toLocaleString("en-US", {
           year: "numeric",
           month: "short", // Abbreviated month, e.g., "Dec"
           day: "numeric", // Day of the month, e.g., "27"
@@ -642,7 +663,7 @@ export const ScheduledTasksWrapper: FC<{
   }
 
   return (
-    <div className="w-full flex flex-wrap gap-x-8 gap-y-3 mt-2">
+    <div className="w-full flex flex-col gap-x-8 gap-y-3 mt-2">
       <div className="w-full flex items-center gap-x-3">
         <h6 className="text-sm subtext">Sort by</h6>
         <select
@@ -654,75 +675,78 @@ export const ScheduledTasksWrapper: FC<{
           <option value="ended"> Ended </option>
         </select>
       </div>
-      {rows.map((row) => {
-        return (
-          <div
-            key={row.task.id}
-            className={`flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[180px] rounded-sm w-full 3micro:w-[300px] ${determine_row_visibility(
-              row.task,
-              sort
-            )}`}
-          >
-            <div className="  flex justify-between items-center border_bottom py-2   px-2">
-              <span
-                className="text-sm subtext"
-                style={{
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {row.task.name}
-              </span>
-            </div>
+      <div className="grid_wrap">
+        {rows.map((row) => {
+          return (
+            <div
+              key={row.task.id}
+              className={`flex shadow-md bg-[#292929] flex-col gap-y-2 relative h-[180px] rounded-sm w-full 3micro:w-[300px] ${determine_row_visibility(
+                row.task,
+                sort
+              )}`}
+            >
+              <div className="  flex justify-between items-center border_bottom py-2   px-2">
+                <span
+                  className="text-sm subtext"
+                  style={{
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {row.task.name}
+                </span>
+              </div>
 
-            <div className=" flex flex-col gap-y-2  ">
-              <span className="flex items-center  text-center justify-center text-white gap-y-2 text-md">
-                {new Date(row.task.date).toISOString().split("T")[0]}{" "}
-                {/* ISO Date (UTC) */}
-                {new Date(row.task.date)
-                  .toISOString()
-                  .split("T")[1]
-                  .slice(0, 5)}{" "}
-                {/* ISO Time (UTC) */}
-              </span>
-              <div className="px-3 flex justify-center">
-                {row.participants && (
-                  <AvatarGroup size="2" avatars={row.participants} />
-                )}
+              <div className=" flex flex-col gap-y-2  ">
+                <span className="flex items-center  text-center justify-center text-white gap-y-2 text-md">
+                  {new Date(row.task.date).toISOString().split("T")[0]}{" "}
+                  {/* ISO Date (UTC) */}
+                  {new Date(row.task.date)
+                    .toISOString()
+                    .split("T")[1]
+                    .slice(0, 5)}{" "}
+                  {/* ISO Time (UTC) */}
+                </span>
+                <div className="px-3 flex justify-center">
+                  {row.participants && (
+                    <AvatarGroup size="2" avatars={row.participants} />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex h-[35px] justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
+                <span className="text-sm subtext flex items-center gap-x-2 ">
+                  {new Date().toISOString() <
+                  new Date(row.task.date).toISOString() ? (
+                    <>
+                      <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />
+                      Upcoming
+                    </>
+                  ) : (
+                    <>
+                      <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />
+                      Ended
+                    </>
+                  )}
+                  <span className="text-sm subtext">
+                    {formatRelativeTime(row.task.date)}
+                  </span>
+                </span>
+                <span className="flex items-center gap-x-4">
+                  <TaskSharingPopup task={row.task} />
+                  <TaskOptionsPopup
+                    deleteTask={() => {}}
+                    manage={() =>
+                      navigate(`/task/${encodeToBase62(row.task.id)}`)
+                    }
+                  />
+                </span>
               </div>
             </div>
-
-            <div className="flex h-[35px] justify-between px-2 py-1 border_top gap-x-3 w-full absolute bottom-0 left-0 items-center">
-              <span className="text-sm subtext flex items-center gap-x-2 ">
-                {new Date().toISOString() < new Date(row.task.date).toISOString() ? (
-                  <>
-                    <MdOutlineRadioButtonChecked className="text-sm text-yellow-300" />
-                    Upcoming
-                  </>
-                ) : (
-                  <>
-                    <IoMdCheckmarkCircleOutline className="text-sm text-green-400" />
-                    Ended
-                  </>
-                )}
-                <span className="text-sm subtext">
-                  {formatRelativeTime(row.task.date)}
-                </span>
-              </span>
-              <span className="flex items-center gap-x-4">
-                <TaskSharingPopup task={row.task} />
-                <TaskOptionsPopup
-                  deleteTask={() => {}}
-                  manage={() =>
-                    navigate(`/task/${encodeToBase62(row.task.id)}`)
-                  }
-                />
-              </span>
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -829,6 +853,7 @@ export const SharedHeader = () => {
           </>
         )}
         <AuthorisedInfo clickUrl="/login" otpExpiry={otpExpiry} />
+        {otpExpiry?.is_valid_auth && <IoMdNotificationsOutline />}
       </div>
     </header>
   );
@@ -897,42 +922,78 @@ const getInitials = (name?: string): string => {
 
 export default AvatarGroup;
 
-export const SingleNote: FC<{ note: INote; collaborators: _IAlias[] }> = ({
-  note,
-  collaborators,
-}) => {
+export const SingleTemplate: FC<{
+  template: ITemplate;
+}> = ({ template }) => {
   return (
     <div
-      className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[350px] rounded-md gap-y-2 flex flex-col overflow-hidden"
+      className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[300px] rounded-md gap-y-2 flex flex-col "
+      style={{ border: "1px solid #353535" }}
+      key={template.id}
+    >
+      <div
+        className="flex justify-between px-4"
+        onClick={() => {
+          fetch("/api/use_template/" + template.id);
+        }}
+      >
+        <span className="font-[500] text-[#fff] text-md">{template.title}</span>
+      </div>
+
+      <section
+        className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4 text-sm block h-full  ql-container ql-snow quill ql-editor"
+        dangerouslySetInnerHTML={{ __html: template.content }}
+      ></section>
+
+      <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
+        <div className="flex items-center gap-x-2">
+          <DisplayDateCreated date={template.createdAt} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const SingleNote: FC<{
+  type: "template" | "note";
+  note: INote;
+  collaborators: _IAlias[];
+}> = ({ note, collaborators, type }) => {
+  return (
+    <div
+      className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[300px] rounded-md gap-y-2 flex flex-col "
       style={{ border: "1px solid #353535" }}
       key={note.id}
     >
-      <div className="flex justify-between px-4">
-        <span className="font-[500] text-md">{note.title}</span>
+      <div
+        className="flex justify-between px-4"
+        onClick={() => (document.location.href = "/" + encodeToBase62(note.id))}
+      >
+        <span className="font-[500] text-[#fff] text-md">{note.title}</span>
       </div>
 
-      <Link
-        to={"/" + encodeToBase62(note.id)}
-        className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
-      >
-        <span
-          className="text-sm block h-full"
-          dangerouslySetInnerHTML={{ __html: note.content }}
-        ></span>
-      </Link>
+      <section
+        onClick={() => (document.location.href = "/" + encodeToBase62(note.id))}
+        className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4 text-sm block h-full  ql-container ql-snow quill ql-editor"
+        dangerouslySetInnerHTML={{ __html: note.content }}
+      ></section>
 
       <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
         <AvatarGroup size="2" avatars={collaborators} />
         <div className="flex items-center gap-x-2">
           <DisplayDateCreated date={note.createdAt} />
           <IoBookmarkOutline />
-          <NoteSharingPopup note={note} />
+          <MoreOptionsOnNotePopup note={note} noteType={type} />
         </div>
       </div>
     </div>
   );
 };
-const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
+
+const MoreOptionsOnNotePopup: FC<{
+  note: INote;
+  noteType: "template" | "note";
+}> = ({ note, noteType }) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
 
   const displayDropdown = () => {
@@ -940,7 +1001,7 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
   };
   return (
     <div className="relative sharepopup">
-      <IoShareSocialOutline onClick={displayDropdown} />
+      <CiCircleMore onClick={displayDropdown} className="text-[1.25rem]" />
       {isDropdownVisible && (
         <div
           className={`popup_child animate__animated ${
@@ -949,6 +1010,14 @@ const NoteSharingPopup: FC<{ note: INote }> = ({ note }) => {
               : "animate__zoomOut invisible opacity-0"
           }`}
         >
+          {noteType === "template" && (
+            <li
+              className="dropdown_item"
+              style={{ borderBottom: "5px solid #2121218c" }}
+            >
+              <VscNotebookTemplate /> Use Template
+            </li>
+          )}
           <li
             className="dropdown_item"
             onClick={() => {

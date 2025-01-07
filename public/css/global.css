@@ -10,7 +10,24 @@
 .animate__animated {
   --animate-duration: 300ms;
 }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
 
+::-webkit-scrollbar-track {
+  background: var(--bg_color);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border_color);
+  border-radius: 10px;
+  border: 3px solid var(--bg_color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
 body,
 html {
   position: relative;
@@ -29,7 +46,7 @@ html {
   background-color: var(--bg_color) !important;
 }
 .popup_child {
-  @apply absolute bottom-[100%] mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md;
+  @apply absolute z-[999999999] bottom-[100%] mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md;
 }
 .note_manager .popup_child {
   @apply top-[100%] bottom-[initial];
@@ -46,7 +63,7 @@ li {
   list-style: none;
 }
 .page {
-  @apply flex flex-col justify-center items-center mx-[auto] w-[98%] sm:w-[500px] md:w-[700px] lg:w-[1000px];
+  @apply flex flex-col justify-center items-center mx-[auto] w-full px-4;
 }
 body {
   /* background: var(--main-background); */
@@ -60,11 +77,18 @@ body {
 .form_input {
   @apply flex input items-center border justify-between border-gray-300 rounded-lg p-2 w-full;
 }
+.note_title input {
+  font-size: large;
+  font-weight: bolder;
+}
+.note_title .form_input {
+  border: none;
+}
 .sub_button {
   @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;
 }
 .note_manager .modal_child {
-  @apply w-[97%] md:w-[700px] lg:w-[800px];
+  @apply w-full lg:w-[1020px];
 }
 .ql-toolbar.ql-snow,
 .ql-container.ql-snow {
@@ -179,4 +203,14 @@ label {
   :root {
     --top_gap: 30px;
   }
+}
+
+.grid_wrap {
+  @apply flex flex-wrap gap-10;
+}
+.ql-toolbar.ql-snow {
+  background: var(--bg_color);
+  z-index: 9999;
+  position: sticky;
+  top: 0;
 }

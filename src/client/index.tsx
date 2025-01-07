@@ -5,6 +5,7 @@ import {
   ScheduledTasksWrapper,
   SharedHeader,
   SingleNote,
+  SingleTemplate,
 } from "./component";
 import {
   encodeToBase62,
@@ -15,9 +16,11 @@ import { GlobalContext } from "./hook";
 import {
   _IAlias,
   ApiFetchNote,
+  INote,
   INotification,
   IPaginatedResponse,
   ITask,
+  ITemplate,
   NotificationType,
 } from "../type";
 
@@ -36,7 +39,17 @@ const Home = () => {
     { task: ITask; participants: _IAlias[] }[]
   >([]);
 
+  const [templates, setTemplates] = useState<ITemplate[]>([]);
+
   const [currentPage, setCurrentPage] = useState("notes");
+  const [currentNoteTab, setCurrentNoteTab] = useState("owned");
+
+  const fetchTemplates = async () => {
+    const f = await fetch("/api/template");
+    const response: IPaginatedResponse<ITemplate> = await f.json();
+
+    response.status === "ok" && setTemplates(response.data!.rows);
+  };
 
   useEffect(() => {
     try {
@@ -53,16 +66,25 @@ const Home = () => {
         res.status === "ok" && setScheduledTasks(res.data!.rows!);
       });
       fetchNotesSharedWithAlias();
+      fetchTemplates();
     } catch (err) {
       console.error(err);
     }
   }, [navigate, searchParams]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    const nTab = searchParams.get("ntab");
+
+    params.set("ntab", nTab ?? currentNoteTab);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [currentNoteTab]);
+
   return (
     <section className="page">
       <SharedHeader />
 
-      <div className="flex items-start top_space gap-x-3  w-full">
+      <div className="flex items-start gap-x-3  w-full">
         {otpExpiry?.is_valid_auth && (
           <>
             <Link
@@ -82,6 +104,14 @@ const Home = () => {
               Schedules
             </Link>{" "}
             <Link
+              to="?page=templates"
+              className={`sub_button ${
+                currentPage === "templates" ? "text-white" : "subtext"
+              } `}
+            >
+              Templates
+            </Link>
+            <Link
               to="?page=notification"
               className={`sub_button ${
                 currentPage === "notification" ? "text-white" : "subtext"
@@ -94,10 +124,12 @@ const Home = () => {
       </div>
 
       {otpExpiry && otpExpiry.is_valid_auth && (
-        <section className="w-full top_space py-5 mb-3">
+        <section className="w-full py-5 mb-3">
           <div className="flex gap-4 flex-wrap">
             {currentPage === "notes" && (
               <RenderNotes
+                currentNoteTab={currentNoteTab}
+                setCurrentNoteTab={(tab) => setCurrentNoteTab(tab)}
                 sharedNotes={notesSharedWithAlias}
                 ownedNotes={authAliasNotes}
               />
@@ -134,40 +166,44 @@ const SmallButton: FC<{
 const RenderNotes: FC<{
   sharedNotes: ApiFetchNote[];
   ownedNotes: ApiFetchNote[];
-}> = ({ sharedNotes, ownedNotes }) => {
-  const [currentTab, setCurrentTab] = useState<"shared" | "owned">("owned");
-
+  currentNoteTab: string;
+  setCurrentNoteTab: (tab: string) => void;
+}> = ({ sharedNotes, ownedNotes, currentNoteTab, setCurrentNoteTab }) => {
   return (
-    <div className="flex flex-col gap-y-4">
+    <div className="flex flex-col w-full gap-y-4">
       <div className="flex items-center gap-x-3">
         <SmallButton
           text="Created By Me"
-          active={currentTab === "owned"}
-          listener={() => setCurrentTab("owned")}
+          active={currentNoteTab === "owned"}
+          listener={() => setCurrentNoteTab("owned")}
         />
         <SmallButton
           text="Shared With Me"
-          active={currentTab === "shared"}
-          listener={() => setCurrentTab("shared")}
+          active={currentNoteTab === "shared"}
+          listener={() => setCurrentNoteTab("shared")}
         />
       </div>
-      {currentTab === "owned" &&
-        ownedNotes.map((i, key) => (
-          <SingleNote
-            collaborators={i.collaborators}
-            note={i.note}
-            key={i.note.id}
-          />
-        ))}
+      <div className="grid_wrap">
+        {currentNoteTab === "owned" &&
+          ownedNotes.map((i, key) => (
+            <SingleNote
+              type="note"
+              collaborators={i.collaborators}
+              note={i.note}
+              key={i.note.id}
+            />
+          ))}
 
-      {currentTab === "shared" &&
-        sharedNotes.map((i, key) => (
-          <SingleNote
-            collaborators={i.collaborators}
-            note={i.note}
-            key={i.note.id}
-          />
-        ))}
+        {currentNoteTab === "shared" &&
+          sharedNotes.map((i, key) => (
+            <SingleNote
+              type="note"
+              collaborators={i.collaborators}
+              note={i.note}
+              key={i.note.id}
+            />
+          ))}
+      </div>
     </div>
   );
 };
@@ -228,4 +264,32 @@ const Notifications = ({}) => {
     </div>
   );
 };
+
+const RenderTemplates: FC<{ templates: ITemplate[] }> = ({ templates }) => {
+  return (
+    <section>
+      <div className="flex flex-col w-full gap-y-4">
+        <div className="flex items-center gap-x-3">
+          <SmallButton
+            text="Created By Me"
+            active={false}
+            listener={() => {}}
+          />
+          <SmallButton
+            text="Shared With Me"
+            active={true}
+            listener={() => {}}
+          />
+        </div>
+        <div className="grid_wrap">
+          {templates &&
+            templates.map((template, key) => (
+              <SingleTemplate template={template} />
+            ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export default Home;

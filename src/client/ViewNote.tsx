@@ -52,12 +52,15 @@ const ViewNote: FC<IViewNote> = () => {
   if (!note) return <></>;
 
   return (
-    <div className="modal   relative animate__animated animate__fadeIn">
+    <div
+      className="modal note_manager  relative animate__animated animate__fadeIn"
+      onDoubleClick={() => navigate("/note/" + encodeToBase62(note.note.id))}
+    >
       <div className="flex modal_child flex-col gap-y-3 ">
         <BackButton text={note.note.title} url={-1} />
 
         <div
-          className="note_body"
+          className="note_body ql-container ql-snow quill ql-editor"
           dangerouslySetInnerHTML={{ __html: note.note.content }}
         ></div>
 

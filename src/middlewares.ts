@@ -12,6 +12,8 @@ import {
 import Alias from "./models/Alias";
 import { validate } from "uuid";
 import Task from "./models/Task";
+import { ExtendedError, Socket } from "socket.io";
+import cookie from "cookie";
 
 export function validateAndSetPagination(
   req: Request,
@@ -94,6 +96,35 @@ export async function authorize_alias_as_task_owner(
 
   next();
 }
+
+export async function authoriseAliasIoConnection(
+  socket: Socket,
+  next: (err?: ExtendedError) => void
+) {
+  const cookies = socket.handshake.headers.cookie;
+
+  if (!cookies) {
+    return next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Login to continue"));
+  }
+
+  const parsedCookies = cookie.parse(cookies);
+  const sessionId = parsedCookies[sessionCookieKey];
+  const cachedSession = await getCachedSession(sessionId);
+
+  if (!cachedSession) {
+    next(
+      ApiError.error(
+        ErrorCodes.UNAUTHORIZED,
+        "Auth session expired. Verify OTP to continue"
+      )
+    );
+    return;
+  }
+
+  (socket as any).__alias = { id: cachedSession.alias_id }; // Attach user info to the socket object
+  next();
+}
+
 export async function authorize_alias_as_task_participant(
   req: Request,
   res: Response,
