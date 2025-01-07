@@ -11,11 +11,14 @@ import {
   _IAlias,
   IApiResponse,
   INote,
+  INotification,
   IOtpExpiry,
+  IPaginatedResponse,
   ITask,
   ITemplate,
+  NotificationType,
 } from "../type";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";
 import { VscLock, VscNotebookTemplate } from "react-icons/vsc";
@@ -375,6 +378,7 @@ interface InputWithIconProps {
   blurListener?: () => void;
   disabled?: boolean;
   label?: string;
+  name?: string;
 }
 
 export const InputWithIcon: FC<InputWithIconProps> = ({
@@ -387,6 +391,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
   blurListener,
   disabled,
   label,
+  name,
 }) => {
   return (
     <div className="label_input">
@@ -396,7 +401,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
         <input
           type={type}
           value={value}
-          name={label}
+          name={name ?? label}
           onChange={(e) => {
             onChange(e.target.value);
           }}
@@ -827,12 +832,74 @@ export const AuthorisedInfo = ({
   );
 };
 
+export const Notifications: FC<{ notifications: INotification[] }> = ({
+  notifications,
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      style={{ overflowY: "scroll" }}
+      className="flex flex-col gap-y-4 shadow-md animate__fadeIn animate__animated absolute z-[88888] max-h-[100vh]  right-[-75px] md:left-[-75px] md:right-[auto] top-[50px] bg-[#333] w-[320px] 2micro:w-[350px] 3mirco:w-[430px]  rounded-md"
+    >
+      {notifications.map((notification) => {
+        return (
+          <div className="flex  border_bottom py-3 rounded-sm gap-y-3 px-5 flex-col">
+            <div className=" flex flex-col gap-y-1  ">
+              <h6 className="font-[500] text-md ">
+                {notification.title}
+                {"  "}
+                <span className="text-sm text-[#bbb] font-[300]">
+                  {formatRelativeTime(notification.createdAt)}
+                </span>
+              </h6>
+              <span className="text-sm subtetx">{notification.message}</span>
+            </div>
+            <div className="flex justify-end">
+              {notification.type === NotificationType.AddedCollaborator && (
+                <Button
+                  text="View Note"
+                  onClick={() =>
+                    navigate(
+                      `/${encodeToBase62(notification.metadata.note_id)}`
+                    )
+                  }
+                />
+              )}{" "}
+              {notification.type === NotificationType.AddedParticipant && (
+                <Button
+                  text="View Task"
+                  onClick={() =>
+                    navigate(
+                      `/task/${encodeToBase62(notification.metadata.task_id)}`
+                    )
+                  }
+                />
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 export const SharedHeader = () => {
   const navigate = useNavigate();
   const { otpExpiry } = useContext(GlobalContext)!;
+  const [showModal, setModal] = useState(false);
+  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const fetchNotifications = async () => {
+    const f = await fetch("/api/notification");
+    const res: IPaginatedResponse<INotification> = await f.json();
+    if (res.status === "ok") setNotifications(res.data?.rows!);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
   return (
-    <header className="flex flex-col py-4 gap-y-5 w-full items-center top_space">
-      <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-center justify-center">
+    <header className="flex flex-col py-4 gap-y-5 w-full items-center relative top_space">
+      <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-end justify-center">
         {otpExpiry?.is_valid_auth ? (
           <>
             <Button
@@ -853,7 +920,21 @@ export const SharedHeader = () => {
           </>
         )}
         <AuthorisedInfo clickUrl="/login" otpExpiry={otpExpiry} />
-        {otpExpiry?.is_valid_auth && <IoMdNotificationsOutline />}
+        {otpExpiry?.is_valid_auth && notifications.length > 0 && (
+          <div className="relative h-[40px]">
+            <button
+              className="relative"
+              onClick={() => setModal((prev) => !prev)}
+            >
+              <IoMdNotificationsOutline className="text-[1.5rem] subtext z-[4]" />
+              <span className="noti">
+                {notifications.filter((i) => !i.is_read).length}{" "}
+              </span>
+            </button>
+
+            {showModal && <Notifications notifications={notifications} />}
+          </div>
+        )}
       </div>
     </header>
   );

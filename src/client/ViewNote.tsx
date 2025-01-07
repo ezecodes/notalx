@@ -57,7 +57,7 @@ const ViewNote: FC<IViewNote> = () => {
       onDoubleClick={() => navigate("/note/" + encodeToBase62(note.note.id))}
     >
       <div className="flex modal_child flex-col gap-y-3 ">
-        <BackButton text={note.note.title} url={-1} />
+        <BackButton text={note.note.title} url={"/"} />
 
         <div
           className="note_body ql-container ql-snow quill ql-editor"

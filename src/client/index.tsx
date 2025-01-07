@@ -111,14 +111,6 @@ const Home = () => {
             >
               Templates
             </Link>
-            <Link
-              to="?page=notification"
-              className={`sub_button ${
-                currentPage === "notification" ? "text-white" : "subtext"
-              } `}
-            >
-              Notifications
-            </Link>
           </>
         )}
       </div>
@@ -139,7 +131,9 @@ const Home = () => {
               <ScheduledTasksWrapper rows={scheduledTasks} />
             )}
 
-            {currentPage === "notification" && <Notifications />}
+            {currentPage === "templates" && (
+              <RenderTemplates templates={templates} />
+            )}
           </div>
         </section>
       )}
@@ -204,63 +198,6 @@ const RenderNotes: FC<{
             />
           ))}
       </div>
-    </div>
-  );
-};
-
-const Notifications = ({}) => {
-  const [notifications, setNotifications] = useState<INotification[]>([]);
-  const fetchNotifications = async () => {
-    const f = await fetch("/api/notification");
-    const res: IPaginatedResponse<INotification> = await f.json();
-    if (res.status === "ok") setNotifications(res.data?.rows!);
-  };
-
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-  return (
-    <div className="flex flex-col gap-y-4">
-      {notifications.map((notification) => {
-        return (
-          <div className="flex  border_bottom py-3 gap-y-3 px-5 flex-col">
-            <div className=" flex flex-col gap-y-1 rounded-sm ">
-              <h6 className="font-[500] text-md ">
-                {notification.title}
-                {"  "}
-                <span className="text-sm text-[#bbb] font-[300]">
-                  {formatRelativeTime(notification.createdAt)}
-                </span>
-              </h6>
-              <span className="text-sm subtetx">{notification.message}</span>
-            </div>
-            <div className="flex justify-end">
-              {notification.type === NotificationType.AddedCollaborator && (
-                <Button
-                  text="View Note"
-                  onClick={() =>
-                    navigate(
-                      `/${encodeToBase62(notification.metadata.note_id)}`
-                    )
-                  }
-                />
-              )}{" "}
-              {notification.type === NotificationType.AddedParticipant && (
-                <Button
-                  text="View Task"
-                  onClick={() =>
-                    navigate(
-                      `/task/${encodeToBase62(notification.metadata.task_id)}`
-                    )
-                  }
-                />
-              )}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 };

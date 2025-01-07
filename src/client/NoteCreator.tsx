@@ -168,11 +168,20 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ value, onChange }) => {
             [{ list: "ordered" }, { list: "bullet" }],
             ["bold", "italic", "underline", "strike"],
             [{ align: [] }],
-            ["link"],
+            ["link", "image", "video"],
             [{ color: [] }, { background: [] }],
-            ["image"],
-            ["clean"], // This is to clear the formatting
+            ["blockquote"], // Added quotation button
+            ["clean"],
+            ["code-block"],
           ],
+          clipboard: {
+            matchVisual: false,
+          },
+          history: {
+            delay: 2000,
+            maxStack: 500,
+            userOnly: true,
+          },
         }}
         placeholder="Write your note here..."
       />
@@ -189,6 +198,10 @@ const Drafts: FC<IDraftModal> = ({ isOpen, closeModal }) => {
   const { drafts, deleteDraft, expandDraft } = useContext(GlobalContext)!;
 
   if (!drafts || drafts?.length === 0 || !isOpen) return <></>;
+  if (isOpen && drafts.length === 0) {
+    toast.warn("No drafts");
+    return <></>;
+  }
 
   return (
     <aside

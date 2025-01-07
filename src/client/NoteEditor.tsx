@@ -30,6 +30,7 @@ import {
   createScheduleTask,
   summeriseSelectedText,
   encodeToBase62,
+  navigateBackOrHome,
 } from "./utils";
 import { BsStars } from "react-icons/bs";
 import { CiCircleChevDown, CiStickyNote } from "react-icons/ci";
@@ -348,7 +349,7 @@ const Editor = () => {
           <form className="    gap-y-3 flex flex-col  ">
             <BackButton
               text={"Editing note"}
-              onClick={() => navigate(`/${encodeToBase62(editor?.id!)}`)}
+              onClick={() => navigateBackOrHome()}
             />
 
             {editor ? (

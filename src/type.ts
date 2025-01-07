@@ -148,9 +148,9 @@ export type IApiResponse<T> = {
   error_code?: ErrorCodes;
 };
 
-export interface IPaginatedResponse<T>
+export interface IPaginatedResponse<IRow>
   extends IApiResponse<{
-    rows: T[];
+    rows: IRow[];
     pagination: IPagination;
   }> {}
 

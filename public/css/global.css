@@ -214,3 +214,17 @@ label {
   position: sticky;
   top: 0;
 }
+
+.noti {
+  font-size: 0.8rem;
+  position: absolute;
+  display: block;
+  z-index: 2;
+  @apply flex items-center justify-center;
+  height: 18px;
+  width: 18px;
+  right: -10px;
+  background: #696969;
+  top: 0;
+  border-radius: 40px;
+}

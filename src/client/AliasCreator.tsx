@@ -56,6 +56,7 @@ const CreateAlias: FC<ICreateAlias> = () => {
             <InputWithIcon
               placeholder="Start typing.."
               type="text"
+              name="Full name"
               value={alias.name}
               onChange={(value) =>
                 setAlias((prev) => ({ ...prev, name: value }))
@@ -64,8 +65,9 @@ const CreateAlias: FC<ICreateAlias> = () => {
           </div>
 
           <div className="label_input">
-            <label>Recovery email</label>
+            <label>Email</label>
             <InputWithIcon
+              name="Email"
               placeholder=""
               type="email"
               value={alias.email}

@@ -134,7 +134,6 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     const drafts = localStorage.getItem(key);
 
     if (!drafts) {
-      toast.warn("No drafts");
       return;
     }
 
