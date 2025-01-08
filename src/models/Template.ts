@@ -1,6 +1,5 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
-import Alias from "./Alias";
 import { ITemplate, IPagination } from "../type";
 import memcachedService from "../memcached";
 
@@ -111,7 +110,5 @@ Template.init(
   },
   { sequelize, modelName: "Template" }
 );
-
-Alias.hasMany(Template, { foreignKey: "alias_id" });
 
 export default Template;

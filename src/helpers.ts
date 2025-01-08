@@ -7,6 +7,7 @@ import {
   IncomingNote,
   INote,
   INoteCollaborator,
+  IPagination,
   ITask,
   NotificationType,
 } from "./type";
@@ -17,6 +18,7 @@ import {
   CLOUDFLARE_API_TOKEN,
   CLOUDFLARE_ID,
   mailConfig,
+  ORGANISE_NOTE_PROMPT,
   RESTRICTED_WORDS,
   sessionCookieKey,
   X_API_KEY,
@@ -32,6 +34,9 @@ import { ChatCompletionMessage } from "openai/resources";
 import TaskParticipant from "./models/TaskParticipant";
 import { isProfane } from "no-profanity";
 import Notification from "./models/Notification";
+import { z } from "zod";
+import Category from "./models/Category";
+import NoteCategory from "./models/NoteCategory";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -484,4 +489,116 @@ export async function fanOutNotification(
   });
 }
 
-// export function sendTask
+export const create_category_validator = z
+  .object({
+    category: z.string().min(5, { message: "Enter category name" }).optional(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Request body cannot be empty",
+  });
+
+export const OrganizeNotes = async () => {
+  const oneHourAgo = new Date();
+  oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+  const lastPagination: IPagination = (await memcachedService.get(
+    `last_pagination`
+  )) as any;
+
+  let page, page_size;
+
+  if (!lastPagination) {
+    page = 1;
+    page_size = 15;
+  } else {
+    page = lastPagination.page;
+    page_size = lastPagination.page_size;
+  }
+
+  const offset = (page - 1) * page_size;
+
+  const getNotes = (await Note.findAll({
+    limit: page_size,
+    offset,
+    raw: true,
+  })) as any as INote[];
+
+  if (getNotes.length === 0) {
+    return;
+  }
+  const notes: INote[] = [];
+
+  getNotes.forEach(async (note) => {
+    const find = await NoteCategory.findOne({ where: { note_id: note.id } });
+    if (!find) {
+      notes.push(note);
+    }
+  });
+
+  const aiResponse = await QueryLLM1(
+    JSON.stringify(notes),
+    ORGANISE_NOTE_PROMPT
+  );
+  console.log(aiResponse);
+
+  if (!aiResponse.success) {
+    console.error(aiResponse);
+    return;
+  }
+
+  try {
+    const parseJson: {
+      success: boolean;
+      message: string;
+      data: {
+        note_id: string;
+        name: string;
+        category: string;
+        tags: string[];
+      }[];
+    } = JSON.parse(aiResponse.result.response);
+
+    console.log(parseJson);
+    parseJson.data.forEach(async (item) => {
+      const category = await Category.findOrCreate({
+        where: { name: item.category },
+      });
+      const findNote = notes.find((i) => i.id === item.note_id);
+
+      const whereClause = {
+        note_id: item.note_id,
+        category_id: category[0].dataValues.id,
+      };
+
+      const find = await NoteCategory.findOne({
+        where: whereClause,
+      });
+
+      if (!find) {
+        await NoteCategory.create({
+          note_id: item.note_id,
+          category_id: category[0].dataValues.id!,
+          alias_id: findNote?.alias_id!,
+          tags: item.tags,
+        });
+      } else {
+        await NoteCategory.update(
+          { tags: item.tags },
+          {
+            where: whereClause,
+          }
+        );
+      }
+    });
+  } catch (err) {
+    console.error("Could not parse response JSON", err);
+  }
+
+  memcachedService.set(
+    "last_pagination",
+    { page: page + 1, page_size: page_size + 15 },
+    3600
+  );
+};
+// OrganizeNotes();

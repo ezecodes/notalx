@@ -22,7 +22,4 @@ TaskParticipant.init(
   { sequelize, modelName: "TaskParticipant" }
 );
 
-Alias.hasMany(TaskParticipant, { foreignKey: "alias_id" });
-Task.hasMany(TaskParticipant, { foreignKey: "task_id" });
-
 export default TaskParticipant;

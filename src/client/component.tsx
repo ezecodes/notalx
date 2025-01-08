@@ -840,20 +840,22 @@ export const Notifications: FC<{ notifications: INotification[] }> = ({
   return (
     <div
       style={{ overflowY: "scroll" }}
-      className="flex flex-col gap-y-4 shadow-md animate__fadeIn animate__animated absolute z-[88888] max-h-[100vh]  right-[-75px] md:left-[-75px] md:right-[auto] top-[50px] bg-[#333] w-[320px] 2micro:w-[350px] 3mirco:w-[430px]  rounded-md"
+      className="flex flex-col gap-y-4 shadow-md animate__fadeIn animate__animated absolute z-[88888] max-h-[100vh]  right-[-90px] md:left-[-75px] md:right-[auto] top-[50px] bg-[#333] w-[320px] 2micro:w-[350px] 3mirco:w-[430px]  rounded-md"
     >
       {notifications.map((notification) => {
         return (
           <div className="flex  border_bottom py-3 rounded-sm gap-y-3 px-5 flex-col">
             <div className=" flex flex-col gap-y-1  ">
               <h6 className="font-[500] text-md ">
-                {notification.title}
-                {"  "}
+                {notification.title}{" "}
                 <span className="text-sm text-[#bbb] font-[300]">
                   {formatRelativeTime(notification.createdAt)}
                 </span>
               </h6>
-              <span className="text-sm subtetx">{notification.message}</span>
+              <span
+                className="text-sm subtetx"
+                dangerouslySetInnerHTML={{ __html: notification.message }}
+              />
             </div>
             <div className="flex justify-end">
               {notification.type === NotificationType.AddedCollaborator && (
@@ -898,8 +900,8 @@ export const SharedHeader = () => {
     fetchNotifications();
   }, []);
   return (
-    <header className="flex flex-col py-4 gap-y-5 w-full items-center relative top_space">
-      <div className="flex flex-row gap-x-2 3micro:gap-x-5 flex-wrap sm:flex-nowrap gap-y-2 items-end justify-center">
+    <header className="flex flex-col py-4 mb-5 gap-y-5 w-full items-center relative top_space">
+      <div className="flex flex-row gap-x-7  flex-wrap sm:flex-nowrap gap-y-2 items-end justify-center">
         {otpExpiry?.is_valid_auth ? (
           <>
             <Button
@@ -921,7 +923,7 @@ export const SharedHeader = () => {
         )}
         <AuthorisedInfo clickUrl="/login" otpExpiry={otpExpiry} />
         {otpExpiry?.is_valid_auth && notifications.length > 0 && (
-          <div className="relative h-[40px]">
+          <div className="relative h-[35px]">
             <button
               className="relative"
               onClick={() => setModal((prev) => !prev)}
@@ -1040,6 +1042,7 @@ export const SingleNote: FC<{
   note: INote;
   collaborators: _IAlias[];
 }> = ({ note, collaborators, type }) => {
+  const navigate = useNavigate();
   return (
     <div
       className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[300px] rounded-md gap-y-2 flex flex-col "
@@ -1048,13 +1051,13 @@ export const SingleNote: FC<{
     >
       <div
         className="flex justify-between px-4"
-        onClick={() => (document.location.href = "/" + encodeToBase62(note.id))}
+        onClick={() => navigate(`/${encodeToBase62(note.id)}`)}
       >
         <span className="font-[500] text-[#fff] text-md">{note.title}</span>
       </div>
 
       <section
-        onClick={() => (document.location.href = "/" + encodeToBase62(note.id))}
+        onClick={() => navigate(`/${encodeToBase62(note.id)}`)}
         className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4 text-sm block h-full  ql-container ql-snow quill ql-editor"
         dangerouslySetInnerHTML={{ __html: note.content }}
       ></section>

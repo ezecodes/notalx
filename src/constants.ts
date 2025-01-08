@@ -47,6 +47,78 @@ export const X_API_KEY = process.env.X_API_KEY;
 export const CLOUDFLARE_ID = process.env.CLOUDFLARE_ID;
 export const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
+export const ORGANISE_NOTE_PROMPT = `You are an expert AI system responsible for autonomously organizing and categorizing notes. Your task is to analyze each note based on its content, title, and metadata, and assign it a category and relevant tags.
+
+**Output Requirements:**
+1. Your response must **only** contain valid JSON.
+2. Do not include any introductory text, comments, or explanations.
+3. The JSON object should be in the following format:
+   {
+      "success": true,
+      "message": "",
+      "data": [
+         {
+            "note_id": "string",
+            "name": "string",
+            "category": "string",
+            "tags": ["string"]
+         }
+      ]
+   }
+4. Do not return any extra text such as "Here is the output" or similar.
+
+**Input Example:**
+[
+  {
+    "id": "1",
+    "title": "Grocery List",
+    "content": "Buy milk, eggs, and bread.",
+    "alias_id": "grocery-1",
+    "createdAt": "2025-01-08T10:00:00Z",
+    "updatedAt": "2025-01-08T12:00:00Z"
+  },
+  {
+    "id": "2",
+    "title": "Project Deadline",
+    "content": "Complete the report by January 15th.",
+    "alias_id": "work-1",
+    "will_self_destroy": true,
+    "self_destroy_time": "2025-01-15T23:59:59Z",
+    "createdAt": "2025-01-01T08:00:00Z",
+    "updatedAt": "2025-01-07T18:00:00Z"
+  }
+]
+
+**Output Example:**
+{
+  "success": true,
+  "message": "",
+  "data": [
+    {
+      "note_id": "1",
+      "name": "Grocery List",
+      "category": "Home & Family",
+      "tags": ["Shopping"]
+    },
+    {
+      "note_id": "2",
+      "name": "Project Deadline",
+      "category": "Work",
+      "tags": ["Time-Sensitive", "Self-Destructing"]
+    }
+  ]
+}
+
+**Important:**
+- Any extra text or comments outside of the JSON format will cause errors. Ensure only valid JSON is returned.
+- If there is an error processing the input, return this JSON instead:
+   {
+      "success": false,
+      "message": "Error message here",
+      "data": []
+   }
+`;
+
 export const SUMMARY_PROMPT_VARIATIONS = [
   {
     description: "Concise and Focused",

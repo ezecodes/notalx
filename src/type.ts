@@ -87,7 +87,16 @@ export type ITemplateCategory = {
 
 export type ICategory = {
   id: string;
-  category: string;
+  reference_category_id?: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type INoteCategory = {
+  note_id: string;
+  alias_id: string;
+  category_id: string;
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 };

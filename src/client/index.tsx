@@ -1,28 +1,21 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Button,
   ScheduledTasksWrapper,
   SharedHeader,
   SingleNote,
   SingleTemplate,
 } from "./component";
-import {
-  encodeToBase62,
-  fetchAllScheduledTasksForAlias,
-  formatRelativeTime,
-} from "./utils";
+
 import { GlobalContext } from "./hook";
 import {
   _IAlias,
   ApiFetchNote,
-  INote,
-  INotification,
+  ICategory,
   IPaginatedResponse,
-  ITask,
   ITemplate,
-  NotificationType,
 } from "../type";
+import { CiGrid41 } from "react-icons/ci";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -32,12 +25,9 @@ const Home = () => {
     notesSharedWithAlias,
     fetchNotesSharedWithAlias,
     otpExpiry,
+    scheduledTasks,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
-
-  const [scheduledTasks, setScheduledTasks] = useState<
-    { task: ITask; participants: _IAlias[] }[]
-  >([]);
 
   const [templates, setTemplates] = useState<ITemplate[]>([]);
 
@@ -62,23 +52,13 @@ const Home = () => {
       page && setCurrentPage(page);
 
       fetchAliasNotes();
-      fetchAllScheduledTasksForAlias().then((res) => {
-        res.status === "ok" && setScheduledTasks(res.data!.rows!);
-      });
+
       fetchNotesSharedWithAlias();
       fetchTemplates();
     } catch (err) {
       console.error(err);
     }
   }, [navigate, searchParams]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    const nTab = searchParams.get("ntab");
-
-    params.set("ntab", nTab ?? currentNoteTab);
-    navigate({ search: params.toString() }, { replace: true });
-  }, [currentNoteTab]);
 
   return (
     <section className="page">
@@ -166,6 +146,7 @@ const RenderNotes: FC<{
   return (
     <div className="flex flex-col w-full gap-y-4">
       <div className="flex items-center gap-x-3">
+        <CiGrid41 className="text-lg" />
         <SmallButton
           text="Created By Me"
           active={currentNoteTab === "owned"}
@@ -203,20 +184,29 @@ const RenderNotes: FC<{
 };
 
 const RenderTemplates: FC<{ templates: ITemplate[] }> = ({ templates }) => {
+  const [categories, setCategories] = useState<ICategory[]>([]);
+
+  const fechCategories = async () => {
+    const f = await fetch("/api/category");
+    const response: IPaginatedResponse<ICategory> = await f.json();
+
+    response.status === "ok" && setCategories(response.data!.rows);
+  };
+  useEffect(() => {
+    fechCategories();
+  }, []);
   return (
     <section>
       <div className="flex flex-col w-full gap-y-4">
         <div className="flex items-center gap-x-3">
-          <SmallButton
-            text="Created By Me"
-            active={false}
-            listener={() => {}}
-          />
-          <SmallButton
-            text="Shared With Me"
-            active={true}
-            listener={() => {}}
-          />
+          {categories.map((category) => (
+            <SmallButton
+              text={category.name}
+              active={false}
+              listener={() => {}}
+              key={category.id}
+            />
+          ))}
         </div>
         <div className="grid_wrap">
           {templates &&

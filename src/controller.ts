@@ -27,6 +27,7 @@ import {
   IAuthSession,
   IncomingNote,
   INote,
+  INoteCategory,
   INoteCollaborator,
   IOtpSession,
   ISummaryResponse,
@@ -55,6 +56,8 @@ import TaskParticipant from "./models/TaskParticipant";
 import Notification from "./models/Notification";
 import Template from "./models/Template";
 import TemplateCategory from "./models/TemplateCategory";
+import Category from "./models/Category";
+import NoteCategory from "./models/NoteCategory";
 
 export async function getAllAlias(
   req: Request,
@@ -409,6 +412,81 @@ type ITaskFromLLM = {
     location: string | string[];
   }[];
 };
+export async function createCategory(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { name } = req.body;
+  Category.create({
+    name,
+  });
+  res.json({
+    status: "ok",
+  });
+}
+
+export async function getNoteCategories(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const find = await NoteCategory.findAll({
+    where: { note_id: req.params.note_id },
+    include: [{ model: Note }, { model: Category }],
+  });
+  console.log(find);
+  // const categories = find.reduce((acc: any, curr: any) => {
+  //   const existing = acc.find((item: any) => item.note_id === curr.note_id);
+  //   if (existing) {
+  //     existing.categories.push(curr.category_id);
+  //   } else {
+  //     acc.push({ note_id: curr.note_id, categories: [{id: curr.category_id, name: curr }] });
+  //   }
+  //   return acc;
+  // }, []);
+
+  // res.json({
+  //   status: "ok",
+  //   data: categories,
+  // });
+}
+export async function updateCategory(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const { name } = req.body;
+  Category.updateByIdWithCache(req.params.category_id, { name });
+  res.json({
+    status: "ok",
+  });
+}
+
+export async function getCategory(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  res.json({
+    status: "ok",
+    data: await Category.findByPkWithCache(req.params.category_id),
+  });
+}
+
+export async function getCategories(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  res.json({
+    status: "ok",
+    data: {
+      rows: await Category.findAllWithCache(req.__pagination__!),
+      paginaton: req.__pagination__!,
+    },
+  });
+}
 
 export async function getTemplates(
   req: Request,
@@ -998,6 +1076,9 @@ export async function addNoteCollaborators(
   const { collaborators }: { collaborators: { id: string }[] } = req.body;
   const note_id = req.params.note_id;
 
+  const user = await Alias.findByPkWithCache(req.__alias!.id);
+  const note = await Note.findByPkWithCache(req.params.note_id);
+
   if (
     !collaborators ||
     !Array.isArray(collaborators) ||
@@ -1046,8 +1127,9 @@ export async function addNoteCollaborators(
     NotificationType.AddedCollaborator,
     {
       title: "You've Been Added as a Collaborator!",
-      message:
-        "You have been added as a collaborator to a note. Welcome aboard!",
+      message: `<a href="">${
+        user?.name
+      }</a> added you as a collaborator to note: <strong>${note?.title!}</strong>`,
       metadata: {
         note_id,
       },

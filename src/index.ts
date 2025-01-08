@@ -6,7 +6,7 @@ import morgan from "morgan";
 import cron from "node-cron";
 
 import cookieParser from "cookie-parser";
-import { ApiError, deleteExpiredNotes } from "./helpers";
+import { ApiError, deleteExpiredNotes, OrganizeNotes } from "./helpers";
 import { Branding_NotalX } from "./constants";
 import router from "./routes";
 import { Server as SocketIOServer } from "socket.io";
@@ -88,6 +88,7 @@ httpServer.listen(4000, () => {
 });
 
 cron.schedule("* * * * *", async () => {
+  // OrganizeNotes();
   await deleteExpiredNotes(); // Runs every minute
 });
 export { httpServer, io };

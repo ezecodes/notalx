@@ -22,7 +22,7 @@ NoteCollaborator.init(
   { sequelize, modelName: "NoteCollaborator" }
 );
 
-NoteCollaborator.hasMany(Alias, { foreignKey: "alias_id" });
-NoteCollaborator.hasMany(Note, { foreignKey: "note_id" });
+Alias.hasMany(NoteCollaborator, { foreignKey: "alias_id" });
+Note.hasMany(NoteCollaborator, { foreignKey: "note_id" });
 
 export default NoteCollaborator;

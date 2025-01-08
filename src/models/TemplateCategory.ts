@@ -24,7 +24,4 @@ TemplateCategory.init(
   { sequelize, modelName: "TemplateCategory" }
 );
 
-Template.hasMany(TemplateCategory, { foreignKey: "template_id" });
-Category.hasMany(TemplateCategory, { foreignKey: "category_id" });
-
 export default TemplateCategory;

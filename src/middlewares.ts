@@ -13,8 +13,31 @@ import Alias from "./models/Alias";
 import { validate } from "uuid";
 import Task from "./models/Task";
 import { ExtendedError, Socket } from "socket.io";
-import cookie from "cookie";
+import cookie, { parse } from "cookie";
+import Category from "./models/Category";
+import Template from "./models/Template";
+import { z } from "zod";
+import { signedCookies } from "cookie-parser";
 
+export function validateRequestBody(schema: z.ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.body);
+    if (result.success) next();
+    else {
+      const errors = result.error.errors.map((issue) => ({
+        field: issue.path.join("."), // Join path for nested fields
+        code: ErrorCodes.VALIDATION_ERROR,
+        message: issue.message, // Custom error message
+      }));
+      res.status(400).json({
+        status: "err",
+        error_code: ErrorCodes.VALIDATION_ERROR,
+        message: errors[0].message,
+      });
+      return;
+    }
+  };
+}
 export function validateAndSetPagination(
   req: Request,
   res: Response,
@@ -107,11 +130,20 @@ export async function authoriseAliasIoConnection(
     return next(ApiError.error(ErrorCodes.UNAUTHORIZED, "Login to continue"));
   }
 
-  const parsedCookies = cookie.parse(cookies);
-  const sessionId = parsedCookies[sessionCookieKey];
-  const cachedSession = await getCachedSession(sessionId);
+  const parsedCookies = parse(cookies);
+  const unsignedCookies = signedCookies(
+    parsedCookies as any,
+    process.env.COOKIE_SECRET!
+  );
 
-  if (!cachedSession) {
+  const sessionId = unsignedCookies[sessionCookieKey];
+  const cachedSession = await getCachedSession(sessionId as string);
+
+  if (
+    !sessionId ||
+    !cachedSession ||
+    isExpired(cachedSession.expiry as string)
+  ) {
     next(
       ApiError.error(
         ErrorCodes.UNAUTHORIZED,
@@ -178,7 +210,6 @@ export async function authorize_alias_as_note_owner(
 
   next();
 }
-
 export async function validateTaskId(
   req: Request,
   res: Response,
@@ -195,6 +226,48 @@ export async function validateTaskId(
 
   if (count === 0) {
     next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Task not found"));
+
+    return;
+  }
+  next();
+}
+export async function validateCategoryId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const category_id = req.params["category_id"];
+  if (!validate(category_id)) {
+    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Category ID"));
+    return;
+  }
+  const count = await Category.count({
+    where: { id: category_id },
+  });
+
+  if (count === 0) {
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found"));
+
+    return;
+  }
+  next();
+}
+export async function validateTemplateId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const template_id = req.params["template_id"];
+  if (!validate(template_id)) {
+    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Template ID"));
+    return;
+  }
+  const count = await Template.count({
+    where: { id: template_id },
+  });
+
+  if (count === 0) {
+    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Template not found"));
 
     return;
   }

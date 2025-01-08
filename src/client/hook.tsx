@@ -4,6 +4,7 @@ import React, {
   FC,
   ReactNode,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -14,9 +15,12 @@ import {
   INoteCreator,
   IOtpExpiry,
   IPaginatedResponse,
+  ITask,
 } from "../type";
 import { fetchAuthAliasNotes } from "./utils";
-import { toast } from "react-toastify";
+import { io } from "socket.io-client";
+
+type IFetchScheduledTask = { task: ITask; participants: _IAlias[] };
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -54,6 +58,10 @@ type IContext = {
   fetchNotesSharedWithAlias: () => void;
   notesSharedWithAlias: ApiFetchNote[];
   authAliasNotes: ApiFetchNote[];
+
+  fetchScheduledTasks: () => void;
+
+  scheduledTasks: IFetchScheduledTask[];
 };
 const key = "drafts";
 
@@ -68,6 +76,19 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     note_id: string;
   }>(null);
 
+  const [scheduledTasks, setScheduledTasks] = useState<IFetchScheduledTask[]>(
+    []
+  );
+
+  const fetchScheduledTasks = async () => {
+    const f = await fetch("/api/task");
+    const res: IPaginatedResponse<IFetchScheduledTask> = await f.json();
+
+    res.status === "ok" && setScheduledTasks(res.data?.rows!);
+  };
+
+  const socket = useRef(io("http://localhost:4000"));
+
   const [editor, setEditor] = useState<Partial<INoteCreator>>({
     title: "",
     content: "",
@@ -81,8 +102,28 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   >([]);
   const [isOtpExpiryLoading, setOtpExpiryLoading] = useState(true);
 
+  const initializeSocket = () => {
+    socket.current.on("connect", () => {
+      console.log("Connected to socket server");
+    });
+
+    socket.current.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+
+    socket.current.on("new_tasks", (note: INote) => {
+      fetchScheduledTasks();
+    });
+
+    socket.current.on("noteDeleted", (noteId: string) => {
+      console.log("Note deleted:", noteId);
+      // Handle note deletion logic here
+    });
+  };
+
   useEffect(() => {
     getOTPExpiry();
+    initializeSocket();
   }, []);
 
   const deleteNote = async (id: string) => {
@@ -250,6 +291,8 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     isOtpExpiryLoading,
     fetchNotesSharedWithAlias,
     notesSharedWithAlias,
+    fetchScheduledTasks,
+    scheduledTasks,
   };
 
   return (

@@ -80,7 +80,4 @@ Notification.init(
   },
   { sequelize, modelName: "Notification" }
 );
-
-Alias.hasMany(Notification, { foreignKey: "alias_id" });
-
 export default Notification;

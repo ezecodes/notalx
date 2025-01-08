@@ -118,6 +118,6 @@ Note.init(
   { sequelize, modelName: "Note" }
 );
 
-Note.hasMany(Alias, { foreignKey: "alias_id" });
+Alias.hasMany(Note, { foreignKey: "alias_id" });
 
 export default Note;
