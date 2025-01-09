@@ -57,6 +57,13 @@ export type ISession = {
   createdAt: Date;
   updatedAt: Date;
 };
+export type ICategory = {
+  id: string;
+  name: string;
+  reference_category_id?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type INote = {
   id: string;
   title: string;
@@ -64,43 +71,11 @@ export type INote = {
   alias_id: string;
   will_self_destroy?: boolean;
   self_destroy_time?: Date;
+  category_name?: string;
+  tags?: string[];
   createdAt: Date;
   updatedAt: Date;
 };
-
-export type ITemplate = {
-  id: string;
-  title: string;
-  tags: string[];
-  content: string;
-  alias_id?: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type ITemplateCategory = {
-  template_id: string;
-  category_id: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type ICategory = {
-  id: string;
-  reference_category_id?: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-export type INoteCategory = {
-  note_id: string;
-  alias_id: string;
-  category_id: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type ApiFetchNote = {
   collaborators: _IAlias[];
   note: INote;

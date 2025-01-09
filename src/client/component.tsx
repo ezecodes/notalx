@@ -15,7 +15,6 @@ import {
   IOtpExpiry,
   IPaginatedResponse,
   ITask,
-  ITemplate,
   NotificationType,
 } from "../type";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -1004,38 +1003,6 @@ const getInitials = (name?: string): string => {
 };
 
 export default AvatarGroup;
-
-export const SingleTemplate: FC<{
-  template: ITemplate;
-}> = ({ template }) => {
-  return (
-    <div
-      className="shadow-sm animate__fadeIn animate__animated w-full  pt-3 pb-1 h-[180px] 3micro:w-[300px] rounded-md gap-y-2 flex flex-col "
-      style={{ border: "1px solid #353535" }}
-      key={template.id}
-    >
-      <div
-        className="flex justify-between px-4"
-        onClick={() => {
-          fetch("/api/use_template/" + template.id);
-        }}
-      >
-        <span className="font-[500] text-[#fff] text-md">{template.title}</span>
-      </div>
-
-      <section
-        className="hover:bg-[#292929]   duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4 text-sm block h-full  ql-container ql-snow quill ql-editor"
-        dangerouslySetInnerHTML={{ __html: template.content }}
-      ></section>
-
-      <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
-        <div className="flex items-center gap-x-2">
-          <DisplayDateCreated date={template.createdAt} />
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const SingleNote: FC<{
   type: "template" | "note";

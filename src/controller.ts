@@ -27,22 +27,18 @@ import {
   IAuthSession,
   IncomingNote,
   INote,
-  INoteCategory,
   INoteCollaborator,
   IOtpSession,
   ISummaryResponse,
   ITask,
-  ITemplate,
   NotificationType,
 } from "./type";
 import {
-  NoteAttributes,
   CacheKeys,
   otpSessionCookieKey,
   sessionCookieKey,
   SUMMARY_PROMPT_VARIATIONS,
   TASK_SCHEDULING_PROMPT_VARIATIONS,
-  RESTRICTED_WORDS,
 } from "./constants";
 import memcachedService from "./memcached";
 import { randomBytes } from "crypto";
@@ -54,10 +50,6 @@ import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
 import Notification from "./models/Notification";
-import Template from "./models/Template";
-import TemplateCategory from "./models/TemplateCategory";
-import Category from "./models/Category";
-import NoteCategory from "./models/NoteCategory";
 
 export async function getAllAlias(
   req: Request,
@@ -412,195 +404,6 @@ type ITaskFromLLM = {
     location: string | string[];
   }[];
 };
-export async function createCategory(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const { name } = req.body;
-  Category.create({
-    name,
-  });
-  res.json({
-    status: "ok",
-  });
-}
-
-export async function getNoteCategories(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const find = await NoteCategory.findAll({
-    where: { note_id: req.params.note_id },
-    include: [{ model: Note }, { model: Category }],
-  });
-  console.log(find);
-  // const categories = find.reduce((acc: any, curr: any) => {
-  //   const existing = acc.find((item: any) => item.note_id === curr.note_id);
-  //   if (existing) {
-  //     existing.categories.push(curr.category_id);
-  //   } else {
-  //     acc.push({ note_id: curr.note_id, categories: [{id: curr.category_id, name: curr }] });
-  //   }
-  //   return acc;
-  // }, []);
-
-  // res.json({
-  //   status: "ok",
-  //   data: categories,
-  // });
-}
-export async function updateCategory(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const { name } = req.body;
-  Category.updateByIdWithCache(req.params.category_id, { name });
-  res.json({
-    status: "ok",
-  });
-}
-
-export async function getCategory(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  res.json({
-    status: "ok",
-    data: await Category.findByPkWithCache(req.params.category_id),
-  });
-}
-
-export async function getCategories(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  res.json({
-    status: "ok",
-    data: {
-      rows: await Category.findAllWithCache(req.__pagination__!),
-      paginaton: req.__pagination__!,
-    },
-  });
-}
-
-export async function getTemplates(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  res.json({
-    status: "ok",
-    data: {
-      rows: await Template.findAllWithCache(req.__pagination__!),
-      paginaton: req.__pagination__!,
-    },
-  });
-}
-
-export async function getTemplate(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  res.json({
-    status: "ok",
-    data: await Template.findByPkWithCache(req.params.template_id),
-  });
-}
-
-export async function useTemplate(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const template = await Template.findByPkWithCache(req.params.template_id);
-  const note = (await Note.create(
-    {
-      alias_id: req.__alias!.id!,
-      content: template!.content,
-      title: template!.title,
-    },
-    { returning: true, raw: true }
-  )) as any as INote;
-
-  res.json({
-    status: "ok",
-    data: {
-      note_id: note.id,
-    },
-  });
-}
-export async function updateTemplate(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const { title, category_ids, content, tags } = req.body;
-
-  const data: any = {};
-  if (title) data.title = title;
-  if (content) data.content = content;
-
-  Template.updateByIdWithCache(req.params.template_id, { ...req.body });
-
-  if (category_ids && category_ids.length > 0) {
-    category_ids.forEach(async (id: string) => {
-      await TemplateCategory.findOrCreate({
-        where: { category_id: id, template_id: req.params.template_id },
-      });
-    });
-  }
-
-  res.json({
-    status: "ok",
-    message: "Template updated",
-  });
-}
-
-export async function deleteCategoryFromTemplate(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  TemplateCategory.destroy({
-    where: {
-      template_id: req.params.template_id,
-      category_id: req.params.category_id,
-    },
-  });
-  res.json({
-    status: "ok",
-  });
-}
-export async function createTemplate(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const { title, category_ids, content, tags } = req.body;
-
-  const template = (await Template.create(
-    { title, content, tags },
-    { returning: true, raw: true }
-  )) as any as ITemplate;
-
-  category_ids.forEach(async (id: string) => {
-    await TemplateCategory.findOrCreate({
-      where: { category_id: id, template_id: template.id },
-    });
-  });
-
-  res.json({
-    status: "ok",
-    message: "Template created",
-  });
-}
-
 export async function createTaskSchedule(
   req: Request,
   res: Response,
@@ -963,7 +766,6 @@ export async function getNoteById(
   });
 }
 
-("----- getAuthorizedAliasNotes ------");
 export async function getAuthorizedAliasNotes(
   req: Request,
   res: Response,
@@ -976,7 +778,7 @@ export async function getAuthorizedAliasNotes(
       alias_id,
     },
     raw: true,
-    attributes: NoteAttributes,
+    order: [["updatedAt", "DESC"]],
   })) as any as INote[];
 
   res.json({
@@ -996,6 +798,7 @@ export async function getNotesSharedWithAlias(
   const findJoins = (await NoteCollaborator.findAll({
     where: { alias_id },
     raw: true,
+    order: [["updatedAt", "DESC"]],
   })) as any as INoteCollaborator[];
   if (findJoins.length === 0) {
     res.json({
@@ -1022,7 +825,38 @@ export async function getNotesSharedWithAlias(
     },
   });
 }
-("----- getAllNotes ------");
+
+export async function getNoteCategories(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const rawNotes = await Note.findAll({
+    where: { alias_id: req.__alias!.id },
+    attributes: ["category_name"],
+  });
+
+  // Create a Map to store unique category_name entries
+  const uniqueNotesMap = new Map<string, INote>();
+
+  rawNotes.forEach((note) => {
+    if (
+      note.dataValues.category_name &&
+      !uniqueNotesMap.has(note.dataValues.category_name)
+    ) {
+      uniqueNotesMap.set(note.dataValues.category_name, note.dataValues as any);
+    }
+  });
+
+  // Convert the Map values to an array
+  const get: INote[] = Array.from(uniqueNotesMap.values());
+
+  res.json({
+    status: "ok",
+    data: { rows: get },
+  });
+}
+
 export async function getAllNotes(
   req: Request,
   res: Response,
@@ -1216,6 +1050,8 @@ export async function createNote(
     next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Account not found"));
     return;
   }
+
+  memcachedService.delete("last_pagination");
 
   Note.create({ ...valid.data, alias_id: req.__alias!.id! });
 

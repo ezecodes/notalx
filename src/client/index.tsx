@@ -1,21 +1,21 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
+  InputWithIcon,
   ScheduledTasksWrapper,
   SharedHeader,
   SingleNote,
-  SingleTemplate,
 } from "./component";
 
 import { GlobalContext } from "./hook";
-import {
-  _IAlias,
-  ApiFetchNote,
-  ICategory,
-  IPaginatedResponse,
-  ITemplate,
-} from "../type";
-import { CiGrid41 } from "react-icons/ci";
+import { _IAlias, ApiFetchNote, IPaginatedResponse } from "../type";
+import { LiaSearchSolid } from "react-icons/lia";
+
+type INoteCategoryRes = {
+  id: string;
+  category_name: string;
+  tags: string[];
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -29,16 +29,16 @@ const Home = () => {
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
 
-  const [templates, setTemplates] = useState<ITemplate[]>([]);
+  const [noteCategories, setNoteCategories] = useState<INoteCategoryRes[]>([]);
 
   const [currentPage, setCurrentPage] = useState("notes");
   const [currentNoteTab, setCurrentNoteTab] = useState("owned");
 
-  const fetchTemplates = async () => {
-    const f = await fetch("/api/template");
-    const response: IPaginatedResponse<ITemplate> = await f.json();
+  const fetchAllNoteCategories = async () => {
+    const f = await fetch("/api/note/category");
+    const response: IPaginatedResponse<INoteCategoryRes> = await f.json();
 
-    response.status === "ok" && setTemplates(response.data!.rows);
+    response.status === "ok" && setNoteCategories(response.data!.rows);
   };
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const Home = () => {
       fetchAliasNotes();
 
       fetchNotesSharedWithAlias();
-      fetchTemplates();
+      fetchAllNoteCategories();
     } catch (err) {
       console.error(err);
     }
@@ -83,14 +83,6 @@ const Home = () => {
             >
               Schedules
             </Link>{" "}
-            <Link
-              to="?page=templates"
-              className={`sub_button ${
-                currentPage === "templates" ? "text-white" : "subtext"
-              } `}
-            >
-              Templates
-            </Link>
           </>
         )}
       </div>
@@ -100,6 +92,7 @@ const Home = () => {
           <div className="flex gap-4 flex-wrap">
             {currentPage === "notes" && (
               <RenderNotes
+                noteCategories={noteCategories}
                 currentNoteTab={currentNoteTab}
                 setCurrentNoteTab={(tab) => setCurrentNoteTab(tab)}
                 sharedNotes={notesSharedWithAlias}
@@ -109,10 +102,6 @@ const Home = () => {
 
             {currentPage === "tasks" && (
               <ScheduledTasksWrapper rows={scheduledTasks} />
-            )}
-
-            {currentPage === "templates" && (
-              <RenderTemplates templates={templates} />
             )}
           </div>
         </section>
@@ -137,16 +126,49 @@ const SmallButton: FC<{
     </button>
   );
 };
+const CategoryButton: FC<{
+  current: string;
+  category: string;
+  click: (value: string) => void;
+}> = ({ click, category, current }) => {
+  return (
+    <button
+      style={{ height: "20px" }}
+      onClick={() => click(category)}
+      className={`text-sm ${current === category ? "text-white" : "subtext"}`}
+    >
+      {category} <span className="noti"> {} </span>
+    </button>
+  );
+};
 const RenderNotes: FC<{
   sharedNotes: ApiFetchNote[];
   ownedNotes: ApiFetchNote[];
   currentNoteTab: string;
+  noteCategories: INoteCategoryRes[];
   setCurrentNoteTab: (tab: string) => void;
-}> = ({ sharedNotes, ownedNotes, currentNoteTab, setCurrentNoteTab }) => {
+}> = ({
+  sharedNotes,
+  ownedNotes,
+  currentNoteTab,
+  setCurrentNoteTab,
+  noteCategories,
+}) => {
+  const [currentCategory, setCurrentCategory] = useState("none");
+
+  const handleCategoryClick = (value: string) => {
+    if (currentCategory === "none" || value !== currentCategory)
+      setCurrentCategory(value);
+    if (currentCategory === value) setCurrentCategory("none");
+  };
+  const [searchValue, setSearchValue] = useState("");
+  const [showIcon, setIcon] = useState(false);
+
+  const beginSearch = (value: string) => {};
+
   return (
     <div className="flex flex-col w-full gap-y-4">
       <div className="flex items-center gap-x-3">
-        <CiGrid41 className="text-lg" />
         <SmallButton
           text="Created By Me"
           active={currentNoteTab === "owned"}
@@ -157,65 +179,63 @@ const RenderNotes: FC<{
           active={currentNoteTab === "shared"}
           listener={() => setCurrentNoteTab("shared")}
         />
+        <LiaSearchSolid
+          className="text-lg"
+          onClick={() => setIcon((prev) => !prev)}
+        />
+      </div>
+      {showIcon && (
+        <div className={`animate__animated animate__fadeIn 3micro:w-[350px]`}>
+          <InputWithIcon
+            onChange={beginSearch}
+            value={searchValue}
+            placeholder="Search Notes"
+            type="text"
+            name="Notes"
+          />
+        </div>
+      )}
+      <div className="flex gap-x-3 flex-wrap gap-y-3">
+        {noteCategories.map((i) => (
+          <CategoryButton
+            click={handleCategoryClick}
+            current={currentCategory}
+            category={i.category_name!}
+          />
+        ))}
       </div>
       <div className="grid_wrap">
         {currentNoteTab === "owned" &&
-          ownedNotes.map((i, key) => (
-            <SingleNote
-              type="note"
-              collaborators={i.collaborators}
-              note={i.note}
-              key={i.note.id}
-            />
-          ))}
+          ownedNotes.map((i, key) =>
+            currentCategory === "none" ||
+            i.note.category_name === currentCategory ? (
+              <SingleNote
+                type="note"
+                collaborators={i.collaborators}
+                note={i.note}
+                key={i.note.id}
+              />
+            ) : (
+              <></>
+            )
+          )}
 
         {currentNoteTab === "shared" &&
-          sharedNotes.map((i, key) => (
-            <SingleNote
-              type="note"
-              collaborators={i.collaborators}
-              note={i.note}
-              key={i.note.id}
-            />
-          ))}
+          sharedNotes.map((i, key) =>
+            currentCategory === "none" ||
+            i.note.category_name === currentCategory ? (
+              <SingleNote
+                type="note"
+                collaborators={i.collaborators}
+                note={i.note}
+                key={i.note.id}
+              />
+            ) : (
+              <></>
+            )
+          )}
       </div>
     </div>
-  );
-};
-
-const RenderTemplates: FC<{ templates: ITemplate[] }> = ({ templates }) => {
-  const [categories, setCategories] = useState<ICategory[]>([]);
-
-  const fechCategories = async () => {
-    const f = await fetch("/api/category");
-    const response: IPaginatedResponse<ICategory> = await f.json();
-
-    response.status === "ok" && setCategories(response.data!.rows);
-  };
-  useEffect(() => {
-    fechCategories();
-  }, []);
-  return (
-    <section>
-      <div className="flex flex-col w-full gap-y-4">
-        <div className="flex items-center gap-x-3">
-          {categories.map((category) => (
-            <SmallButton
-              text={category.name}
-              active={false}
-              listener={() => {}}
-              key={category.id}
-            />
-          ))}
-        </div>
-        <div className="grid_wrap">
-          {templates &&
-            templates.map((template, key) => (
-              <SingleTemplate template={template} />
-            ))}
-        </div>
-      </div>
-    </section>
   );
 };
 

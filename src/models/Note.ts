@@ -114,6 +114,16 @@ Note.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+
+    category_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    tags: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   },
   { sequelize, modelName: "Note" }
 );

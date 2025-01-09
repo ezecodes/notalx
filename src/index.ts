@@ -88,7 +88,7 @@ httpServer.listen(4000, () => {
 });
 
 cron.schedule("* * * * *", async () => {
-  // OrganizeNotes();
+  OrganizeNotes();
   await deleteExpiredNotes(); // Runs every minute
 });
 export { httpServer, io };

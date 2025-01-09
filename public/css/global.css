@@ -88,7 +88,7 @@ body {
   @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;
 }
 .note_manager .modal_child {
-  @apply w-full lg:w-[1020px];
+  @apply w-full lg:w-[900px];
 }
 .ql-toolbar.ql-snow,
 .ql-container.ql-snow {
@@ -157,7 +157,7 @@ label {
   @apply text-gray-300;
 }
 .sp_buttons {
-  @apply text-sm bg-[#333] rounded-md h-[30px] px-2;
+  @apply text-[.85rem] bg-[#333] rounded-md h-[25px] px-2;
 }
 .sp_buttons.insert {
   @apply bg-[#0848ad];

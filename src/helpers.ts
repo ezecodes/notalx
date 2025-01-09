@@ -1,5 +1,4 @@
 import { Op } from "sequelize";
-import Note from "./models/Note";
 import {
   _IAlias,
   ErrorCodes,
@@ -11,7 +10,6 @@ import {
   ITask,
   NotificationType,
 } from "./type";
-import { randomBytes } from "crypto";
 import {
   Branding_NotalX,
   CacheKeys,
@@ -21,22 +19,19 @@ import {
   ORGANISE_NOTE_PROMPT,
   RESTRICTED_WORDS,
   sessionCookieKey,
-  X_API_KEY,
 } from "./constants";
 import { createTransport } from "nodemailer";
-import { NextFunction, Request, Response } from "express";
+import { Request } from "express";
 import memcachedService from "./memcached";
-import NoteCollaborator from "./models/NoteCollaborator";
-import Alias from "./models/Alias";
-import { hashSync } from "bcrypt";
-import OpenAI from "openai";
-import { ChatCompletionMessage } from "openai/resources";
-import TaskParticipant from "./models/TaskParticipant";
 import { isProfane } from "no-profanity";
-import Notification from "./models/Notification";
 import { z } from "zod";
-import Category from "./models/Category";
-import NoteCategory from "./models/NoteCategory";
+import {
+  Alias,
+  Note,
+  NoteCollaborator,
+  Notification,
+  TaskParticipant,
+} from "./models";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
@@ -518,24 +513,17 @@ export const OrganizeNotes = async () => {
 
   const offset = (page - 1) * page_size;
 
-  const getNotes = (await Note.findAll({
+  const notes: INote[] = (await Note.findAll({
     limit: page_size,
     offset,
     raw: true,
-  })) as any as INote[];
+    where: { category_name: null as any },
+  })) as any;
 
-  if (getNotes.length === 0) {
+  if (notes.length === 0) {
+    console.log("--1--No new note found--");
     return;
   }
-  const notes: INote[] = [];
-
-  getNotes.forEach(async (note) => {
-    const find = await NoteCategory.findOne({ where: { note_id: note.id } });
-    if (!find) {
-      notes.push(note);
-    }
-  });
-
   const aiResponse = await QueryLLM1(
     JSON.stringify(notes),
     ORGANISE_NOTE_PROMPT
@@ -559,37 +547,11 @@ export const OrganizeNotes = async () => {
       }[];
     } = JSON.parse(aiResponse.result.response);
 
-    console.log(parseJson);
     parseJson.data.forEach(async (item) => {
-      const category = await Category.findOrCreate({
-        where: { name: item.category },
+      Note.updateByIdWithCache(item.note_id, {
+        category_name: item.category,
+        tags: item.tags,
       });
-      const findNote = notes.find((i) => i.id === item.note_id);
-
-      const whereClause = {
-        note_id: item.note_id,
-        category_id: category[0].dataValues.id,
-      };
-
-      const find = await NoteCategory.findOne({
-        where: whereClause,
-      });
-
-      if (!find) {
-        await NoteCategory.create({
-          note_id: item.note_id,
-          category_id: category[0].dataValues.id!,
-          alias_id: findNote?.alias_id!,
-          tags: item.tags,
-        });
-      } else {
-        await NoteCategory.update(
-          { tags: item.tags },
-          {
-            where: whereClause,
-          }
-        );
-      }
     });
   } catch (err) {
     console.error("Could not parse response JSON", err);
@@ -601,4 +563,4 @@ export const OrganizeNotes = async () => {
     3600
   );
 };
-// OrganizeNotes();
+OrganizeNotes();

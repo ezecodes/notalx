@@ -10,8 +10,6 @@ import {
   authorize_alias_as_task_owner,
   authorize_alias_as_note_owner,
   authorize_alias_as_note_collaborator,
-  validateCategoryId,
-  validateTemplateId,
   validateRequestBody,
 } from "./middlewares";
 import { create_category_validator } from "./helpers";
@@ -29,8 +27,6 @@ router.use("/otp", otpRouter);
 router.param("note_id", validateNoteId);
 router.param("alias_id", validateAliasId);
 router.param("task_id", validateTaskId);
-router.param("category_id", validateCategoryId);
-router.param("template_id", validateTemplateId);
 
 router
   .route("/alias")
@@ -43,6 +39,10 @@ router
   .route("/note")
   .post(authoriseAlias, Controller.createNote)
   .get(authoriseAlias, Controller.getAuthorizedAliasNotes);
+
+router
+  .route("/note/category")
+  .get(authoriseAlias, Controller.getNoteCategories);
 
 router
   .route("/note/shared")
@@ -79,8 +79,6 @@ router
     validateAndSetPagination,
     Controller.getAllTasksForNote
   );
-
-router.route("/note/:note_id/category").get(Controller.getNoteCategories);
 
 router
   .route("/task")
@@ -132,33 +130,5 @@ router
     authorize_alias_as_note_owner,
     Controller.deleteNoteCollaborator
   );
-
-router
-  .route("/template")
-  .post(Controller.createTemplate)
-  .get(validateAndSetPagination, Controller.getTemplates);
-
-router
-  .route("/template/:template_id")
-  .put(Controller.updateTemplate)
-  .get(Controller.getTemplate);
-
-router
-  .route("/template/:template_id/category/:category_id")
-  .delete(Controller.deleteCategoryFromTemplate);
-
-router.route("/use_template").post(authoriseAlias, Controller.useTemplate);
-
-router
-  .route("/category")
-  .post(
-    validateRequestBody(create_category_validator),
-    Controller.createCategory
-  )
-  .get(validateAndSetPagination, Controller.getCategories);
-router
-  .route("/category/:category_id")
-  .put(Controller.updateCategory)
-  .get(Controller.getCategory);
 
 export default router;

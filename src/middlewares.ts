@@ -14,8 +14,6 @@ import { validate } from "uuid";
 import Task from "./models/Task";
 import { ExtendedError, Socket } from "socket.io";
 import cookie, { parse } from "cookie";
-import Category from "./models/Category";
-import Template from "./models/Template";
 import { z } from "zod";
 import { signedCookies } from "cookie-parser";
 
@@ -226,48 +224,6 @@ export async function validateTaskId(
 
   if (count === 0) {
     next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Task not found"));
-
-    return;
-  }
-  next();
-}
-export async function validateCategoryId(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const category_id = req.params["category_id"];
-  if (!validate(category_id)) {
-    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Category ID"));
-    return;
-  }
-  const count = await Category.count({
-    where: { id: category_id },
-  });
-
-  if (count === 0) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Category not found"));
-
-    return;
-  }
-  next();
-}
-export async function validateTemplateId(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const template_id = req.params["template_id"];
-  if (!validate(template_id)) {
-    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Invalid Template ID"));
-    return;
-  }
-  const count = await Template.count({
-    where: { id: template_id },
-  });
-
-  if (count === 0) {
-    next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Template not found"));
 
     return;
   }
