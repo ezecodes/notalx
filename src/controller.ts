@@ -826,6 +826,12 @@ export async function getNotesSharedWithAlias(
   });
 }
 
+export async function getTopTags(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {}
+
 export async function searchNotes(
   req: Request,
   res: Response,
@@ -840,12 +846,30 @@ export async function searchNotes(
   }
 
   const result = await queryVectors(query, req.__alias!.id);
-
-  try {
-    // const query  = await QueryLLM1(JSON.stringify(findAll))
-  } catch (err) {
-    console.error(err);
+  console.log(result);
+  if (!result) {
+    res.json({
+      status: "ok",
+      data: {
+        rows: [],
+        pagination,
+      },
+    });
+    return;
   }
+  let notes: INote[] = [];
+  for (const i of result) {
+    const note = await Note.findByPkWithCache(i.id);
+    if (note) notes.push(note);
+  }
+
+  res.json({
+    status: "ok",
+    data: {
+      rows: await PopulateCollaboratorForNotes(notes),
+      pagination,
+    },
+  });
 }
 export async function getNoteCategories(
   req: Request,

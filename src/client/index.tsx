@@ -1,7 +1,10 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
+  BackButton,
+  Button,
   InputWithIcon,
+  NoteSkeleton,
   RingsLoader,
   ScheduledTasksWrapper,
   SharedHeader,
@@ -11,6 +14,8 @@ import {
 import { GlobalContext } from "./hook";
 import { _IAlias, ApiFetchNote, INote, IPaginatedResponse } from "../type";
 import { LiaSearchSolid } from "react-icons/lia";
+import { IoMdSend } from "react-icons/io";
+import { toast } from "react-toastify";
 
 type INoteCategoryRes = {
   id: string;
@@ -29,6 +34,7 @@ const Home = () => {
     scheduledTasks,
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
+  const [showSearchModal, setSearchModal] = useState(false);
 
   const [noteCategories, setNoteCategories] = useState<INoteCategoryRes[]>([]);
 
@@ -46,8 +52,15 @@ const Home = () => {
     try {
       const redirect = searchParams.get("r");
       const page = searchParams.get("page");
+      const modal = searchParams.get("modal");
       if (redirect) {
         navigate(decodeURIComponent(redirect), { replace: true });
+      }
+
+      if (modal && modal === "search") {
+        setSearchModal(true);
+      } else {
+        setSearchModal(false);
       }
 
       page && setCurrentPage(page);
@@ -70,6 +83,7 @@ const Home = () => {
   return (
     <section className="page">
       <SharedHeader />
+      <SearchModal isOpen={showSearchModal} />
 
       <div className="flex items-start gap-x-3  w-full">
         {otpExpiry?.is_valid_auth && (
@@ -168,24 +182,12 @@ const RenderNotes: FC<{
       setCurrentCategory(value);
     if (currentCategory === value) setCurrentCategory("none");
   };
-  const [searchValue, setSearchValue] = useState("");
   const [showIcon, setIcon] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const beginSearch = async () => {
-    try {
-      setLoading(true);
-      const f = await fetch(`/api/note/search?query=${searchValue}`);
-      const res: IPaginatedResponse<INote> = await f.json();
-      // res.status === "ok" &&
-    } finally {
-      setLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col w-full gap-y-4">
-      <div className="flex items-center flex-wrap flex-y-4 gap-x-3">
+      <div className="flex items-center flex-wrap gap-y-3 flex-y-4 gap-x-3">
         <SmallButton
           text="Created By Me"
           active={currentNoteTab === "owned"}
@@ -196,25 +198,7 @@ const RenderNotes: FC<{
           active={currentNoteTab === "shared"}
           listener={() => setCurrentNoteTab("shared")}
         />
-        <LiaSearchSolid
-          className="text-lg"
-          onClick={() => setIcon((prev) => !prev)}
-        />
-        {showIcon && (
-          <div className={`animate__animated animate__fadeIn 3micro:w-[350px]`}>
-            <InputWithIcon
-              icon={loading && <RingsLoader />}
-              onChange={(value) => {
-                beginSearch();
-                setSearchValue(value);
-              }}
-              value={searchValue}
-              placeholder="Search Notes"
-              type="text"
-              name="Notes"
-            />
-          </div>
-        )}
+        <Button onClick={() => navigate("?modal=search")} text="AI Search" />
       </div>
 
       <div className="flex gap-x-3 flex-wrap gap-y-5">
@@ -256,6 +240,84 @@ const RenderNotes: FC<{
               <></>
             )
           )}
+      </div>
+    </div>
+  );
+};
+
+const SearchModal: FC<{
+  isOpen: boolean;
+  setOpen?: (value: boolean) => void;
+}> = ({ isOpen, setOpen }) => {
+  const [loading, setLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [lastSearchValue, setLastSearchValue] = useState<null | string>(null);
+  const [results, setResults] = useState<ApiFetchNote[]>([]);
+
+  const beginSearch = async () => {
+    try {
+      setLastSearchValue(null);
+      setLoading(true);
+      const f = await fetch(`/api/note/search?value=${searchValue}`);
+      const res: IPaginatedResponse<ApiFetchNote> = await f.json();
+      if (res.status === "err") {
+        toast.error(res.message);
+        return;
+      }
+      setLastSearchValue(searchValue);
+      setResults(res.data!.rows);
+    } finally {
+      setLoading(false);
+    }
+  };
+  if (!isOpen) return <></>;
+  return (
+    <div className="modal">
+      <div className=" flex flex-col gap-y-4 w-full">
+        <BackButton text="Back" url={-1} />
+        <div
+          className={`animate__animated animate__fadeIn mx-[auto] 3micro:w-[350px]`}
+        >
+          <InputWithIcon
+            endIcon={
+              loading ? (
+                <RingsLoader />
+              ) : (
+                <IoMdSend className="subtext" onClick={beginSearch} />
+              )
+            }
+            onChange={(value) => {
+              setSearchValue(value);
+            }}
+            value={searchValue}
+            placeholder="e.g Search with natural words"
+            type="text"
+            name="Notes"
+          />
+        </div>
+        <div className="flex gap-y-4 flex-col">
+          {lastSearchValue && (
+            <h5 className="font-[500]">
+              Top hits:{" "}
+              <span style={{ fontStyle: "italic" }}> {lastSearchValue}</span>
+            </h5>
+          )}
+          <div className="grid_wrap">
+            {loading ? (
+              <NoteSkeleton />
+            ) : (
+              results.map((note) => {
+                return (
+                  <SingleNote
+                    note={note.note}
+                    collaborators={note.collaborators}
+                    type="note"
+                  />
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ import {
   ORGANISE_NOTE_PROMPT,
   RESTRICTED_WORDS,
   sessionCookieKey,
+  stopwords,
   VectorIndexName,
 } from "./constants";
 import { createTransport } from "nodemailer";
@@ -587,21 +588,27 @@ export function prepare_note_for_embedding(note: INote): string {
   }`;
 }
 export async function generate_embedding(input: string): Promise<number[]> {
-  const f = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/baai/bge-large-en-v1.5`,
+  try {
+    const f = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/baai/bge-large-en-v1.5`,
 
-    {
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
-      },
-      method: "post",
-      body: JSON.stringify({ text: input }),
-    }
-  );
-  const response: ICloudflareResponse<IVectorEmbedding> = await f.json();
+      {
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        },
+        method: "post",
+        body: JSON.stringify({ text: input }),
+      }
+    );
+    const response: ICloudflareResponse<IVectorEmbedding> = await f.json();
 
-  return response.result.data;
+    return response.result.data;
+  } catch (err) {
+    console.error("Could not generate embedding", err);
+  }
+
+  return [1];
 }
 
 const create_vector_index = async (alias_id: string) => {
@@ -715,8 +722,191 @@ export async function queryVectors(value: string, alias_id: string) {
         alias_id: { $eq: alias_id },
       },
     });
-    console.log(queryResponse);
+    return queryResponse.matches.map((match) => ({
+      id: match.id,
+      score: match.score,
+    }));
   } catch (err) {
     console.error("Error getting query vector", err);
   }
 }
+export async function top_tags_indexing() {
+  try {
+    // Fetch pagination data from cache or use default
+    let pagination: IPagination | null = await memcachedService.get(
+      "last_paginated_tags"
+    );
+    if (!pagination) {
+      pagination = {
+        page: 1,
+        page_size: 15,
+      };
+    }
+
+    // Fetch notes with caching
+    const notes = await Note.findAllWithCache(pagination);
+
+    if (!notes || notes.length === 0) {
+      throw new Error("No notes found for indexing.");
+    }
+
+    // Initialize containers for alias-specific data
+    const aliasWordData: Record<
+      string,
+      { [word: string]: { note_id: string; count: number }[] }
+    > = {};
+    const globalWordData: Record<string, { note_id: string; count: number }[]> =
+      {}; // Track words globally
+    const globalTagData: Record<string, { note_id: string; count: number }[]> =
+      {}; // Track tags globally
+
+    // Process each note
+    notes.forEach((note) => {
+      const aliasId = note.alias_id;
+
+      if (!aliasId) {
+        return; // Skip notes without an alias_id
+      }
+
+      // Initialize containers for alias_id if not already present
+      if (!aliasWordData[aliasId]) aliasWordData[aliasId] = {};
+
+      // Strip HTML and process content
+      const cleanedContent = stripHtmlTags(note.content)
+        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
+        .split(/\s+/) // Split into words
+        .filter((word) => word && !stopwords.includes(word)); // Exclude stop words
+
+      // Count words for this note
+      const wordCounts: Record<string, number> = {};
+      cleanedContent.forEach((word) => {
+        wordCounts[word] = (wordCounts[word] || 0) + 1;
+      });
+
+      // Aggregate words globally
+      Object.entries(wordCounts).forEach(([word, count]) => {
+        if (!globalWordData[word]) {
+          globalWordData[word] = [];
+        }
+        globalWordData[word].push({ note_id: note.id, count });
+      });
+
+      // Count tags for this note and aggregate globally
+      if (note.tags && Array.isArray(note.tags)) {
+        note.tags.forEach((tag) => {
+          if (!globalTagData[tag]) {
+            globalTagData[tag] = [];
+          }
+          globalTagData[tag].push({ note_id: note.id, count: 1 }); // Count tags across all notes
+        });
+      }
+    });
+
+    // Filter words and tags based on occurrences
+    const filteredWords = Object.entries(globalWordData)
+      .filter(([_, occurrences]) => occurrences.length > 1) // Words that appear in more than 5 notes
+      .map(([word, occurrences]) => ({
+        word,
+        occurrences,
+      }));
+
+    const filteredTags = Object.entries(globalTagData)
+      .filter(([_, occurrences]) => occurrences.length > 1) // Tags that appear in more than 3 notes
+      .map(([tag, occurrences]) => ({
+        tag,
+        occurrences,
+      }));
+
+    // Initialize aliasTagData with filtered tags and aliasWordData with filtered words
+    const aliasTagData: Record<
+      string,
+      { [tag: string]: { note_id: string; count: number }[] }
+    > = {};
+    const aliasWordDataFiltered: Record<
+      string,
+      { [word: string]: { note_id: string; count: number }[] }
+    > = {};
+
+    // Populate aliasTagData and aliasWordDataFiltered based on the filtered global data
+    notes.forEach((note) => {
+      const aliasId = note.alias_id;
+
+      if (!aliasId) {
+        return; // Skip notes without an alias_id
+      }
+
+      // Initialize containers for alias_id if not already present
+      if (!aliasTagData[aliasId]) aliasTagData[aliasId] = {};
+      if (!aliasWordDataFiltered[aliasId]) aliasWordDataFiltered[aliasId] = {};
+
+      // Process words based on filtered global words
+      note.content
+        .split(/\s+/)
+        .filter((word) => word && !stopwords.includes(word))
+        .forEach((word) => {
+          if (
+            filteredWords.some((filteredWord) => filteredWord.word === word)
+          ) {
+            if (!aliasWordDataFiltered[aliasId][word]) {
+              aliasWordDataFiltered[aliasId][word] = [];
+            }
+            aliasWordDataFiltered[aliasId][word].push({
+              note_id: note.id,
+              count: 1,
+            });
+          }
+        });
+
+      // Process tags based on filtered global tags
+      if (note.tags && Array.isArray(note.tags)) {
+        note.tags.forEach((tag) => {
+          if (filteredTags.some((filteredTag) => filteredTag.tag === tag)) {
+            if (!aliasTagData[aliasId][tag]) {
+              aliasTagData[aliasId][tag] = [];
+            }
+            aliasTagData[aliasId][tag].push({ note_id: note.id, count: 1 });
+          }
+        });
+      }
+    });
+
+    // Prepare and save results for each alias_id
+    for (const aliasId of Object.keys(aliasWordDataFiltered)) {
+      const topWords = Object.entries(aliasWordDataFiltered[aliasId])
+        .map(([word, occurrences]) => ({
+          word,
+          occurrences: occurrences.slice(0, 10), // Take top 10 occurrences by count
+        }))
+        .sort(
+          (a, b) =>
+            b.occurrences.reduce((sum, o) => sum + o.count, 0) -
+            a.occurrences.reduce((sum, o) => sum + o.count, 0)
+        );
+
+      const topTags = Object.entries(aliasTagData[aliasId])
+        .map(([tag, occurrences]) => ({
+          tag,
+          occurrences: occurrences.slice(0, 10), // Take top 10 occurrences by count
+        }))
+        .sort(
+          (a, b) =>
+            b.occurrences.reduce((sum, o) => sum + o.count, 0) -
+            a.occurrences.reduce((sum, o) => sum + o.count, 0)
+        );
+
+      // Save results to Memcached with alias-specific keys
+      await memcachedService.set(`top_words_${aliasId}`, topWords, 3600); // Cache for 1 hour
+      await memcachedService.set(`top_tags_${aliasId}`, topTags, 3600); // Cache for 1 hour
+
+      console.log(`Alias ID: ${aliasId}`);
+      console.log("Top words:", topWords);
+      console.log("Top tags:", topTags);
+    }
+  } catch (err) {
+    console.error("Error in top_tags_indexing:", err);
+    throw err; // Re-throw the error if needed
+  }
+}
+
+top_tags_indexing();

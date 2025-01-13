@@ -378,6 +378,7 @@ interface InputWithIconProps {
   disabled?: boolean;
   label?: string;
   name?: string;
+  endIcon?: ReactNode;
 }
 
 export const InputWithIcon: FC<InputWithIconProps> = ({
@@ -391,6 +392,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
   disabled,
   label,
   name,
+  endIcon,
 }) => {
   return (
     <div className="label_input">
@@ -410,6 +412,7 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
           placeholder={placeholder}
           className="ml-2 w-full  bg-transparent placeholder-gray-400  "
         />
+        {endIcon && endIcon}
       </div>
     </div>
   );
@@ -929,7 +932,7 @@ export const SharedHeader = () => {
             >
               <IoMdNotificationsOutline className="text-[1.5rem] subtext z-[4]" />
               <span className="noti">
-                {notifications.filter((i) => !i.is_read).length}{" "}
+                {notifications.filter((i) => !i.is_read).length}
               </span>
             </button>
 
@@ -1007,7 +1010,7 @@ export default AvatarGroup;
 export const SingleNote: FC<{
   type: "template" | "note";
   note: INote;
-  collaborators: _IAlias[];
+  collaborators?: _IAlias[];
 }> = ({ note, collaborators, type }) => {
   const navigate = useNavigate();
   return (
@@ -1030,7 +1033,7 @@ export const SingleNote: FC<{
       ></section>
 
       <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
-        <AvatarGroup size="2" avatars={collaborators} />
+        {collaborators && <AvatarGroup size="2" avatars={collaborators} />}
         <div className="flex items-center gap-x-2">
           <DisplayDateCreated date={note.createdAt} />
           <IoBookmarkOutline />
@@ -1040,6 +1043,31 @@ export const SingleNote: FC<{
     </div>
   );
 };
+
+export const NoteSkeleton = () => (
+  <div className="shadow-sm w-full pt-3 pb-1 h-[180px] 3micro:w-[300px] rounded-md gap-y-2 flex flex-col">
+    <div className="h-4 bg-zinc-600 animate-pulse rounded w-3/4 mx-4"></div>
+
+    <div className="flex flex-col gap-y-2 px-4 h-[65%]">
+      <div className="h-4 animate-pulse bg-zinc-600 rounded w-full"></div>
+      <div className="h-4 animate-pulse bg-zinc-600 rounded w-5/6"></div>
+      <div className="h-4 animate-pulse bg-zinc-600 rounded w-4/6"></div>
+    </div>
+
+    <div className="flex justify-between items-center px-4 gap-x-2">
+      <div className="flex gap-x-2">
+        <div className="animate-pulse h-6 w-6 bg-zinc-600 rounded-full"></div>
+        <div className="animate-pulse h-6 w-6 bg-zinc-600 rounded-full"></div>
+        <div className="animate-pulse h-6 w-6 bg-zinc-600 rounded-full"></div>
+      </div>
+      <div className="flex items-center gap-x-2">
+        <div className="animate-pulse h-4 w-10 bg-zinc-600 rounded"></div>
+        <div className="animate-pulse h-4 w-4 bg-zinc-600 rounded-full"></div>
+        <div className="animate-pulse h-4 w-4 bg-zinc-600 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+);
 
 const MoreOptionsOnNotePopup: FC<{
   note: INote;

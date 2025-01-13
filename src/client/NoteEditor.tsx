@@ -290,7 +290,7 @@ const Editor = () => {
         highlightedText!
       );
       if (response.status === "err") {
-        toast.error(response.message);
+        toast(response.message);
         return;
       }
 

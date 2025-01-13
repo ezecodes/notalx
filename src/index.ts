@@ -11,6 +11,7 @@ import {
   deleteExpiredNotes,
   notes_indexing_cron_job,
   notes_categorization_cron_job,
+  top_tags_indexing,
 } from "./helpers";
 import { Branding_NotalX } from "./constants";
 import router from "./routes";
@@ -95,6 +96,7 @@ httpServer.listen(4000, () => {
 cron.schedule("* * * * *", async () => {
   notes_categorization_cron_job();
   notes_indexing_cron_job();
+  top_tags_indexing();
   await deleteExpiredNotes(); // Runs every minute
 });
 export { httpServer, io };
