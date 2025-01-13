@@ -11,7 +11,22 @@ module.exports = {
       lg: "1024px",
       xl: "1280px",
     },
-    extend: {},
+    extend: {
+      keyframes: {
+        zoomIn: {
+          "0%": { transform: "scale(0.5)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        zoomOut: {
+          "0%": { transform: "scale(1)", opacity: "1" },
+          "100%": { transform: "scale(0.5)", opacity: "0" },
+        },
+      },
+      animation: {
+        zoomIn: "zoomIn 0.3s ease-out",
+        zoomOut: "zoomOut 0.3s ease-in",
+      },
+    },
   },
   plugins: [],
 };

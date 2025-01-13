@@ -1,34 +1,166 @@
-import { Optional } from "sequelize";
-
 export type IAlias = {
   id: string;
   name: string;
-  secret: string;
   email: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
-export interface _Alias extends Optional<IAlias, "email" | "secret"> {}
 
+export enum NotificationType {
+  AddedParticipant = "added_participant",
+  AddedCollaborator = "added_collaborator",
+  TaskReminder = "task_reminder",
+  WelcomeMessage = "welcome_message",
+  LoginAlert = "login_alert",
+}
+
+export type AddedParticipantMetadata = {
+  task_link: string;
+};
+
+export type INotification = {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  alias_id: string;
+  metadata?: any;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type _IAlias = {
+  id: string;
+  name: string;
+  email?: string;
+};
+export type ITaskParticipant = {
+  id: string;
+  task_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type IOtp = {
+  id: string;
+  hash: string;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type ISession = {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  alias_id: string;
+  expiry: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type ICategory = {
+  id: string;
+  name: string;
+  reference_category_id?: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type INote = {
   id: string;
   title: string;
   content: string;
+  alias_id: string;
+  will_self_destroy?: boolean;
+  self_destroy_time?: Date;
+  category_name?: string;
+  tags?: string[];
+  last_indexed?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
-export interface ICreateNote {
-  title: string;
-  content: string;
-  hidden: boolean;
-  self_destruct: boolean;
-  alias_id: string;
-  secret: string;
-}
+export type INoteHistory = {
+  note_id: string;
+  updated_by: string;
+  reason?: string;
+  changes: {
+    title?: { oldValue: string; newValue: string };
+    content?: { oldValue: string; newValue: string };
+  };
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type ApiFetchNote = {
+  collaborators: _IAlias[];
+  note: INote;
+};
+/**
+ * Represents the structure of the schema.
+ */
+export type IVectorEmbedding = {
+  /** An array of numbers representing the shape of the embedding. */
+  shape: number[];
 
-export interface ICreateAlias {
+  /**
+   * A 2D array of numbers representing embeddings of the requested text values.
+   * Each embedding is a floating point array shaped by the embedding model.
+   */
+  data: number[];
+};
+
+export type IMetric = "cosine" | "euclidean" | "dot-product";
+
+export type ICreateIndex = {
+  config: {
+    dimensions: number;
+    metric: IMetric;
+  };
+  created_on: Date;
+  description: string;
+  modified_on: Date;
   name: string;
-  secret?: string;
-  email?: string;
-}
+};
+
+export type ITask = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  name: string;
+  date: Date;
+  reminder: Date;
+  duration?: string;
+  calendar_id?: string;
+  location?: any;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type IEmailDraft = {
+  status: "pending" | "processing" | "sent" | "failed";
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  attachments?: {
+    fileName: string;
+    fileUrl: string;
+  }[];
+};
+
+export type IAgent = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type INoteCollaborator = {
+  id: string;
+  note_id: string;
+  alias_id: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 export type IPagination = {
   page: number;
   page_size: number;
@@ -37,11 +169,115 @@ export type IApiResponse<T> = {
   status: "ok" | "err";
   data?: T;
   message?: string;
-  errors?: { field: string; code: string; message?: string }[];
+  error_code?: ErrorCodes;
 };
 
-export interface IPaginatedResponse<T>
+export interface IPaginatedResponse<IRow>
   extends IApiResponse<{
-    rows: T[];
+    rows: IRow[];
     pagination: IPagination;
   }> {}
+
+export interface INoteCreator {
+  title: string;
+  content: string;
+  hidden: boolean;
+  willSelfDestroy: boolean;
+  secret: string;
+  selfDestroyTime: string;
+  draft_id: number | null;
+  createdAt: Date;
+  selectedAlias: _IAlias;
+}
+
+export type IOtpSession = {
+  expiry: string | Date;
+  email: string;
+  auth_code_hash: string;
+};
+
+export type IAuthSession = {
+  expiry: Date | string;
+  ip_address: string | any;
+  user_agent: string;
+  alias_id: string;
+  socket_auth_hash: string;
+};
+export type IncomingNote = {
+  self_destroy_time: string;
+  content: string;
+  title: string;
+  will_self_destroy: boolean;
+};
+export interface INoteEditor {
+  id: string;
+  title: string;
+  content: string;
+  willSelfDestroy?: boolean;
+  alias_id: string;
+  selfDestroyTime?: Date;
+  createdAt: Date;
+}
+export type IOtpExpiry = {
+  expiry: string;
+  alias_id: string;
+  name: string;
+  is_valid_auth: boolean;
+};
+declare module "express" {
+  interface Response {
+    json<DataType = any>(body: IApiResponse<DataType>): this;
+  }
+}
+declare global {
+  namespace Express {
+    export interface Request {
+      __alias?: {
+        id: string;
+      };
+      __note?: {
+        id: string;
+      };
+      __pagination__?: {
+        page: number;
+        page_size: number;
+        offset: number;
+      };
+    }
+  }
+}
+export enum ErrorCodes {
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+  RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND",
+  UNAUTHORIZED = "UNAUTHORIZED",
+  FORBIDDEN = "FORBIDDEN",
+  INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+  CONFLICT = "CONFLICT",
+  PAYMENT_REQUIRED = "PAYMENT_REQUIRED",
+  INSUFFICIENT_FUNDS = "INSUFFICIENT_FUNDS",
+  SUBSCRIPTION_EXPIRED = "SUBSCRIPTION_EXPIRED",
+  PAYMENT_VERIFICATION_FAILED = "PAYMENT_VERIFICATION_FAILED",
+}
+
+// Email Drafting Job
+type IEmailDraftJob = {
+  job_type: "email_draft";
+  payload: {
+    recipient: string;
+    subject: string;
+    body: string;
+    draft_id?: string; // Optional if saving draft
+  };
+};
+
+export type ISummaryResponse = {
+  summary: string;
+  summary_id: string;
+};
+
+export type ICloudflareResponse<T> = {
+  result: T;
+  success: boolean;
+  errors: [];
+  messages: [];
+};

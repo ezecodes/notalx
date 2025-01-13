@@ -1,15 +1,25 @@
 const path = require("path");
+const { GenerateSW } = require("workbox-webpack-plugin");
 
 module.exports = {
+  plugins: [
+    new GenerateSW({
+      clientsClaim: true,
+      skipWaiting: true,
+    }),
+  ],
   entry: {
-    index: "./src/client/index.tsx",
+    main: "./src/client/main.tsx",
   },
   output: {
-    path: path.resolve(__dirname, "public/js"), // Place the bundled file in a public folder
-    filename: "[name].bundle.js", // Bundle file name
+    path: path.resolve(__dirname, "public/js"),
+    filename: "[name].bundle.js",
   },
   resolve: {
-    extensions: [".tsx", ".ts", ".js"], // Resolve TypeScript and JavaScript files
+    extensions: [".tsx", ".ts", ".js"],
+    fallback: {
+      path: require.resolve("path-browserify"),
+    },
   },
   devServer: {
     static: {
@@ -17,20 +27,21 @@ module.exports = {
     },
     compress: true,
     port: 9000,
+    watchFiles: ["src/client/**/*"], // Add this line to specify the path webpack should only watch
   },
   module: {
     rules: [
       {
-        test: /\.(ts|tsx)$/, // Match TypeScript and TSX files
+        test: /\.(ts|tsx)$/,
         use: "ts-loader",
         exclude: /node_modules/,
       },
       {
-        test: /\.css$/, // Match CSS files
+        test: /\.css$/,
         use: ["style-loader", "css-loader"],
       },
       {
-        test: /\.(png|jpg|jpeg|gif|svg)$/, // Match image files
+        test: /\.(png|jpg|jpeg|gif|svg)$/,
         type: "asset/resource",
       },
     ],

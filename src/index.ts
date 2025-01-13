@@ -1,117 +1,47 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import path from "path";
-import Alias from "./models/Alias";
-import Note from "./models/Note";
-import { IApiResponse, ICreateAlias, ICreateNote } from "./type";
+import { ErrorCodes } from "./type";
 import { connectDb } from "./sequelize";
-import { hashSync } from "bcrypt";
 import morgan from "morgan";
-import { Op } from "sequelize";
+import cron from "node-cron";
+
+import cookieParser from "cookie-parser";
+import {
+  ApiError,
+  deleteExpiredNotes,
+  notes_indexing_cron_job,
+  notes_categorization_cron_job,
+  top_tags_indexing,
+} from "./helpers";
+import { Branding_NotalX } from "./constants";
+import router from "./routes";
+import { Server as SocketIOServer } from "socket.io";
+import http from "http";
+import { authoriseAliasIoConnection } from "./middlewares";
 const server = express();
+const httpServer = http.createServer(server);
 
-declare module "express" {
-  interface Response {
-    json<DataType = any>(body: IApiResponse<DataType>): this;
-  }
-}
-declare global {
-  namespace Express {
-    export interface Request {
-      alias?: {
-        isCorrectSecret: boolean;
-      };
-    }
-  }
-}
+const io = new SocketIOServer(httpServer);
 
+io.use((socket, next) => authoriseAliasIoConnection(socket, next));
+
+const reactRoutes = [
+  "/newnote",
+  "/newalias",
+  "/edit/:note_slug",
+  "/login",
+  "/:note_slug",
+  "/faq",
+  "/note/:note_id",
+  "/task/:task_id",
+];
+
+server.use(cookieParser(process.env.COOKIE_SECRET));
 server.use(express.json({ limit: "5mb" }));
 server.use(express.urlencoded({ extended: false }));
 server.use(morgan("tiny"));
 
-server.get("/alias", async (req: Request, res: Response) => {
-  const all = await Alias.findAll({ where: {}, attributes: ["id", "name"] });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-server.get("/alias/search", async (req: Request, res: Response) => {
-  const name = req.query.name;
-  const data = await Alias.findAll({
-    where: {
-      name: {
-        [Op.like]: `%${name}%`,
-      },
-    },
-  });
-  res.json({ status: "ok", data: { rows: data } });
-});
-
-server.post("/alias", async (req: Request, res: Response) => {
-  const body: ICreateAlias = req.body;
-  const { name, email, secret } = body;
-
-  const count = await Alias.count({ where: { name } });
-  if (count > 0) {
-    res.json({ status: "err", message: "Alias alredy exisits" });
-    return;
-  }
-
-  const hashedSecret = secret ? await hashSync(secret, 10) : null;
-
-  Alias.create({ name, email, secret: hashedSecret });
-  res.json({ status: "ok" });
-});
-
-server.get("/alias/:alias_id", async (req: Request, res: Response) => {
-  const aliasId = req.params.alias_id;
-
-  const all = await Alias.findByPk(aliasId, {
-    attributes: ["id", "name"],
-  });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-server.get("/note", async (req: Request, res: Response) => {
-  const all = await Note.findAll({ where: { hidden: false } });
-  res.json({ status: "ok", data: { rows: all } });
-});
-
-server.get("/note/:note_id", async (req: Request, res: Response) => {
-  const noteId = req.params.note_id;
-
-  const data = await Note.findByPk(noteId, {
-    attributes: ["title", "content"],
-  });
-  res.json({ status: "ok", data });
-});
-server.get("/note/alias/:alias_id", async (req: Request, res: Response) => {
-  const aliasId = req.params.alias_id;
-
-  const all = await Note.findAll({
-    where: {
-      alias_id: aliasId,
-      [Op.or]: [{ hidden: false }, { hidden: null }],
-    },
-  });
-  res.json({ status: "ok", data: { rows: all ?? [] } });
-});
-server.post("/note", async (req: Request, res: Response) => {
-  const { alias_id, content, hidden, secret, title }: ICreateNote = req.body;
-  console.log(req.body);
-
-  const findAlias = await Alias.findByPk(alias_id);
-  if (hidden && (!findAlias?.secret || !secret)) {
-    res.json({ status: "err", message: "Enter a secret to continue" });
-    return;
-  }
-
-  if (!findAlias) {
-    res.json({ status: "err", message: "Alias not found" });
-    return;
-  }
-  await Note.create({ title, content, alias_id });
-
-  res.json({ status: "ok", message: "Note has been saved to your alias!" });
-});
+server.use("/api", router);
 
 server.set("view engine", "ejs");
 server.set("views", path.join(__dirname, "views"));
@@ -120,12 +50,53 @@ server.use("/public", express.static(path.join(__dirname, "../public")));
 
 server.get("/", (req, res) => {
   res.render("index", {
-    title: "Hushboard", // Dynamic title for the page
+    title: Branding_NotalX.name, // Dynamic title for the page
     publicPath: "/public", // Path to the public directory
   });
 });
+reactRoutes.forEach((route) => {
+  server.get(route, (req, res) => {
+    res.redirect(`/?r=${encodeURIComponent(req.originalUrl)}`);
+  });
+});
+server.use(function (_req, res, next) {
+  next(ApiError.error(ErrorCodes.RESOURCE_NOT_FOUND, "Route not found"));
+});
+server.use(function (
+  err: ApiError,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void {
+  const error_code = err.error_code ?? ErrorCodes.INTERNAL_SERVER_ERROR;
+  const status_code = err.status_code ?? 500;
+  const message = err.message ?? "An error occurred";
 
-server.listen(4000, () => {
+  if (process.env.NODE_ENV === "production") {
+    // Send error to an external logging service like Sentry
+    // Sentry.captureException(err);
+  } else {
+    if (error_code === ErrorCodes.INTERNAL_SERVER_ERROR) {
+      console.error(`[CRITICAL ERROR] ${err.message}`, {
+        stack: err.stack,
+      });
+    } else {
+      // console.warn(`[Warning] ${err.message}`, { stack: err.stack });
+    }
+  }
+
+  res.status(status_code).json({ status: "err", message, error_code });
+});
+
+httpServer.listen(4000, () => {
   console.log(`Listening on 4000 ...`);
   connectDb();
 });
+
+cron.schedule("* * * * *", async () => {
+  notes_categorization_cron_job();
+  notes_indexing_cron_job();
+  top_tags_indexing();
+  await deleteExpiredNotes(); // Runs every minute
+});
+export { httpServer, io };
