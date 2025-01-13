@@ -27,11 +27,6 @@ class Notification extends Model<
       order: [["updatedAt", "DESC"]],
     })) as any as INotification[];
 
-    notifications.forEach(
-      (notification) =>
-        (notification.metadata = JSON.parse(notification.metadata))
-    );
-
     // await memcachedService.set(cacheKey, notifications);
 
     return notifications;

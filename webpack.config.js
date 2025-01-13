@@ -27,6 +27,7 @@ module.exports = {
     },
     compress: true,
     port: 9000,
+    watchFiles: ["src/client/**/*"], // Add this line to specify the path webpack should only watch
   },
   module: {
     rules: [

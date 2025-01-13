@@ -19,6 +19,7 @@ import {
   validateIncomingNote,
   validateUsername,
   fanOutNotification,
+  queryVectors,
 } from "./helpers";
 import {
   _IAlias,
@@ -50,6 +51,7 @@ import { isDate } from "util/types";
 import Task from "./models/Task";
 import TaskParticipant from "./models/TaskParticipant";
 import Notification from "./models/Notification";
+import NoteHistory from "./models/NoteHistory";
 
 export async function getAllAlias(
   req: Request,
@@ -120,7 +122,6 @@ export async function requestOtp(
   res.json({ status: "ok", message: "OTP sent to email" });
 }
 
-("----- verifyOtp ------");
 export async function verifyOtp(
   req: Request,
   res: Response,
@@ -203,7 +204,6 @@ export async function verifyOtp(
   res.json({ status: "ok", message: "OTP verified" });
 }
 
-("----- invalidateOtp ------");
 export async function invalidateOtp(
   req: Request,
   res: Response,
@@ -216,7 +216,6 @@ export async function invalidateOtp(
   res.json({ status: "ok", message: "OTP invalidated" });
 }
 
-("----- getOtpExpiration ------");
 export async function getOtpExpiration(
   req: Request,
   res: Response,
@@ -240,7 +239,6 @@ export async function getOtpExpiration(
   });
 }
 
-("----- searchAlias ------");
 export async function searchAlias(
   req: Request,
   res: Response,
@@ -257,7 +255,6 @@ export async function searchAlias(
   res.json({ status: "ok", data: { rows: data } });
 }
 
-("----- getAliasById ------");
 export async function getAliasById(
   req: Request,
   res: Response,
@@ -411,10 +408,10 @@ export async function createTaskSchedule(
 ) {
   const count = await Task.count({ where: { alias_id: req.__alias!.id } });
 
-  if (count >= 2) {
-    next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
-    return;
-  }
+  // if (count >= 2) {
+  //   next(ApiError.error(ErrorCodes.PAYMENT_REQUIRED, "Task limit reached"));
+  //   return;
+  // }
   try {
     const note = await Note.findByPkWithCache(req.params.note_id);
     const newTask = await QueryLLM1(
@@ -620,7 +617,6 @@ export async function getAllTasksForAuthorisedAlias(
   });
 }
 
-("----- registerAlias ------");
 export async function registerAlias(
   req: Request,
   res: Response,
@@ -696,7 +692,6 @@ export async function getNote(req: Request, res: Response, next: NextFunction) {
   res.json({ status: "ok", data: { rows: all } });
 }
 
-("----- deleteNote ------");
 export async function deleteNote(
   req: Request,
   res: Response,
@@ -708,7 +703,6 @@ export async function deleteNote(
   res.json({ status: "ok", message: "Note has been deleted " });
 }
 
-("----- editNote ------");
 export async function editNote(
   req: Request,
   res: Response,
@@ -733,10 +727,16 @@ export async function editNote(
   }
 
   Note.updateByIdWithCache(note_id, valid.data);
+
+  NoteHistory.create({
+    changes: valid.data,
+    note_id,
+    updated_by: req.__alias!.id,
+  });
+
   res.json({ status: "ok", message: "Note updated" });
 }
 
-("----- getNoteById ------");
 export async function getNoteById(
   req: Request,
   res: Response,
@@ -826,6 +826,27 @@ export async function getNotesSharedWithAlias(
   });
 }
 
+export async function searchNotes(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const pagination = req.__pagination__!;
+  const query = req.query.value as string;
+
+  if (!query) {
+    next(ApiError.error(ErrorCodes.VALIDATION_ERROR, "Enter query"));
+    return;
+  }
+
+  const result = await queryVectors(query, req.__alias!.id);
+
+  try {
+    // const query  = await QueryLLM1(JSON.stringify(findAll))
+  } catch (err) {
+    console.error(err);
+  }
+}
 export async function getNoteCategories(
   req: Request,
   res: Response,

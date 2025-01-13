@@ -1,24 +1,30 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import {
   _IAlias,
   ErrorCodes,
+  IAlias,
   ICloudflareResponse,
+  ICreateIndex,
   IncomingNote,
   INote,
   INoteCollaborator,
+  INoteHistory,
   IPagination,
   ITask,
+  IVectorEmbedding,
   NotificationType,
 } from "./type";
 import {
   Branding_NotalX,
   CacheKeys,
   CLOUDFLARE_API_TOKEN,
+  CLOUDFLARE_AUTH_EMAIL,
   CLOUDFLARE_ID,
   mailConfig,
   ORGANISE_NOTE_PROMPT,
   RESTRICTED_WORDS,
   sessionCookieKey,
+  VectorIndexName,
 } from "./constants";
 import { createTransport } from "nodemailer";
 import { Request } from "express";
@@ -29,14 +35,22 @@ import {
   Alias,
   Note,
   NoteCollaborator,
+  NoteHistory,
   Notification,
   TaskParticipant,
 } from "./models";
+import pinecone, { PINECONE_INDEX } from "./pinecone";
+import fs from "fs";
+import path from "path";
+import { encodeToBase62 } from "./client/utils";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);
 };
-
+function stripHtmlTags(input: string): string {
+  // Replace HTML tags using a regular expression
+  return input.replace(/<[^>]*>/g, "").trim();
+}
 export function generateSlug(title: string, maxWords: number = 3): string {
   const randomString = Math.random().toString(36).substring(2, 7); // Generate a 5-char random string
 
@@ -493,7 +507,7 @@ export const create_category_validator = z
     message: "Request body cannot be empty",
   });
 
-export const OrganizeNotes = async () => {
+export const notes_categorization_cron_job = async () => {
   const oneHourAgo = new Date();
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
@@ -563,4 +577,146 @@ export const OrganizeNotes = async () => {
     3600
   );
 };
-OrganizeNotes();
+
+export function prepare_note_for_embedding(note: INote): string {
+  let { title, content, tags, category_name } = note;
+  content = stripHtmlTags(content);
+  const tagString = tags ? tags.join(", ") : "";
+  return `${title}\n${content}\nTags: ${tagString}\nCategory: ${
+    category_name || "None"
+  }`;
+}
+export async function generate_embedding(input: string): Promise<number[]> {
+  const f = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/ai/run/@cf/baai/bge-large-en-v1.5`,
+
+    {
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+      },
+      method: "post",
+      body: JSON.stringify({ text: input }),
+    }
+  );
+  const response: ICloudflareResponse<IVectorEmbedding> = await f.json();
+
+  return response.result.data;
+}
+
+const create_vector_index = async (alias_id: string) => {
+  try {
+    const f = await fetch(
+      ` https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ID}/vectorize/v2/indexes`,
+
+      {
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        },
+        method: "post",
+        body: JSON.stringify({
+          config: {
+            dimensions: 768,
+            metric: "cosine",
+          },
+          name: `alias-notes:${alias_id}`,
+        }),
+      }
+    );
+    const response: ICloudflareResponse<ICreateIndex> = await f.json();
+    return response;
+  } catch (err) {
+    console.error("Error creating vctor index", err);
+  }
+};
+
+const upsertVectors = async (
+  alias_id: string,
+  notes: { id: string; values: number[]; metadata: any }[]
+) => {
+  try {
+    await PINECONE_INDEX.namespace(`alias_${alias_id}`).upsert(notes);
+  } catch (error) {
+    console.error("Error upserting vectors:", error);
+  }
+};
+
+export const notes_indexing_cron_job = async () => {
+  try {
+    let notes: INote[] = (await Note.findAll({
+      where: {
+        updatedAt: {
+          [Op.gte]: new Date(Date.now() - 360 * 1000),
+        },
+      },
+      raw: true,
+    })) as any;
+
+    if (notes.length === 0) return;
+
+    let processNotes = await Promise.all(
+      notes.map(async (note) => {
+        const vectorizedValues = await generate_embedding(
+          prepare_note_for_embedding(note)
+        );
+
+        let _note = {
+          id: note.id,
+          values: vectorizedValues,
+          metadata: {
+            title: note.title,
+            alias_id: note.alias_id,
+            self_destroy_time: note.self_destroy_time?.toISOString() ?? "none",
+            category_name: note.category_name ?? "none",
+            tags: note.tags ?? "",
+            createdAt: note.createdAt.toISOString(),
+            updatedAt: note.updatedAt.toISOString(),
+          },
+        };
+        return _note;
+      })
+    );
+
+    const categorizedNotes = processNotes.reduce((acc, note) => {
+      let category = acc.find(
+        (item) => item.alias_id === note.metadata.alias_id
+      );
+
+      if (!category) {
+        category = { alias_id: note.metadata.alias_id, notes: [] };
+        acc.push(category);
+      }
+
+      category.notes.push(note);
+
+      return acc;
+    }, [] as { alias_id: string; notes: typeof processNotes }[]);
+
+    categorizedNotes.forEach(async (alias_notes) => {
+      upsertVectors(alias_notes.alias_id, alias_notes.notes);
+    });
+  } catch (err) {
+    console.error(err);
+  }
+};
+notes_indexing_cron_job();
+
+export async function queryVectors(value: string, alias_id: string) {
+  const vector = await generate_embedding(value);
+  try {
+    const queryResponse = await PINECONE_INDEX.namespace(
+      `alias_${alias_id}`
+    ).query({
+      vector,
+      topK: 1,
+      includeMetadata: true,
+      filter: {
+        alias_id: { $eq: alias_id },
+      },
+    });
+    console.log(queryResponse);
+  } catch (err) {
+    console.error("Error getting query vector", err);
+  }
+}

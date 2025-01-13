@@ -5,6 +5,7 @@ export type IAlias = {
   createdAt: Date;
   updatedAt: Date;
 };
+
 export enum NotificationType {
   AddedParticipant = "added_participant",
   AddedCollaborator = "added_collaborator",
@@ -73,6 +74,18 @@ export type INote = {
   self_destroy_time?: Date;
   category_name?: string;
   tags?: string[];
+  last_indexed?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+export type INoteHistory = {
+  note_id: string;
+  updated_by: string;
+  reason?: string;
+  changes: {
+    title?: { oldValue: string; newValue: string };
+    content?: { oldValue: string; newValue: string };
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -80,6 +93,33 @@ export type ApiFetchNote = {
   collaborators: _IAlias[];
   note: INote;
 };
+/**
+ * Represents the structure of the schema.
+ */
+export type IVectorEmbedding = {
+  /** An array of numbers representing the shape of the embedding. */
+  shape: number[];
+
+  /**
+   * A 2D array of numbers representing embeddings of the requested text values.
+   * Each embedding is a floating point array shaped by the embedding model.
+   */
+  data: number[];
+};
+
+export type IMetric = "cosine" | "euclidean" | "dot-product";
+
+export type ICreateIndex = {
+  config: {
+    dimensions: number;
+    metric: IMetric;
+  };
+  created_on: Date;
+  description: string;
+  modified_on: Date;
+  name: string;
+};
+
 export type ITask = {
   id: string;
   note_id: string;

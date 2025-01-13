@@ -33,7 +33,12 @@ router
   .get(Controller.getAllAlias)
   .post(Controller.registerAlias);
 
-router.get("/alias/search", Controller.searchAlias);
+router.get(
+  "/note/search",
+  authoriseAlias,
+  validateAndSetPagination,
+  Controller.searchNotes
+);
 
 router
   .route("/note")

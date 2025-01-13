@@ -1,11 +1,23 @@
 import { Sequelize } from "sequelize";
+import { PG_CONFIG } from "./constants";
 
-// Create a Sequelize instance and connect to an SQLite database
-const sequelize = new Sequelize({
-  dialect: "sqlite",
-  storage: "./database.sqlite", // Specify the SQLite database file path
-  logging: true, // Optional: disable logging of SQL queries
-});
+const sequelize = new Sequelize(
+  PG_CONFIG.database as string,
+  PG_CONFIG.username as string,
+  PG_CONFIG.password as string,
+  {
+    define: {
+      timestamps: true,
+    },
+    dialect: "postgres",
+    pool: {
+      max: 1000,
+      min: 0,
+      acquire: 60000,
+      idle: 10000,
+    },
+  }
+);
 
 async function connectDb() {
   try {

@@ -1,6 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+export const PG_CONFIG = {
+  database: process.env.PG_DATABASE,
+  username: process.env.PG_USER,
+  password: process.env.PG_PASSWORD,
+};
+export const CLOUDFLARE_AUTH_EMAIL = process.env.CLOUDFLARE_AUTH_EMAIL;
+export const VectorIndexName = (alias_id: string) => `alias-notes:${alias_id}`;
+
 export const sessionCookieKey = "s-tkn";
 export const otpSessionCookieKey = "pp-ses";
 export const Branding_NotalX = {

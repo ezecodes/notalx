@@ -103,7 +103,7 @@ Note.init(
       type: DataTypes.UUID,
       allowNull: false,
     },
-    content: { type: DataTypes.STRING, allowNull: false },
+    content: { type: DataTypes.JSON, allowNull: false },
     title: { type: DataTypes.STRING, allowNull: false },
     will_self_destroy: {
       type: DataTypes.BOOLEAN,
@@ -117,6 +117,11 @@ Note.init(
 
     category_name: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    last_indexed: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
 

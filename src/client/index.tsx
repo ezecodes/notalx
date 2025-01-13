@@ -2,13 +2,14 @@ import { FC, useContext, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
   InputWithIcon,
+  RingsLoader,
   ScheduledTasksWrapper,
   SharedHeader,
   SingleNote,
 } from "./component";
 
 import { GlobalContext } from "./hook";
-import { _IAlias, ApiFetchNote, IPaginatedResponse } from "../type";
+import { _IAlias, ApiFetchNote, INote, IPaginatedResponse } from "../type";
 import { LiaSearchSolid } from "react-icons/lia";
 
 type INoteCategoryRes = {
@@ -60,6 +61,12 @@ const Home = () => {
     }
   }, [navigate, searchParams]);
 
+  const handleCurrentNoteTab = (value: string) => {
+    if (currentNoteTab === "none" || value !== currentNoteTab)
+      setCurrentNoteTab(value);
+    if (currentNoteTab === value) setCurrentNoteTab("none");
+  };
+
   return (
     <section className="page">
       <SharedHeader />
@@ -94,7 +101,7 @@ const Home = () => {
               <RenderNotes
                 noteCategories={noteCategories}
                 currentNoteTab={currentNoteTab}
-                setCurrentNoteTab={(tab) => setCurrentNoteTab(tab)}
+                setCurrentNoteTab={handleCurrentNoteTab}
                 sharedNotes={notesSharedWithAlias}
                 ownedNotes={authAliasNotes}
               />
@@ -163,12 +170,22 @@ const RenderNotes: FC<{
   };
   const [searchValue, setSearchValue] = useState("");
   const [showIcon, setIcon] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const beginSearch = (value: string) => {};
+  const beginSearch = async () => {
+    try {
+      setLoading(true);
+      const f = await fetch(`/api/note/search?query=${searchValue}`);
+      const res: IPaginatedResponse<INote> = await f.json();
+      // res.status === "ok" &&
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full gap-y-4">
-      <div className="flex items-center gap-x-3">
+      <div className="flex items-center flex-wrap flex-y-4 gap-x-3">
         <SmallButton
           text="Created By Me"
           active={currentNoteTab === "owned"}
@@ -183,19 +200,24 @@ const RenderNotes: FC<{
           className="text-lg"
           onClick={() => setIcon((prev) => !prev)}
         />
+        {showIcon && (
+          <div className={`animate__animated animate__fadeIn 3micro:w-[350px]`}>
+            <InputWithIcon
+              icon={loading && <RingsLoader />}
+              onChange={(value) => {
+                beginSearch();
+                setSearchValue(value);
+              }}
+              value={searchValue}
+              placeholder="Search Notes"
+              type="text"
+              name="Notes"
+            />
+          </div>
+        )}
       </div>
-      {showIcon && (
-        <div className={`animate__animated animate__fadeIn 3micro:w-[350px]`}>
-          <InputWithIcon
-            onChange={beginSearch}
-            value={searchValue}
-            placeholder="Search Notes"
-            type="text"
-            name="Notes"
-          />
-        </div>
-      )}
-      <div className="flex gap-x-3 flex-wrap gap-y-3">
+
+      <div className="flex gap-x-3 flex-wrap gap-y-5">
         {noteCategories.map((i) => (
           <CategoryButton
             click={handleCategoryClick}
