@@ -39,7 +39,6 @@
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "choices.js": "^11.0.2",
     "concurrently": "^9.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
