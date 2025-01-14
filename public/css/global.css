@@ -2,24 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 :root {
-  --bg_color: #232323;
+  --bg_color: #212121;
   --text_color: #fff;
+  --border_color: #555555;
+  --top_gap: 10px;
 }
-.animate__animated.animate__slideInDown {
-  --animate-duration: 50ms;
+.animate__animated {
+  --animate-duration: 300ms;
+}
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg_color);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border_color);
+  border-radius: 10px;
+  border: 3px solid var(--bg_color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
+body,
+html {
+  position: relative;
+  height: 100%;
+  overflow-x: hidden;
 }
 * {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: system-ui, ui-sans-serif, "Space Grotesk", sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   outline: none;
   border: none;
+  font-size: 1rem;
+}
+.add_bg {
+  background-color: var(--bg_color) !important;
+}
+.popup_child {
+  @apply absolute z-[999999999] bottom-[100%] mt-2 right-0 w-48 bg-[#2c2c2c] border border-gray-200 shadow-lg rounded-md;
+}
+.note_manager .popup_child {
+  @apply top-[100%] bottom-[initial];
+}
+.popup_child .dropdown_item:last-of-type {
+  border-bottom: none;
+}
+.popup_child .dropdown_item {
+  border-bottom: 1px solid var(--border_color);
+  height: 45px;
+}
+
+li {
+  list-style: none;
+}
+.page {
+  @apply flex flex-col justify-center items-center mx-[auto] w-full px-4;
 }
 body {
   /* background: var(--main-background); */
   background-color: var(--bg_color) !important;
   color: var(--text_color);
+}
+.primary_button {
+  @apply rounded-md hover:bg-[#333] bg-[#2a2a2b] gap-x-2 max-w-[180px] text-sm h-[35px] px-2 button flex items-center justify-center;
+}
+
+.form_input {
+  @apply flex input items-center border justify-between border-gray-300 rounded-lg p-2 w-full;
+}
+.note_title input {
+  font-size: large;
+  font-weight: bolder;
+}
+.note_title .form_input {
+  border: none;
+}
+.sub_button {
+  @apply gap-x-2 max-w-[180px] px-1 h-[30px] text-sm  flex items-center justify-center;
+}
+.note_manager .modal_child {
+  @apply w-full lg:w-[900px];
+}
+.ql-toolbar.ql-snow,
+.ql-container.ql-snow {
+  border: none !important;
+}
+.sub_button svg {
+  @apply text-[.8rem];
+}
+input {
+  height: 33px;
+}
+button {
+  height: 40px;
 }
 .ql-editor > * {
   color: var(--text_color) !important;
@@ -29,24 +112,119 @@ body {
 }
 .button {
   white-space: nowrap;
-  border: 1px solid #6f6f6f;
+  border: 1px solid var(--border_color);
 }
-.input {
-  border: 1px solid #555555;
+.input,
+.add_border {
+  border: 1px solid var(--border_color);
+}
+.border_color {
+  border-color: #3d3d3d;
 }
 .label_input {
-  @apply flex flex-col items-start w-[300px];
+  @apply flex flex-col items-start w-full;
 }
 .label_input > label {
-  @apply text-gray-300;
+  @apply text-gray-200  mb-1;
+}
+
+label {
+  @apply text-sm;
 }
 .modal {
   position: fixed;
   inset: 0px;
-  z-index: 50;
+  z-index: 500;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #232323d4;
-  backdrop-filter: blur(1px);
+  background: var(--bg_color);
+  overflow-y: scroll;
+  padding-bottom: 50px;
+}
+
+.primary_button svg {
+  @apply text-gray-300;
+}
+
+.draft_actions,
+.header_actions {
+  @apply rounded-full add_border flex items-center justify-center add_bg w-[25px] h-[25px];
+}
+.modal_child {
+  @apply w-[97%] md:w-[680px];
+}
+.subtext {
+  @apply text-gray-300;
+}
+.sp_buttons {
+  @apply text-[.85rem] bg-[#333] rounded-md h-[25px] px-2;
+}
+.sp_buttons.insert {
+  @apply bg-[#0848ad];
+}
+.sp_buttons.discard {
+  @apply bg-[#7a243c];
+}
+.note_history_item {
+  @apply flex flex-col gap-y-2 bg-[#333] px-3 py-2 rounded-md;
+}
+.note_history_item ul {
+  list-style: decimal;
+  padding: 0 20px;
+}
+.success_text {
+  @apply text-green-400;
+}
+.border_top {
+  border-top: 1px solid #3d3d3d;
+}
+.border_bottom {
+  border-bottom: 1px solid #3d3d3d;
+}
+.top_space,
+.modal {
+  padding-left: var(--top_gap);
+  padding-right: var(--top_gap);
+}
+.edit_ico {
+  color: #9191eb;
+}
+.delete_ico {
+  color: #f76767;
+}
+.dropdown_item {
+  @apply px-2 py-2 text-sm duration-100 hover:bg-[#3f3f3f] cursor-pointer flex items-center gap-x-2;
+}
+
+.dropdown_item:hover > span {
+  display: block;
+}
+@media screen and (min-width: 640px) {
+  :root {
+    --top_gap: 30px;
+  }
+}
+
+.grid_wrap {
+  @apply flex flex-wrap gap-10;
+}
+.ql-toolbar.ql-snow {
+  background: var(--bg_color);
+  z-index: 9999;
+  position: sticky;
+  top: 0;
+}
+
+.noti {
+  font-size: 0.8rem;
+  position: absolute;
+  display: block;
+  z-index: 2;
+  @apply flex items-center justify-center;
+  height: 18px;
+  width: 18px;
+  right: -10px;
+  top: 0;
+  border-radius: 40px;
 }

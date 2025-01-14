@@ -40,7 +40,7 @@ build/Release
 
 **.sqlite
 
-public/js/bundle.js
+**bundle.js
 
 public/css/output.css
 

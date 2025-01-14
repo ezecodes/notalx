@@ -1,102 +1,129 @@
-import "react-quill/dist/quill.snow.css";
-import "choices.js/public/assets/styles/choices.min.css";
-import "react-toastify/dist/ReactToastify.css";
-
-import { FC, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useRef, useState } from "react";
+import { Link, Outlet, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  IoCreateOutline,
-  IoEyeOffOutline,
-  IoMailOutline,
-  IoPersonAdd,
-} from "react-icons/io5";
-import { ImCancelCircle, ImInfo } from "react-icons/im";
-import { _Alias, INote } from "../type";
-import { Outlet, useNavigate } from "react-router-dom";
-import { Button, InputWithIcon, SearchDropdown } from "./component";
-import { fetchAliasNotes, formatRelativeTime } from "./utils";
+  BackButton,
+  Button,
+  InputWithIcon,
+  NoteSkeleton,
+  RingsLoader,
+  ScheduledTasksWrapper,
+  SharedHeader,
+  SingleNote,
+} from "./component";
 
-const Page = () => {
+import { GlobalContext } from "./hook";
+import { _IAlias, ApiFetchNote, INote, IPaginatedResponse } from "../type";
+import { LiaSearchSolid } from "react-icons/lia";
+import { IoMdSend } from "react-icons/io";
+import { toast } from "react-toastify";
+
+type INoteCategoryRes = {
+  id: string;
+  category_name: string;
+  tags: string[];
+};
+
+const Home = () => {
   const navigate = useNavigate();
+  const {
+    authAliasNotes,
+    fetchAliasNotes,
+    notesSharedWithAlias,
+    fetchNotesSharedWithAlias,
+    otpExpiry,
+    scheduledTasks,
+  } = useContext(GlobalContext)!;
+  const [searchParams] = useSearchParams();
+  const [showSearchModal, setSearchModal] = useState(false);
 
-  const [isCreateAliasModalVisible, setCreateAliasModalVisibility] =
-    useState(false);
+  const [noteCategories, setNoteCategories] = useState<INoteCategoryRes[]>([]);
 
-  const [selectedAlias, setSelectedAlias] = useState<_Alias | null>(null);
-  const [selectedNote, setSelectedNote] = useState<INote | null>(null);
-  const [selectedNotes, setSelectedNotes] = useState<{
-    id: string;
-    rows: INote[];
-  } | null>(null);
+  const [currentPage, setCurrentPage] = useState("notes");
+  const [currentNoteTab, setCurrentNoteTab] = useState("owned");
+
+  const fetchAllNoteCategories = async () => {
+    const f = await fetch("/api/note/category");
+    const response: IPaginatedResponse<INoteCategoryRes> = await f.json();
+
+    response.status === "ok" && setNoteCategories(response.data!.rows);
+  };
 
   useEffect(() => {
-    if (!selectedAlias) return;
-    fetchAliasNotes(selectedAlias?.id).then((res) => {
-      console.log(res);
-      res.data && setSelectedNotes({ id: "", rows: res.data.rows });
-    });
-  }, [selectedAlias?.id]);
+    try {
+      const redirect = searchParams.get("r");
+      const page = searchParams.get("page");
+      const modal = searchParams.get("modal");
+      if (redirect) {
+        navigate(decodeURIComponent(redirect), { replace: true });
+      }
+
+      if (modal && modal === "search") {
+        setSearchModal(true);
+      } else {
+        setSearchModal(false);
+      }
+
+      page && setCurrentPage(page);
+
+      fetchAliasNotes();
+
+      fetchNotesSharedWithAlias();
+      fetchAllNoteCategories();
+    } catch (err) {
+      console.error(err);
+    }
+  }, [navigate, searchParams]);
+
+  const handleCurrentNoteTab = (value: string) => {
+    if (currentNoteTab === "none" || value !== currentNoteTab)
+      setCurrentNoteTab(value);
+    if (currentNoteTab === value) setCurrentNoteTab("none");
+  };
 
   return (
-    <section className="flex flex-col justify-center items-center w-full">
-      <header className="flex flex-col py-4 gap-y-5 w-full items-center ">
-        <div className="flex flex-row gap-x-5">
-          <Button
-            text="New alias"
-            icon={<IoPersonAdd />}
-            onClick={() => setCreateAliasModalVisibility(true)}
-          />
-          <Button
-            text="Create note"
-            icon={<IoCreateOutline />}
-            onClick={() => navigate("/edit")}
-          />
-          <form className="w-full flex justify-center">
-            <div className="flex items-center gap-x-3">
-              <SearchDropdown
-                onClick={(value) => setSelectedAlias(value)}
-                selected={selectedAlias}
+    <section className="page">
+      <SharedHeader />
+      <SearchModal isOpen={showSearchModal} />
+
+      <div className="flex items-start gap-x-3  w-full">
+        {otpExpiry?.is_valid_auth && (
+          <>
+            <Link
+              to="?page=notes"
+              className={`sub_button ${
+                currentPage === "notes" ? "text-white" : "subtext"
+              } `}
+            >
+              Notes
+            </Link>
+            <Link
+              to="?page=tasks"
+              className={`sub_button ${
+                currentPage === "tasks" ? "text-white" : "subtext"
+              } `}
+            >
+              Schedules
+            </Link>{" "}
+          </>
+        )}
+      </div>
+
+      {otpExpiry && otpExpiry.is_valid_auth && (
+        <section className="w-full py-5 mb-3">
+          <div className="flex gap-4 flex-wrap">
+            {currentPage === "notes" && (
+              <RenderNotes
+                noteCategories={noteCategories}
+                currentNoteTab={currentNoteTab}
+                setCurrentNoteTab={handleCurrentNoteTab}
+                sharedNotes={notesSharedWithAlias}
+                ownedNotes={authAliasNotes}
               />
-            </div>
-          </form>
-        </div>
-      </header>
+            )}
 
-      <CreateAlias
-        isOpen={isCreateAliasModalVisible}
-        onClose={() => setCreateAliasModalVisibility(false)}
-      />
-
-      {selectedAlias && selectedNotes && selectedNotes?.rows.length > 0 && (
-        <section className="w-full px-10 py-5 mb-3">
-          {/* <h3>Browsing notes: {selectedAlias?.name}</h3> */}
-          <div className="flex gap-4">
-            {selectedNotes?.rows.map((i, key) => {
-              return (
-                <div
-                  className="shadow-md py-2 h-[200px] 2micro:w-[400px] rounded-md gap-y-2 flex flex-col overflow-hidden"
-                  style={{ border: "1px solid #555555" }}
-                >
-                  <div className="flex justify-between px-4">
-                    <span className="font-[500] text-[1.1rem]">{i.title}</span>
-                  </div>
-                  <div
-                    className="hover:bg-[#292929] duration-300 cursor-pointer text-gray-300 h-[65%] overflow-hidden  px-4"
-                    onClick={() => setSelectedNote(i)}
-                  >
-                    <span
-                      dangerouslySetInnerHTML={{ __html: i.content }}
-                    ></span>
-                  </div>
-
-                  <div className="flex  px-4 items-center justify-end gap-x-5">
-                    <span className="text-gray-400 text-sm">
-                      {formatRelativeTime(i.createdAt)}{" "}
-                    </span>
-                    <IoCreateOutline />
-                  </div>
-                </div>
-              );
-            })}
+            {currentPage === "tasks" && (
+              <ScheduledTasksWrapper rows={scheduledTasks} />
+            )}
           </div>
         </section>
       )}
@@ -105,95 +132,195 @@ const Page = () => {
   );
 };
 
-export default Page;
-
-interface ICreateAlias {
-  onClose: () => void;
-  isOpen: boolean;
-}
-
-const CreateAlias: FC<ICreateAlias> = ({ onClose, isOpen }) => {
-  const [alias, setAlias] = useState({ name: "", secret: "", email: "" });
-
-  const send = async () => {
-    const f = await fetch("/alias", {
-      method: "post",
-      body: JSON.stringify(alias),
-      headers: {
-        "content-type": "application/json",
-      },
-    });
-    const response = await f.json();
-    alert(response.message);
-
-    if (response.status === "ok") {
-      onClose();
-    }
-  };
-
-  if (!isOpen) return <></>;
+const SmallButton: FC<{
+  active: boolean;
+  listener: () => void;
+  text: string;
+}> = ({ active, listener, text }) => {
   return (
-    <div className="modal animate__animated animate__slideInDown">
-      <div
-        style={{ border: "1px solid #535353" }}
-        className="flex mt-7 flex-col gap-y-3 relative 3micro:w-[400px] sm:w-[600px] shadow-md px-5 py-5 rounded-md"
-      >
-        <h3 className="text-[1.1rem] font-[500]">Create an alias</h3>
-        <div className="flex items-start gap-x-3 ">
-          <ImInfo />
-          <p className="text-gray-300 text-[.8rem]">
-            Add a secret to this alias to enable you create hidden notes that
-            can only be accessed with anyone with the secret. An email address
-            though optional is recommended to enable you recover your secret
-            incase you loose it
-          </p>
-        </div>
+    <button
+      className="sp_buttons"
+      style={active ? { backgroundColor: "#3a3a43" } : {}}
+      onClick={listener}
+    >
+      {text}
+    </button>
+  );
+};
+const CategoryButton: FC<{
+  current: string;
+  category: string;
+  click: (value: string) => void;
+}> = ({ click, category, current }) => {
+  return (
+    <button
+      style={{ height: "20px" }}
+      onClick={() => click(category)}
+      className={`text-sm ${current === category ? "text-white" : "subtext"}`}
+    >
+      {category} <span className="noti"> {} </span>
+    </button>
+  );
+};
+const RenderNotes: FC<{
+  sharedNotes: ApiFetchNote[];
+  ownedNotes: ApiFetchNote[];
+  currentNoteTab: string;
+  noteCategories: INoteCategoryRes[];
+  setCurrentNoteTab: (tab: string) => void;
+}> = ({
+  sharedNotes,
+  ownedNotes,
+  currentNoteTab,
+  setCurrentNoteTab,
+  noteCategories,
+}) => {
+  const [currentCategory, setCurrentCategory] = useState("none");
 
-        <div className="absolute right-[10px]">
-          <ImCancelCircle onClick={onClose} />
-        </div>
+  const handleCategoryClick = (value: string) => {
+    if (currentCategory === "none" || value !== currentCategory)
+      setCurrentCategory(value);
+    if (currentCategory === value) setCurrentCategory("none");
+  };
+  const [showIcon, setIcon] = useState(false);
+  const navigate = useNavigate();
 
-        <div className="flex flex-col gap-y-3">
-          <div className="label_input">
-            <label>Choose your alias</label>
-            <InputWithIcon
-              placeholder="Chose an alias"
-              type="text"
-              value={alias.name}
-              onChange={(value) =>
-                setAlias((prev) => ({ ...prev, name: value }))
-              }
-            />
-          </div>
+  return (
+    <div className="flex flex-col w-full gap-y-4">
+      <div className="flex items-center flex-wrap gap-y-3 flex-y-4 gap-x-3">
+        <SmallButton
+          text="Created By Me"
+          active={currentNoteTab === "owned"}
+          listener={() => setCurrentNoteTab("owned")}
+        />
+        <SmallButton
+          text="Shared With Me"
+          active={currentNoteTab === "shared"}
+          listener={() => setCurrentNoteTab("shared")}
+        />
+        <Button onClick={() => navigate("?modal=search")} text="AI Search" />
+      </div>
 
-          <div className="label_input">
-            <label>Enter a secret for this alias (Optional)</label>
-            <InputWithIcon
-              icon={<IoEyeOffOutline />}
-              placeholder="Enter a secret"
-              type="password"
-              value={alias.secret}
-              onChange={(value) =>
-                setAlias((prev) => ({ ...prev, secret: value }))
-              }
-            />
-          </div>
-          <div className="label_input">
-            <label>Enter an email (Optional)</label>
-            <InputWithIcon
-              icon={<IoMailOutline />}
-              placeholder=""
-              type="email"
-              value={alias.email}
-              onChange={(value) =>
-                setAlias((prev) => ({ ...prev, email: value }))
-              }
-            />
-          </div>
-        </div>
+      <div className="flex gap-x-3 flex-wrap gap-y-5">
+        {noteCategories.map((i) => (
+          <CategoryButton
+            click={handleCategoryClick}
+            current={currentCategory}
+            category={i.category_name!}
+          />
+        ))}
+      </div>
+      <div className="grid_wrap">
+        {currentNoteTab === "owned" &&
+          ownedNotes.map((i, key) =>
+            currentCategory === "none" ||
+            i.note.category_name === currentCategory ? (
+              <SingleNote
+                type="note"
+                collaborators={i.collaborators}
+                note={i.note}
+                key={i.note.id}
+              />
+            ) : (
+              <></>
+            )
+          )}
 
-        <Button text="Create" onClick={send} />
+        {currentNoteTab === "shared" &&
+          sharedNotes.map((i, key) =>
+            currentCategory === "none" ||
+            i.note.category_name === currentCategory ? (
+              <SingleNote
+                type="note"
+                collaborators={i.collaborators}
+                note={i.note}
+                key={i.note.id}
+              />
+            ) : (
+              <></>
+            )
+          )}
       </div>
     </div>
   );
 };
+
+const SearchModal: FC<{
+  isOpen: boolean;
+  setOpen?: (value: boolean) => void;
+}> = ({ isOpen, setOpen }) => {
+  const [loading, setLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [lastSearchValue, setLastSearchValue] = useState<null | string>(null);
+  const [results, setResults] = useState<ApiFetchNote[]>([]);
+
+  const beginSearch = async () => {
+    try {
+      setLastSearchValue(null);
+      setLoading(true);
+      const f = await fetch(`/api/note/search?value=${searchValue}`);
+      const res: IPaginatedResponse<ApiFetchNote> = await f.json();
+      if (res.status === "err") {
+        toast.error(res.message);
+        return;
+      }
+      setLastSearchValue(searchValue);
+      setResults(res.data!.rows);
+    } finally {
+      setLoading(false);
+    }
+  };
+  if (!isOpen) return <></>;
+  return (
+    <div className="modal">
+      <div className=" flex flex-col gap-y-4 w-full">
+        <BackButton text="Back" url={-1} />
+        <div
+          className={`animate__animated animate__fadeIn mx-[auto] 3micro:w-[350px]`}
+        >
+          <InputWithIcon
+            endIcon={
+              loading ? (
+                <RingsLoader />
+              ) : (
+                <IoMdSend className="subtext" onClick={beginSearch} />
+              )
+            }
+            onChange={(value) => {
+              setSearchValue(value);
+            }}
+            value={searchValue}
+            placeholder="e.g Search with natural words"
+            type="text"
+            name="Notes"
+          />
+        </div>
+        <div className="flex gap-y-4 flex-col">
+          {lastSearchValue && (
+            <h5 className="font-[500]">
+              Top hits:{" "}
+              <span style={{ fontStyle: "italic" }}> {lastSearchValue}</span>
+            </h5>
+          )}
+          <div className="grid_wrap">
+            {loading ? (
+              <NoteSkeleton />
+            ) : (
+              results.map((note) => {
+                return (
+                  <SingleNote
+                    note={note.note}
+                    collaborators={note.collaborators}
+                    type="note"
+                  />
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Home;

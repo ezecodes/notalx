@@ -1,36 +1,98 @@
-import { FC, useEffect, useState } from "react";
-import { ImCancelCircle } from "react-icons/im";
-import { INote } from "../type";
-import { useParams } from "react-router-dom";
-import { fetchNote } from "./utils";
+import { FC, useContext, useEffect, useRef, useState } from "react";
+import { _IAlias, INote } from "../type";
+import { useNavigate, useParams } from "react-router-dom";
+import { decodeFromBase62, encodeToBase62, fetchNote } from "./utils";
+import { GlobalContext } from "./hook";
+import {
+  BackButton,
+  Button,
+  DisplayDateCreated,
+  ExpirationInfo,
+} from "./component";
+import { toast } from "react-toastify";
 
 interface IViewNote {}
 const ViewNote: FC<IViewNote> = () => {
-  const params = useParams<{ note_id: string }>();
-  const [note, setNote] = useState<INote | null>(null);
+  const params = useParams<{ note_slug: string }>();
+  const [note, setNote] = useState<{
+    note: INote;
+    collaborators: _IAlias[];
+  } | null>(null);
+  const hasCalled = useRef(false);
+  const {
+    Is_Authorised_Alias_Same_As_Note_Alias,
+    getOTPExpiry,
+    deleteNote,
+    Is_Authorised_Alias_A_Note_Collaborator,
+  } = useContext(GlobalContext)!;
+
+  const navigate = useNavigate();
+
+  function handleNoteFetch() {
+    const slug = params.note_slug ? decodeFromBase62(params.note_slug) : null;
+    fetchNote(slug as string).then((res) => {
+      if (res.status === "err") {
+        toast.error(res.message);
+        return;
+      }
+
+      res.data && setNote(res.data);
+    });
+  }
 
   useEffect(() => {
-    params.note_id &&
-      fetchNote(params.note_id).then((res) => {
-        res.data && setNote(res.data);
-      });
+    if (!hasCalled.current) {
+      getOTPExpiry();
+      handleNoteFetch();
+
+      hasCalled.current = true;
+    }
   }, []);
 
   if (!note) return <></>;
 
   return (
-    <div className="modal px-5 relative animate__animated animate__slideInDown">
-      <div
-        className="flex mt-7 flex-col gap-y-3 sm:w-[600px] md:w-[700px]  relative  shadow-md px-5 py-5 rounded-md"
-        style={{
-          border: "1px solid #555555",
-        }}
-      >
-        <div className="absolute right-[10px]">
-          <ImCancelCircle onClick={() => history.back()} />
+    <div
+      className="modal note_manager  relative animate__animated animate__fadeIn"
+      onDoubleClick={() => navigate("/note/" + encodeToBase62(note.note.id))}
+    >
+      <div className="flex modal_child flex-col gap-y-3 ">
+        <BackButton text={note.note.title} url={"/"} />
+
+        <div
+          className="note_body ql-container ql-snow quill ql-editor"
+          dangerouslySetInnerHTML={{ __html: note.note.content }}
+        ></div>
+
+        <div className="flex flex-col gap-y-3 pt-2 mt-2 items-end border_top">
+          <div className="flex text-md gap-x-3 gap-y-3 flex-wrap items-center  justify-end ">
+            <ExpirationInfo
+              time={note.note.self_destroy_time}
+              willSelfDestroy={note.note.will_self_destroy}
+            />
+            <DisplayDateCreated date={note.note.createdAt} />
+          </div>
+
+          <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
+            {Is_Authorised_Alias_Same_As_Note_Alias(note.note.alias_id) ||
+            Is_Authorised_Alias_A_Note_Collaborator(note.collaborators) ? (
+              <>
+                <Button
+                  text="Delete"
+                  onClick={() => deleteNote(note.note.id)}
+                />
+                <Button
+                  text="Edit"
+                  onClick={() =>
+                    navigate("/note/" + encodeToBase62(note.note.id))
+                  }
+                />
+              </>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
-        <h4 className="font-[500] text-[1.1rem]">{note.title}</h4>
-        <div dangerouslySetInnerHTML={{ __html: note.content }}></div>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src"],
+  "include": ["src", "service-worker"],
 
   "exclude": ["node_modules", "dist"]
 }
