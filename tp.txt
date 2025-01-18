@@ -8,18 +8,18 @@ collaborators can view, edit, use AI features(summerise, schedule tasks) on shar
 Only tasks created by current authenticated user will be shown on a note
 
 
-To view a hidden note, you must either be authenticated using the alias you used to create the note or you must enter a valid secret
+To view a hidden note, you must either be authenticated using the user you used to create the note or you must enter a valid secret
 
-While listing all notes within an alias,
-You must be authenticated under that alias and authorized as the alias before hidden notes will be shown or listed
+While listing all notes within an user,
+You must be authenticated under that user and authorized as the user before hidden notes will be shown or listed
 But public notes do not need any form of auth 
 
-Authentication process of an alias:
-Select the alias from the start page
+Authentication process of an user:
+Select the user from the start page
 Then click on the auth icon
-You enter the email you used to create that alias
+You enter the email you used to create that user
 An OTP (One time password) is sent to the email
-Once otp is verified, that alias is now authorized within that ip address and agent to view hidden notes, edit notes , change note secret
+Once otp is verified, that user is now authorized within that ip address and agent to view hidden notes, edit notes , change note secret
 
 NOTE : opt and auth session lasts for 1 hour before it expires and you will have to re-auth 
 
