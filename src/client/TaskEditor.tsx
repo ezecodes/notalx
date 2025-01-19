@@ -6,7 +6,7 @@ import {
   decodeFromBase62,
   DEFAULT_SCHEDULE_REMINDERS,
 } from "./utils";
-import { _IUser, IApiResponse, ITask } from "../../type";
+import { _IUser, IApiResponse, ITask } from "../type";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { GlobalContext } from "./hook";

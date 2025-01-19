@@ -17,7 +17,7 @@ import {
   IOtpExpiry,
   IPaginatedResponse,
   ITask,
-} from "../../type";
+} from "../type";
 import { fetchAuthUserNotes } from "./utils";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";

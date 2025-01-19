@@ -8,7 +8,7 @@ import {
   IPaginatedResponse,
   ISummaryResponse,
   ITask,
-} from "../../type";
+} from "../type";
 export const DEFAULT_SCHEDULE_REMINDERS = [
   "5 mins before",
   "10 mins before",

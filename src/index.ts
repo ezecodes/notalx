@@ -22,6 +22,8 @@ const httpServer = http.createServer(server);
 
 const io = new SocketIOServer(httpServer);
 
+const usersNameSpace = io.of("/user");
+
 io.use((socket, next) => authoriseUserIoConnection(socket, next));
 
 const reactRoutes = [
@@ -96,4 +98,4 @@ cron.schedule("* * * * *", async () => {
   notes_indexing_cron_job();
   await deleteExpiredNotes(); // Runs every minute
 });
-export { httpServer, io };
+export { httpServer, io, usersNameSpace };

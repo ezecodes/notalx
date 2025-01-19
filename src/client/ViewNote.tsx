@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { _IUser, INote } from "../../type";
+import { _IUser, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
 import { decodeFromBase62, encodeToBase62, fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
@@ -71,7 +71,7 @@ const ViewNote: FC<IViewNote> = () => {
           </div>
 
           <div className="flex text-md gap-x-3 gap-y-3 pt-4 justify-end ">
-            {Is_Authorised_User_Same_As_Note_User(note.note.user_id) ||
+            {Is_Authorised_User_Same_As_Note_User(note.note.owner_id) ||
             Is_Authorised_User_A_Note_Collaborator(note.collaborators) ? (
               <>
                 <Button

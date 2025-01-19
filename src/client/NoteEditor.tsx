@@ -21,7 +21,7 @@ import {
   INoteEditor,
   ISummaryResponse,
   ITask,
-} from "../../type";
+} from "../type";
 import { GlobalContext, useMicrophone } from "./hook";
 import { toast } from "react-toastify";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -140,7 +140,7 @@ const Editor = () => {
       createdAt: note.createdAt,
       id: note.id,
       selfDestroyTime: note.self_destroy_time,
-      user_id: note.user_id,
+      user_id: note.owner_id,
     });
   };
 

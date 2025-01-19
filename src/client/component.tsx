@@ -16,7 +16,7 @@ import {
   IPaginatedResponse,
   ITask,
   NotificationType,
-} from "../../type";
+} from "../type";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { TfiTimer } from "react-icons/tfi";
 import { BsPersonCheck, BsStars, BsUnlock } from "react-icons/bs";

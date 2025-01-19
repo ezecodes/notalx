@@ -30,10 +30,10 @@ import { z } from "zod";
 import { PINECONE_INDEX } from "./pinecone";
 import fs from "fs";
 import path from "path";
-import { usersNameSpace } from ".";
 import Collaborator from "./collaborator/collaborator.model";
 import Note from "./note/note.model";
 import Notification from "./notification/notification.model";
+import { usersNameSpace } from ".";
 
 export const getRandomInt = (min = 100_000, max = 900_000) => {
   return Math.floor(Math.random() * (max - min) + min);

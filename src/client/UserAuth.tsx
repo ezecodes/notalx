@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { BackButton, Button, InputWithIcon } from "./component";
-import { _IUser, IApiResponse } from "../../type";
+import { _IUser, IApiResponse } from "../type";
 import { GlobalContext } from "./hook";
 import { toast } from "react-toastify";
 
