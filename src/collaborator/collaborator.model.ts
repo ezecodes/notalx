@@ -2,6 +2,7 @@ import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
 import {
   ErrorCodes,
+  IApiCollaborator,
   IApiResponse,
   ICollaborator,
   ICollaboratorPermission,
@@ -29,14 +30,16 @@ class Collaborator extends Model<
   static async getCollaboratorsForNote(
     this: typeof Collaborator,
     note_id: string
-  ): Promise<ICollaborator[]> {
+  ): Promise<IApiCollaborator[]> {
     const key = `colaborators:${note_id}`;
-    const cache: ICollaborator[] | null = await memcachedService.get(key);
+    // const cache = null;
+    const cache = await memcachedService.get<IApiCollaborator[]>(key);
 
     if (!cache) {
-      const rows: ICollaborator[] = (await Collaborator.findAll({
+      const rows: IApiCollaborator[] = (await Collaborator.findAll({
         where: { note_id },
         raw: true,
+        include: { model: User, as: "user", attributes: ["name"] },
       })) as any;
 
       memcachedService.set(key, rows);
@@ -47,34 +50,35 @@ class Collaborator extends Model<
   }
   static async addCollaborator(
     this: typeof Collaborator,
-    userId: string,
-    noteId: string,
+    user_id: string,
+    note_id: string,
     permission: ICollaboratorPermission
   ): Promise<IApiResponse<ICollaborator>> {
     if (permission !== "read" && permission !== "write") {
       throw new Error("Invalid permission");
     }
 
-    const existingCollaborator = await Collaborator.findOne({
-      where: { user_id: userId, note_id: noteId },
-    });
+    const existingCollaborator: ICollaborator = (await Collaborator.findOne({
+      where: { user_id, note_id },
+    })) as any;
 
-    if (existingCollaborator) {
+    if (
+      existingCollaborator &&
+      existingCollaborator.permission === permission
+    ) {
       return {
         status: "err",
         error_code: ErrorCodes.CONFLICT,
         message: "User is already a collaborator",
       };
     }
-
-    const newCollaborator: ICollaborator = (await Collaborator.create(
-      {
-        user_id: userId,
-        note_id: noteId,
-        permission,
-      },
-      { returning: true, raw: true }
-    )) as any;
+    const values = { user_id, note_id, permission };
+    const newCollaborator: ICollaborator = (await Collaborator.findOrCreate({
+      defaults: values,
+      where: values,
+      returning: true,
+      raw: true,
+    })) as any;
 
     return {
       status: "ok",
@@ -120,10 +124,18 @@ Collaborator.init(
     user_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: User,
+        key: "id",
+      },
     },
     note_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: Note,
+        key: "id",
+      },
     },
     permission: {
       type: DataTypes.ENUM("read", "write"),
@@ -131,10 +143,17 @@ Collaborator.init(
       defaultValue: "read",
     },
   },
-  { sequelize, modelName: "Collaborator" }
+  {
+    sequelize,
+    modelName: "Collaborator",
+    defaultScope: {
+      raw: true,
+    },
+  }
 );
+User.hasMany(Collaborator, { foreignKey: "user_id", as: "user" });
+Collaborator.belongsTo(User, { foreignKey: "user_id", as: "user" });
 
-User.hasMany(Collaborator, { foreignKey: "user_id" });
 Note.hasMany(Collaborator, { foreignKey: "note_id" });
-
+Collaborator.belongsTo(Note, { foreignKey: "note_id" });
 export default Collaborator;

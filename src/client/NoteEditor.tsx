@@ -15,10 +15,12 @@ import { IoPencilOutline } from "react-icons/io5";
 import ReactQuill, { Range } from "react-quill";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  _IUser,
+  IUserPublic,
   IApiResponse,
+  ICollaborator,
+  ICollaboratorPermission,
+  IApiCollaborator,
   INote,
-  INoteEditor,
   ISummaryResponse,
   ITask,
 } from "../type";
@@ -30,85 +32,44 @@ import {
   decodeFromBase62,
   createScheduleTask,
   summeriseSelectedText,
-  encodeToBase62,
   navigateBackOrHome,
+  encodeToBase62,
 } from "./utils";
 import { BsStars } from "react-icons/bs";
 import { CiCircleChevDown, CiStickyNote } from "react-icons/ci";
 import { SlMicrophone } from "react-icons/sl";
 
-const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
-  const [isDropdownVisible, setDropdownVisible] = useState(false);
-  const navigate = useNavigate();
-  const displayDropdown = () => {
-    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
-  };
-  return (
-    <div className="relative ">
-      <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
-      <div
-        className={`popup_child animate__animated ${
-          isDropdownVisible
-            ? "animate__zoomIn visible opacity-1"
-            : "animate__zoomOut invisible opacity-0"
-        }`}
-      >
-        <li
-          className="dropdown_item"
-          style={{ borderBottom: "5px solid #2121218c" }}
-          onClick={setCollabModal}
-        >
-          <GoPeople /> Manage Collaborators
-        </li>
-        <li
-          className="dropdown_item"
-          style={{}}
-          onClick={() => navigate("/newnote")}
-        >
-          <CiStickyNote /> New Note
-        </li>
-      </div>
-    </div>
-  );
-};
-
-type IHighlightedText = {
-  text: string;
-  start_index: number;
-  end_index: number;
-};
-
-const Editor = () => {
-  const [editor, setEditor] = useState<INoteEditor | null>(null);
+const NoteEditor = () => {
+  const [editor, setEditor] = useState<INote | null>(null);
   const [showCollabModal, setCollabModal] = useState(false);
   const params = useParams<{ note_slug: string }>();
   const hasCalled = useRef(false);
   const { otpExpiry } = useContext(GlobalContext)!;
-  const handleUpdate = (values: Partial<INoteEditor>) => {
+  const handleUpdate = (values: Partial<INote>) => {
     const data = { ...editor, ...values };
 
-    setEditor(data as INoteEditor);
+    setEditor(data as INote);
   };
 
   const [currentJobTab, setCurrentJobTab] = useState<"task" | "email" | "all">(
     "task"
   );
 
-  const [tasks, setTasks] = useState<{ task: ITask; participants: _IUser[] }[]>(
-    []
-  );
+  const [tasks, setTasks] = useState<
+    { task: ITask; participants: IUserPublic[] }[]
+  >([]);
   const [loadingStates, setLoadingStates] = useState({
     summary: false,
     task: false,
   });
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
+  const navigate = useNavigate();
 
   const quillRef = useRef<ReactQuill | null>(null);
   const [popupVisible, setPopupVisible] = useState<boolean>(false);
   const [aiActionsVisible, setAiActionsVisible] = useState<boolean>(false);
 
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  const navigate = useNavigate();
   const [summaryResponse, setSummaryResponse] =
     useState<ISummaryResponse | null>(null);
 
@@ -118,37 +79,33 @@ const Editor = () => {
   const fetchAllTasksInNote = async () => {
     const f = await fetch(`/api/note/${parsedNoteId.current}/task`);
     const response: IApiResponse<{
-      rows: { task: ITask; participants: _IUser[] }[];
+      rows: { task: ITask; participants: IUserPublic[] }[];
     }> = await f.json();
 
     response.data && setTasks(response.data.rows);
   };
+  const [collaborators, setCollaborators] = useState<IApiCollaborator[]>([]);
 
   const fetchPrevNote = async () => {
     const f = await fetch("/api/note/" + parsedNoteId.current);
-    const response: IApiResponse<{ note: INote; collaborators: _IUser[] }> =
-      await f.json();
+    const response: IApiResponse<{
+      note: INote;
+      collaborators: IApiCollaborator[];
+    }> = await f.json();
 
     if (response.status === "err") {
       toast.error(response.message);
       return;
     }
     const note = response.data?.note!;
-    setEditor({
-      content: note.content,
-      title: note.title,
-      createdAt: note.createdAt,
-      id: note.id,
-      selfDestroyTime: note.self_destroy_time,
-      user_id: note.owner_id,
-    });
+    setEditor(note);
+    setCollaborators(response.data!.collaborators);
   };
 
   useEffect(() => {
     if (!hasCalled.current) {
       fetchPrevNote();
       fetchAllTasksInNote();
-
       hasCalled.current = true;
     }
   }, []);
@@ -390,8 +347,8 @@ const Editor = () => {
               <div className="flex gap-x-5 items-center ">
                 {editor && (
                   <div className="flex gap-x-4">
-                    {editor.willSelfDestroy && (
-                      <ExpirationInfo time={editor.selfDestroyTime} />
+                    {editor.self_destroy_time && (
+                      <ExpirationInfo time={editor.self_destroy_time} />
                     )}
                     <DisplayDateCreated date={editor.createdAt} />
                     <Button
@@ -424,7 +381,15 @@ const Editor = () => {
                       }
                       onClick={handleStartRecording}
                     />
-                    <Settings setCollabModal={() => setCollabModal(true)} />
+                    <Settings
+                      setCollabModal={() =>
+                        navigate(
+                          `/note/${encodeToBase62(
+                            editor.id
+                          )}/co?oid=${encodeToBase62(editor.owner_id)}`
+                        )
+                      }
+                    />
                   </div>
                 )}
               </div>
@@ -621,16 +586,48 @@ const Editor = () => {
           </div>
         </div>
       </div>
-
-      {showCollabModal && editor && (
-        <CollaboratorsModal
-          note_id={editor?.id!}
-          onClose={() => setCollabModal(false)}
-          note_owner_id={editor?.user_id}
-        />
-      )}
     </>
   );
 };
+const Settings: FC<{ setCollabModal: () => void }> = ({ setCollabModal }) => {
+  const [isDropdownVisible, setDropdownVisible] = useState(false);
+  const navigate = useNavigate();
+  const displayDropdown = () => {
+    setDropdownVisible((prev) => !prev); // Toggle dropdown visibility
+  };
+  return (
+    <div className="relative ">
+      <Button text="" icon={<IoSettingsOutline />} onClick={displayDropdown} />
+      <div
+        className={`popup_child animate__animated ${
+          isDropdownVisible
+            ? "animate__zoomIn visible opacity-1"
+            : "animate__zoomOut invisible opacity-0"
+        }`}
+      >
+        <li
+          className="dropdown_item"
+          style={{ borderBottom: "5px solid #2121218c" }}
+          onClick={setCollabModal}
+        >
+          <GoPeople /> Manage Collaborators
+        </li>
+        <li
+          className="dropdown_item"
+          style={{}}
+          onClick={() => navigate("/newnote")}
+        >
+          <CiStickyNote /> New Note
+        </li>
+      </div>
+    </div>
+  );
+};
 
-export default Editor;
+type IHighlightedText = {
+  text: string;
+  start_index: number;
+  end_index: number;
+};
+
+export default NoteEditor;

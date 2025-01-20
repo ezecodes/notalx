@@ -12,7 +12,7 @@ import {
 } from "./component";
 
 import { GlobalContext } from "./hook";
-import { _IUser, ApiFetchNote, INote, IPaginatedResponse } from "../type";
+import { IUserPublic, ApiFetchNote, INote, IPaginatedResponse } from "../type";
 import { LiaSearchSolid } from "react-icons/lia";
 import { IoMdSend } from "react-icons/io";
 import { toast } from "react-toastify";

@@ -8,13 +8,17 @@ import {
 } from "./utils";
 import { ImCancelCircle } from "react-icons/im";
 import {
-  _IUser,
+  IUserPublic,
   IApiResponse,
+  ICollaborator,
+  ICollaboratorPermission,
+  IApiCollaborator,
   INote,
   INotification,
   IOtpExpiry,
   IPaginatedResponse,
   ITask,
+  IUser,
   NotificationType,
 } from "../type";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -182,79 +186,24 @@ export const CollaboratorsModal: FC<{
   note_id: string;
   note_owner_id: string;
   onClose: () => void;
-}> = ({ note_id, onClose, note_owner_id }) => {
-  const [collaborators, setCollaborators] = useState<_IUser[]>([]);
-  const [newCollaborators, setNewCollaborators] = useState<_IUser[]>([]);
+  collaborators: IApiCollaborator[];
+  saveCollaborator: (
+    user_id: string,
+    permission: ICollaboratorPermission
+  ) => void;
+  deleteCollaborator: (user_id: string) => void;
+}> = ({
+  note_id,
+  onClose,
+  note_owner_id,
+  collaborators,
+  deleteCollaborator,
+  saveCollaborator,
+}) => {
+  const [selected, setSelected] = useState<Omit<IUser, "email"> | null>(null);
 
-  async function getNoteCollaborators() {
-    const f = await fetch(`/api/note/${note_id}/collaborators`);
-    const response: IApiResponse<{ rows: _IUser[] }> = await f.json();
+  const handleCollabUpdate = () => {};
 
-    response.status === "ok" && setCollaborators(response.data!.rows);
-  }
-  useEffect(() => {
-    getNoteCollaborators();
-  }, []);
-
-  const [selected, setSelected] = useState<_IUser | null>(null);
-
-  function handleCollabUpdate(collab: _IUser | null) {
-    setSelected(collab);
-    if (!collab) return;
-    let items = newCollaborators;
-    if (!items) {
-      items = [collab];
-      setNewCollaborators(items);
-    } else {
-      if (items.find((i) => i.id === collab.id)) return;
-      items.push(collab);
-      setNewCollaborators(items);
-    }
-  }
-
-  function handleCollabDelete(user_id: string) {
-    if (selected?.id === user_id) {
-      setSelected(null);
-    }
-    setNewCollaborators((prev) => prev.filter((user) => user.id !== user_id));
-  }
-
-  async function sendRemove(user_id: string) {
-    const f = await fetch(`/api/note/${note_id}/collaborators`, {
-      method: "DELETE",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ note_id, user_id }),
-    });
-    const response: IApiResponse<null> = await f.json();
-    if (response.status === "err") toast.error(response.message);
-    else {
-      setCollaborators((prev) => prev.filter((user) => user.id !== user_id));
-      toast.success(response.message);
-    }
-  }
-
-  async function save() {
-    const f = await fetch(`/api/note/${note_id}/collaborators`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ collaborators: newCollaborators }),
-    });
-    const response: IApiResponse<null> = await f.json();
-    if (response.status === "err") toast.error(response.message);
-    else {
-      toast.success(response.message);
-      setTimeout(() => {
-        getNoteCollaborators().then(() => {
-          setNewCollaborators([]);
-          setSelected(null);
-        });
-      }, 500);
-    }
-  }
   return (
     <div
       className="modal top_space py-5"
@@ -263,52 +212,33 @@ export const CollaboratorsModal: FC<{
       <div className="top_space sm:w-[450px] 3micro:w-[90%] w-full">
         <BackButton text="Manage note collaborators" onClick={onClose} />
         <br />
-        <SearchDropdown
+        {/* <SearchDropdown
           label="Add Collaborators"
           filter={(option) => option.id !== note_owner_id}
           selected={selected}
           onClick={handleCollabUpdate}
-        />
-
-        <div className="flex flex-col gap-y-2 pt-2 ">
-          {newCollaborators.length > 0 &&
-            newCollaborators.map((i) => {
-              return (
-                <li className="dropdown_item relative">
-                  {i.name}
-                  <MdDeleteOutline
-                    onClick={() => handleCollabDelete(i.id)}
-                    className="delete_ico absolute right-[5px]"
-                  />
-                </li>
-              );
-            })}
-        </div>
+        /> */}
         <div className="flex flex-col gap-y-2 pt-2 border_top mt-2">
           <span className="text-sm subtext">Exisiting collaborators</span>
-          {collaborators.length > 0 &&
+          {collaborators.length > 0 ? (
             collaborators.map((i) => {
               return (
                 <li className="dropdown_item relative">
-                  {i.name} {i.id === note_owner_id ? " (You)" : ""}
+                  {i["user.name"]} {i.id === note_owner_id ? " (You)" : ""}
                   <span
-                    onClick={() => sendRemove(i.id)}
+                    onClick={() => deleteCollaborator(i.id)}
                     className="absolute right-[5px] hidden text-sm"
                   >
                     Remove
                   </span>
                 </li>
               );
-            })}
-        </div>
-
-        <div className="flex justify-end gap-x-3 mt-3">
-          <button className="sub_button" onClick={onClose}>
-            Close
-          </button>
-          <button className="primary_button" onClick={save}>
-            Save
-          </button>
+            })
+          ) : (
+            <span className="flex items-center justify-center px-4 py-3">
+              You haven't added a collaborator
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -417,9 +347,9 @@ export const InputWithIcon: FC<InputWithIconProps> = ({
 };
 
 interface SearchDropdownProps {
-  onClick: (selected: _IUser | null) => void;
-  selected: _IUser | null;
-  filter?: (option: _IUser) => boolean;
+  onClick: (selected: IUserPublic | null) => void;
+  selected: IUserPublic | null;
+  filter?: (option: IUserPublic) => boolean;
   placeholder?: string;
   label?: string;
 }
@@ -432,30 +362,39 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   label,
 }) => {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
-  const [options, setOptions] = useState<_IUser[]>([]);
+  const [options, setOptions] = useState<IUserPublic[]>([]);
   const [input, setInput] = useState<string>("");
   const { otpExpiry } = useContext(GlobalContext)!;
   const hasCalled = useRef(false);
+
+  useEffect(() => {
+    if (!input.trim()) {
+      setOptions([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      const res = await searchUserByName(input);
+      res.data && setOptions(res.data.rows);
+    }, 500); // Delay API call by 500ms
+
+    return () => clearTimeout(timeoutId); // Cleanup previous timeout on new input
+  }, [input]);
 
   useEffect(() => {
     if (!hasCalled.current) {
       fetchAllUser().then((res) => {
         res.data && setOptions(res.data.rows);
       });
+      hasCalled.current = true;
     }
-    hasCalled.current = true;
   }, []);
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInput(value);
-
-    searchUserByName(value).then((res) => {
-      res.data && setOptions(res.data.rows);
-    });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
   };
 
-  const handleOptionClick = (option: _IUser) => {
+  const handleOptionClick = (option: IUserPublic) => {
     onClick(option);
     handleBlur();
   };
@@ -464,7 +403,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     setTimeout(() => setShowDropdown(false), 180);
   };
 
-  const handleFilter = (option: _IUser) => {
+  const handleFilter = (option: IUserPublic) => {
     if (filter) {
       return filter(option) && option.id !== otpExpiry?.user_id;
     }
@@ -650,7 +589,7 @@ const determine_row_visibility = (row: ITask, sort: string | null) => {
 };
 
 export const ScheduledTasksWrapper: FC<{
-  rows: { task: ITask; participants: _IUser[] }[];
+  rows: { task: ITask; participants: IUserPublic[] }[];
 }> = ({ rows }) => {
   const navigate = useNavigate();
   const [sort, setSort] = useState<"upcoming" | "ended" | "none">("none");
@@ -1018,7 +957,7 @@ export default AvatarGroup;
 export const SingleNote: FC<{
   type: "template" | "note";
   note: INote;
-  collaborators?: _IUser[];
+  collaborators?: IUserPublic[];
 }> = ({ note, collaborators, type }) => {
   const navigate = useNavigate();
   return (

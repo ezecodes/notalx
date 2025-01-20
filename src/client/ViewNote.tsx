@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useRef, useState } from "react";
-import { _IUser, INote } from "../type";
+import { IUserPublic, INote } from "../type";
 import { useNavigate, useParams } from "react-router-dom";
 import { decodeFromBase62, encodeToBase62, fetchNote } from "./utils";
 import { GlobalContext } from "./hook";
@@ -16,7 +16,7 @@ const ViewNote: FC<IViewNote> = () => {
   const params = useParams<{ note_slug: string }>();
   const [note, setNote] = useState<{
     note: INote;
-    collaborators: _IUser[];
+    collaborators: IUserPublic[];
   } | null>(null);
   const hasCalled = useRef(false);
   const {

@@ -1,7 +1,7 @@
 import baseX from "base-x";
 
 import {
-  _IUser,
+  IUserPublic,
   ApiFetchNote,
   IApiResponse,
   INote,
@@ -50,7 +50,7 @@ export const parseUrl = (url: any) => {
 };
 export const fetchAllUser = async () => {
   const f = await fetch("/api/user");
-  return (await f.json()) as IPaginatedResponse<_IUser>;
+  return (await f.json()) as IPaginatedResponse<IUserPublic>;
 };
 
 export const fetchAuthUserNotes = async () => {
@@ -60,7 +60,7 @@ export const fetchAuthUserNotes = async () => {
 
 export const searchUserByName = async (name: string) => {
   const f = await fetch("/api/user/search?name=" + name);
-  return (await f.json()) as IPaginatedResponse<_IUser>;
+  return (await f.json()) as IPaginatedResponse<IUserPublic>;
 };
 
 export const fetchNote = async (slug: string) => {
@@ -72,12 +72,12 @@ export const fetchNote = async (slug: string) => {
   });
   return (await f.json()) as IApiResponse<{
     note: INote;
-    collaborators: _IUser[];
+    collaborators: IUserPublic[];
   }>;
 };
 export const fetchUser = async (id: string) => {
   const f = await fetch("/api/user/" + id);
-  return (await f.json()) as IApiResponse<_IUser>;
+  return (await f.json()) as IApiResponse<IUserPublic>;
 };
 
 export async function summeriseSelectedText(
@@ -95,7 +95,7 @@ export async function summeriseSelectedText(
 }
 
 type ITaskList = Promise<
-  IPaginatedResponse<{ task: ITask; participants: _IUser[] }>
+  IPaginatedResponse<{ task: ITask; participants: IUserPublic[] }>
 >;
 export async function createScheduleTask(
   note_id: string,

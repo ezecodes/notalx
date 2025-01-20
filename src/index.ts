@@ -33,6 +33,7 @@ const reactRoutes = [
   "/:note_slug",
   "/faq",
   "/note/:note_id",
+  "/note/:note_id/co",
   "/task/:task_id",
 ];
 

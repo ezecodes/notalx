@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import {
-  _IUser,
+  IUserPublic,
   ErrorCodes,
   ICloudflareResponse,
   IncomingNote,

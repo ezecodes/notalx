@@ -1,3 +1,5 @@
+import { Model } from "sequelize";
+
 export type IUser = {
   id: string;
   name: string;
@@ -30,11 +32,7 @@ export type INotification = {
   updatedAt: Date;
 };
 
-export type _IUser = {
-  id: string;
-  name: string;
-  email?: string;
-};
+export type IUserPublic = Pick<IUser, "id" | "name">;
 export type ITaskParticipant = {
   id: string;
   task_id: string;
@@ -77,6 +75,9 @@ export type INote = {
   createdAt: Date;
   updatedAt: Date;
 };
+export interface IApiNote extends INote {
+  "owner.name": string;
+}
 export type INoteHistory = {
   note_id: string;
   updated_by: string;
@@ -89,7 +90,7 @@ export type INoteHistory = {
   updatedAt: Date;
 };
 export type ApiFetchNote = {
-  collaborators: _IUser[];
+  collaborators: IUserPublic[];
   note: INote;
 };
 /**
@@ -155,6 +156,9 @@ export type IAgent = {
   createdAt: Date;
   updatedAt: Date;
 };
+export interface IApiCollaborator extends ICollaborator {
+  "user.name": string;
+}
 export type ICollaborator = {
   id: string;
   note_id: string;
@@ -173,6 +177,7 @@ export type IApiResponse<T> = {
   message?: string;
   error_code?: ErrorCodes;
 };
+export type RawAttributes<T> = Omit<T, keyof typeof Model>;
 
 export interface IPaginatedResponse<IRow>
   extends IApiResponse<{
@@ -189,7 +194,7 @@ export interface INoteCreator {
   selfDestroyTime: string;
   draft_id: number | null;
   createdAt: Date;
-  selectedUser: _IUser;
+  selectedUser: IUserPublic;
 }
 
 export type IOtpSession = {
@@ -210,15 +215,7 @@ export type IncomingNote = {
   content: string;
   title: string;
 };
-export interface INoteEditor {
-  id: string;
-  title: string;
-  content: string;
-  willSelfDestroy?: boolean;
-  user_id: string;
-  selfDestroyTime?: Date;
-  createdAt: Date;
-}
+
 export type IOtpExpiry = {
   expiry: string;
   user_id: string;

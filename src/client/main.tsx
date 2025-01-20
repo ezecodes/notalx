@@ -14,6 +14,7 @@ import { RingsLoader } from "./component";
 const Home = React.lazy(() => import("./index"));
 const ViewNote = React.lazy(() => import("./ViewNote"));
 const NoteEditor = React.lazy(() => import("./NoteEditor"));
+const CollaboratorModal = React.lazy(() => import("./CollaboratorModal"));
 const CreateUser = React.lazy(() => import("./UserCreator"));
 const UserAuth = React.lazy(() => import("./UserAuth"));
 const Faq = React.lazy(() => import("./Faq"));
@@ -21,6 +22,16 @@ const TaskEditor = React.lazy(() => import("./TaskEditor"));
 const AuthWrapper = React.lazy(() => import("./AuthWrapper"));
 
 const route = createBrowserRouter([
+  {
+    path: "note/:note_slug/co",
+    element: (
+      <Suspense fallback={<RingsLoader />}>
+        <AuthWrapper>
+          <CollaboratorModal />
+        </AuthWrapper>
+      </Suspense>
+    ),
+  },
   {
     path: "note/:note_slug",
     element: (

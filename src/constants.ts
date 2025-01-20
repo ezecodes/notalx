@@ -36,13 +36,14 @@ export const CacheKeys = {
 };
 
 export const NoteAttributes = [
+  "id",
   "title",
   "content",
-  "createdAt",
-  "id",
   "owner_id",
   "self_destroy_time",
-  "category",
+  "category_name",
+  "createdAt",
+  "updatedAt",
 ];
 
 export const DEFAULT_SCHEDULE_REMINDERS = [

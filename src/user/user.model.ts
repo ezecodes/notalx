@@ -75,7 +75,13 @@ User.init(
     name: { type: DataTypes.STRING, unique: true, allowNull: false },
     email: { type: DataTypes.STRING, unique: true, allowNull: true },
   },
-  { sequelize, modelName: "User" }
+  {
+    sequelize,
+    modelName: "User",
+    defaultScope: {
+      raw: true,
+    },
+  }
 );
 
 export default User;

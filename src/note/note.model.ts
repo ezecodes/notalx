@@ -11,15 +11,21 @@ class Note extends Model<Optional<INote, "createdAt" | "updatedAt" | "id">> {
     id: string
   ): Promise<INote | null> {
     const cacheKey = `note:${id}`;
-    const cachedNote = await memcachedService.get<INote>(cacheKey);
+    const cache = await memcachedService.get<INote>(cacheKey);
+    // const cache = null;
 
-    if (cachedNote) {
-      return cachedNote;
+    if (cache) {
+      return cache;
     }
 
     const note = (await this.findByPk(id, {
       raw: true,
       attributes: NoteAttributes,
+      include: {
+        model: User,
+        as: "owner",
+        attributes: ["name"],
+      },
     })) as any;
 
     if (note) {
@@ -102,6 +108,10 @@ Note.init(
     owner_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      references: {
+        model: User,
+        key: "id",
+      },
     },
     content: {
       type: DataTypes.JSON,
@@ -130,9 +140,16 @@ Note.init(
       allowNull: true,
     },
   },
-  { sequelize, modelName: "Note" }
+  {
+    sequelize,
+    modelName: "Note",
+    defaultScope: {
+      raw: true,
+    },
+  }
 );
 
-User.hasMany(Note, { foreignKey: "owner_id" });
+User.hasMany(Note, { foreignKey: "owner_id", as: "owner" });
+Note.belongsTo(User, { foreignKey: "owner_id", as: "owner" });
 
 export default Note;

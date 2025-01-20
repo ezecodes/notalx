@@ -6,7 +6,7 @@ import {
   decodeFromBase62,
   DEFAULT_SCHEDULE_REMINDERS,
 } from "./utils";
-import { _IUser, IApiResponse, ITask } from "../type";
+import { IUserPublic, IApiResponse, ITask } from "../type";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { GlobalContext } from "./hook";
@@ -15,21 +15,20 @@ import { MdDeleteOutline } from "react-icons/md";
 const TaskEditor = () => {
   const { otpExpiry } = useContext(GlobalContext)!;
   const [task, setTask] = useState<ITask | null>(null);
-  const [taskParticipants, setTaskParticipants] = useState<_IUser[]>([]);
+  const [taskParticipants, setTaskParticipants] = useState<IUserPublic[]>([]);
   const params = useParams<{ task_id: string }>();
   const hasCalled = useRef(false);
   const parsedTaskId = useRef(decodeFromBase62(params.task_id!));
 
-  const [selectedParticipants, setSelectedParticipants] = useState<_IUser[]>(
-    []
-  );
-  const [selectedParticipant, setSelectedParticipant] = useState<_IUser | null>(
-    null
-  );
+  const [selectedParticipants, setSelectedParticipants] = useState<
+    IUserPublic[]
+  >([]);
+  const [selectedParticipant, setSelectedParticipant] =
+    useState<IUserPublic | null>(null);
 
   const fetchTask = async () => {
     const f = await fetch("/api/task/" + parsedTaskId.current!);
-    const response: IApiResponse<{ task: ITask; participants: _IUser[] }> =
+    const response: IApiResponse<{ task: ITask; participants: IUserPublic[] }> =
       await f.json();
     if (response.status === "ok") {
       setSelectedParticipants([]);
@@ -85,7 +84,7 @@ const TaskEditor = () => {
 
     setTask({ ...prev, ...edit } as any);
   };
-  function handleParticipantUpdate(participant: _IUser | null) {
+  function handleParticipantUpdate(participant: IUserPublic | null) {
     setSelectedParticipant(participant);
     if (!participant) return;
     let items = selectedParticipants;

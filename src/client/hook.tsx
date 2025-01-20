@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import {
-  _IUser,
+  IUserPublic,
   ApiFetchNote,
   IApiResponse,
   INote,
@@ -22,7 +22,7 @@ import { fetchAuthUserNotes } from "./utils";
 import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 
-type IFetchScheduledTask = { task: ITask; participants: _IUser[] };
+type IFetchScheduledTask = { task: ITask; participants: IUserPublic[] };
 
 type IContext = {
   editor: Partial<INoteCreator>;
@@ -33,8 +33,8 @@ type IContext = {
   expandDraft: (draft_id: number) => void;
   loadDrafts: () => void;
   draftCount: number;
-  selectedUser: _IUser | null;
-  setSelectedUser: Dispatch<React.SetStateAction<_IUser | null>>;
+  selectedUser: IUserPublic | null;
+  setSelectedUser: Dispatch<React.SetStateAction<IUserPublic | null>>;
   setOtpExpiry: Dispatch<React.SetStateAction<IOtpExpiry | null>>;
   otpExpiry: IOtpExpiry | null;
 
@@ -42,16 +42,21 @@ type IContext = {
 
   getOTPExpiry: () => void;
 
-  selectedNotes: { collaborators: _IUser[]; note: INote }[];
+  selectedNotes: { collaborators: IUserPublic[]; note: INote }[];
 
   deleteNote: (noteId: string) => void;
 
   Is_Authorised_User_Same_As_Note_User: (user_id: string) => boolean;
   isAuthorised: () => boolean;
-  Is_Authorised_User_A_Note_Collaborator: (collaborators: _IUser[]) => boolean;
-  collaborators: null | { collaborators: _IUser[]; note_id: string };
+  Is_Authorised_User_A_Note_Collaborator: (
+    collaborators: IUserPublic[]
+  ) => boolean;
+  collaborators: null | { collaborators: IUserPublic[]; note_id: string };
   setCollaborators: Dispatch<
-    React.SetStateAction<null | { collaborators: _IUser[]; note_id: string }>
+    React.SetStateAction<null | {
+      collaborators: IUserPublic[];
+      note_id: string;
+    }>
   >;
   getNoteCollaborators: (note_id: string) => any;
   fetchUserNotes: () => void;
@@ -79,9 +84,9 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [drafts, setDrafts] = useState<Partial<INoteCreator>[] | null>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
   const [selectedNotes, setSelectedNotes] = useState<ApiFetchNote[]>([]);
-  const [selectedUser, setSelectedUser] = useState<_IUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<IUserPublic | null>(null);
   const [collaborators, setCollaborators] = useState<null | {
-    collaborators: _IUser[];
+    collaborators: IUserPublic[];
     note_id: string;
   }>(null);
   const [searchResults, setSearchResults] = useState<ApiFetchNote[]>([]);
@@ -196,7 +201,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   async function getNoteCollaborators(note_id: string) {
     const f = await fetch(`/api/note/${note_id}/collaborators`);
-    const response: IApiResponse<{ rows: _IUser[] }> = await f.json();
+    const response: IApiResponse<{ rows: IUserPublic[] }> = await f.json();
 
     response.status === "ok" &&
       setCollaborators({ note_id, collaborators: response.data!.rows });
@@ -294,7 +299,9 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
     return false;
   };
 
-  const Is_Authorised_User_A_Note_Collaborator = (collaborators: _IUser[]) => {
+  const Is_Authorised_User_A_Note_Collaborator = (
+    collaborators: IUserPublic[]
+  ) => {
     if (!isAuthorised() || collaborators.length === 0) return false;
     const find = collaborators.find((i) => otpExpiry?.user_id === i.id);
     if (!find) return false;

@@ -213,16 +213,7 @@ export async function getNoteById(
 ) {
   const note_id = req.params.note_id;
 
-  const find = await Note.findByPkWithCache(note_id!);
-
-  const note = {
-    title: find!.title,
-    content: find!.content,
-    createdAt: find!.createdAt,
-    self_destroy_time: find!.self_destroy_time,
-    owner_id: find!.owner_id,
-    id: find!.id,
-  };
+  const note = (await Note.findByPkWithCache(note_id!)) as INote;
 
   res.json({
     status: "ok",
