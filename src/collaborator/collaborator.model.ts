@@ -124,6 +124,7 @@ Collaborator.init(
     user_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: User,
         key: "id",
@@ -132,6 +133,7 @@ Collaborator.init(
     note_id: {
       type: DataTypes.UUID,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: Note,
         key: "id",

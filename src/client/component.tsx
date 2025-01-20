@@ -365,7 +365,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
   const [options, setOptions] = useState<IUserPublic[]>([]);
   const [input, setInput] = useState<string>("");
   const { otpExpiry } = useContext(GlobalContext)!;
-  const hasCalled = useRef(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!input.trim()) {
@@ -374,21 +374,18 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     }
 
     const timeoutId = setTimeout(async () => {
-      const res = await searchUserByName(input);
-      res.data && setOptions(res.data.rows);
-    }, 500); // Delay API call by 500ms
+      try {
+        setLoading(true);
+        const res = await searchUserByName(input);
+        console.log(res);
+        res.status === "ok" && setOptions(res.data!.rows);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
 
     return () => clearTimeout(timeoutId); // Cleanup previous timeout on new input
   }, [input]);
-
-  useEffect(() => {
-    if (!hasCalled.current) {
-      fetchAllUser().then((res) => {
-        res.data && setOptions(res.data.rows);
-      });
-      hasCalled.current = true;
-    }
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -437,17 +434,20 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             />
           </button>
         )}
-        <input
-          type="text"
-          name="user"
-          value={input}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)} // Show dropdown on focus
-          onBlur={handleBlur}
-          placeholder={placeholder ?? "Find users by name..."}
-          className="w-full bg-transparent p-2"
-          autoComplete="off" // Disable browser's autocomplete
-        />
+        <div>
+          <input
+            type="text"
+            name="user"
+            value={input}
+            onChange={handleInputChange}
+            onFocus={() => setShowDropdown(true)} // Show dropdown on focus
+            onBlur={handleBlur}
+            placeholder={placeholder ?? "Find users by name..."}
+            className="w-full bg-transparent p-2"
+            autoComplete="off" // Disable browser's autocomplete
+          />
+          {loading && <RingsLoader />}
+        </div>
       </div>
 
       {showDropdown && options.length > 0 && (

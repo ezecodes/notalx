@@ -5,8 +5,37 @@ import {
   isValidEmail,
   validateUsername,
 } from "../helpers";
-import { ErrorCodes, IUser, NotificationType } from "../type";
+import { ErrorCodes, IUser, IUserPublic, NotificationType } from "../type";
 import User from "./user.model";
+import { Op } from "sequelize";
+
+export async function findUser(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const pagination = req.__pagination__!;
+  const query = req.query.value as string;
+
+  const rows: IUserPublic[] = (await User.findAll({
+    where: {
+      name: {
+        [Op.like]: `%${query}%`,
+      },
+    },
+    attributes: ["id", "name"],
+    limit: pagination.page_size,
+    offset: pagination.offset,
+  })) as any;
+
+  res.json({
+    status: "ok",
+    data: {
+      rows,
+      pagination,
+    },
+  });
+}
 
 export async function registerUser(
   req: Request,

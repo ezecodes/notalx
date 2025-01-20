@@ -4,6 +4,7 @@ import {
   IApiResponse,
   ICollaboratorPermission,
   IUser,
+  IUserPublic,
 } from "../type";
 import { BackButton, SearchDropdown } from "./component";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -11,7 +12,7 @@ import { decodeFromBase62 } from "./utils";
 import { toast } from "react-toastify";
 
 export const CollaboratorsModal = ({}) => {
-  const [selected, setSelected] = useState<Omit<IUser, "email"> | null>(null);
+  const [selected, setSelected] = useState<IUserPublic | null>(null);
   const params = useParams<{ note_slug: string }>();
   const parsedNoteId = useRef(decodeFromBase62(params.note_slug!));
   const [collaborators, setCollaborators] = useState<IApiCollaborator[]>([]);
@@ -67,7 +68,9 @@ export const CollaboratorsModal = ({}) => {
       setTimeout(() => {}, 500);
     }
   }
-  const handleCollabUpdate = () => {};
+  const handleCollabUpdate = (user: IUserPublic | null) => {
+    setSelected(user);
+  };
 
   useEffect(() => {
     if (!hasCalled.current) {

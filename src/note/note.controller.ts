@@ -35,7 +35,7 @@ export async function searchNotes(
   }
 
   const result = await queryVectors(query, req.__user__!.id);
-  console.log(result);
+  // console.log(result);
   if (!result) {
     res.json({
       status: "ok",
@@ -46,7 +46,6 @@ export async function searchNotes(
     });
     return;
   }
-  let notes: INote[] = [];
 
   res.json({
     status: "ok",

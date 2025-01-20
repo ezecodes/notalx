@@ -59,7 +59,7 @@ export const fetchAuthUserNotes = async () => {
 };
 
 export const searchUserByName = async (name: string) => {
-  const f = await fetch("/api/user/search?name=" + name);
+  const f = await fetch("/api/user?value=" + name);
   return (await f.json()) as IPaginatedResponse<IUserPublic>;
 };
 
