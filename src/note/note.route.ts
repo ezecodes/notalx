@@ -1,11 +1,11 @@
 import { Router } from "express";
 import * as NoteController from "./note.controller";
-import { catchAsync } from "../helpers";
 import {
   authoriseUser,
   authorize_user_as_note_collaborator,
   authorize_user_as_note_owner,
   validateAndSetPagination,
+  validateNoteId,
 } from "../middlewares";
 import * as CollaboratorController from "../collaborator/collaborator.controller";
 import multer from "multer";
@@ -23,27 +23,26 @@ const upload = multer({ storage });
 
 const router = Router();
 
+router.param("note_id", validateNoteId);
+
 router.get(
-  "/note/search",
+  "/search",
   authoriseUser,
   validateAndSetPagination,
   NoteController.searchNotes
 );
 
 router
-  .route("/note/audio")
+  .route("/audio")
   .post(authoriseUser, upload.single("file"), NoteController.transcribeAudio);
 
 router
-  .route("/note")
+  .route("/")
   .post(authoriseUser, NoteController.createNote)
   .get(authoriseUser, NoteController.getNotesForAuthorizedUser);
-router
-  .route("/note/shared")
-  .get(authoriseUser, NoteController.getNotesSharedWithUser);
 
 router
-  .route("/note/:note_id")
+  .route("/:note_id")
   .delete(
     authoriseUser,
     authorize_user_as_note_owner,
@@ -51,12 +50,12 @@ router
   )
   .put(
     authoriseUser,
-    authorize_user_as_note_collaborator,
+    authorize_user_as_note_collaborator("write"),
     NoteController.editNote
   )
   .get(
     authoriseUser,
-    authorize_user_as_note_collaborator,
+    authorize_user_as_note_collaborator("read"),
     NoteController.getNoteById
   );
 
@@ -64,7 +63,7 @@ router
   .route("/:note_id/collaborator")
   .get(
     authoriseUser,
-    authorize_user_as_note_collaborator,
+    authorize_user_as_note_collaborator("read"),
     CollaboratorController.getNoteCollaborators
   )
   .post(

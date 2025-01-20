@@ -139,15 +139,6 @@ interface IUserSession {
   user_id: string;
 }
 
-export async function PopulateCollaboratorForNotes(notes: INote[]) {
-  return await Promise.all(
-    notes.map(async (i) => ({
-      note: i,
-      collaborators: await PopulateNoteCollaborators(i.id!),
-    }))
-  );
-}
-
 // export async function PopulateParticipantForTasks(tasks: ITask[]) {
 //   return await Promise.all(
 //     tasks.map(async (i) => ({
@@ -177,14 +168,7 @@ export async function PopulateCollaboratorForNotes(notes: INote[]) {
 
 //   return rows;
 // }
-export async function PopulateNoteCollaborators(note_id: string) {
-  const rows: ICollaborator[] = (await Collaborator.findAll({
-    where: { note_id },
-    raw: true,
-  })) as any;
 
-  return rows;
-}
 export function isExpired(expiry: string): boolean {
   const nowUTC = new Date();
   const expiryDate = new Date(expiry);
@@ -503,7 +487,12 @@ export const notes_categorization_cron_job = async () => {
     limit: page_size,
     offset,
     raw: true,
-    where: { category_name: null as any },
+    where: {
+      category_name: null as any,
+      title: {
+        [Op.ne]: "Untitled",
+      },
+    },
   })) as any;
 
   if (notes.length === 0) {
@@ -580,9 +569,8 @@ export async function generate_embedding(input: string): Promise<number[]> {
     return response.result.data;
   } catch (err) {
     console.error("Could not generate embedding", err);
+    return [];
   }
-
-  return [1];
 }
 
 const upsertVectors = async (
@@ -656,7 +644,6 @@ export const notes_indexing_cron_job = async () => {
     console.error(err);
   }
 };
-notes_indexing_cron_job();
 
 export async function queryVectors(value: string, user_id: string) {
   const vector = await generate_embedding(value);

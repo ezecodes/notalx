@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import { ErrorCodes, IAuthSession } from "./type";
+import { ErrorCodes, IAuthSession, ICollaboratorPermission } from "./type";
 import { CacheKeys, sessionCookieKey } from "./constants";
 import memcachedService from "./memcached";
-import { ApiError, isExpired, PopulateNoteCollaborators } from "./helpers";
+import { ApiError, isExpired } from "./helpers";
 import { validate } from "uuid";
 import { ExtendedError, Socket } from "socket.io";
 import { parse } from "cookie";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import { signedCookies } from "cookie-parser";
 import User from "./user/user.model";
 import Note from "./note/note.model";
+import Collaborator from "./collaborator/collaborator.model";
 
 export function validateRequestBody(schema: z.ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -171,22 +172,43 @@ export async function authoriseUserIoConnection(
 //   next();
 // }
 
-export async function authorize_user_as_note_collaborator(
-  req: Request,
-  res: Response,
-  next: NextFunction
+export function authorize_user_as_note_collaborator(
+  permission: ICollaboratorPermission
 ) {
-  const collaborators = await PopulateNoteCollaborators(req.params.note_id);
-  if (
-    collaborators.length === 0 ||
-    !collaborators.find((i) => i?.id === req.__user__?.id)
-  ) {
-    next(
-      ApiError.error(ErrorCodes.UNAUTHORIZED, "Collaborator access required")
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const collaborators = await Collaborator.getCollaboratorsForNote(
+      req.params.note_id
     );
-    return;
-  }
-  next();
+    const find = collaborators.find((i) => i?.user_id === req.__user__!.id);
+    if (!find) {
+      next(
+        ApiError.error(ErrorCodes.UNAUTHORIZED, "Collaborator access required")
+      );
+      return;
+    }
+    const PermissionHierarchy = ["read", "write"];
+    const incomingPermissionHierarchy = PermissionHierarchy.findIndex(
+      (i) => i === permission
+    );
+    const existingPermissionHierarchy = PermissionHierarchy.findIndex(
+      (i) => i === find.permission
+    );
+    if (existingPermissionHierarchy < incomingPermissionHierarchy) {
+      next(
+        ApiError.error(
+          ErrorCodes.UNAUTHORIZED,
+          `Permission required to ${permission} to note`
+        )
+      );
+      return;
+    }
+    req.__collaborator_permission__ = {
+      existingPermissionHierarchy,
+      incomingPermissionHierarchy,
+    };
+
+    next();
+  };
 }
 export async function authorize_user_as_note_owner(
   req: Request,

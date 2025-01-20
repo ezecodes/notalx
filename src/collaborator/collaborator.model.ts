@@ -1,17 +1,55 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../sequelize";
-import { ErrorCodes, IApiResponse, ICollaborator } from "../type";
+import {
+  ErrorCodes,
+  IApiResponse,
+  ICollaborator,
+  ICollaboratorPermission,
+  INote,
+} from "../type";
 import Note from "../note/note.model";
 import User from "../user/user.model";
+import memcachedService from "../memcached";
 
 class Collaborator extends Model<
   Optional<ICollaborator, "createdAt" | "updatedAt" | "id">
 > {
+  static async constructNotesWithCollaborators(
+    this: typeof Collaborator,
+    note_ids: string[]
+  ): Promise<{ note: INote; collaborators: ICollaborator[] }[]> {
+    return await Promise.all(
+      note_ids.map(async (id) => ({
+        note: (await Note.findByPkWithCache(id)) as INote,
+        collaborators: await Collaborator.getCollaboratorsForNote(id!),
+      }))
+    );
+  }
+
+  static async getCollaboratorsForNote(
+    this: typeof Collaborator,
+    note_id: string
+  ): Promise<ICollaborator[]> {
+    const key = `colaborators:${note_id}`;
+    const cache: ICollaborator[] | null = await memcachedService.get(key);
+
+    if (!cache) {
+      const rows: ICollaborator[] = (await Collaborator.findAll({
+        where: { note_id },
+        raw: true,
+      })) as any;
+
+      memcachedService.set(key, rows);
+
+      return rows;
+    }
+    return cache;
+  }
   static async addCollaborator(
     this: typeof Collaborator,
     userId: string,
     noteId: string,
-    permission: "read" | "write"
+    permission: ICollaboratorPermission
   ): Promise<IApiResponse<ICollaborator>> {
     if (permission !== "read" && permission !== "write") {
       throw new Error("Invalid permission");
@@ -47,9 +85,9 @@ class Collaborator extends Model<
     this: typeof Collaborator,
     userId: string,
     noteId: string,
-    newPermission: "read" | "write"
+    newPermission: ICollaboratorPermission
   ): Promise<IApiResponse<null>> {
-    const validPermissions: ("read" | "write")[] = ["read", "write"];
+    const validPermissions: ICollaboratorPermission[] = ["read", "write"];
 
     if (!validPermissions.includes(newPermission)) {
       return {

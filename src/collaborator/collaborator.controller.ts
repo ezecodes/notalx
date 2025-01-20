@@ -1,10 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Note from "../note/note.model";
-import {
-  ApiError,
-  fanOutNotification,
-  PopulateNoteCollaborators,
-} from "../helpers";
+import { ApiError, fanOutNotification } from "../helpers";
 import { ErrorCodes, NotificationType } from "../type";
 import Collaborator from "./collaborator.model";
 import User from "../user/user.model";
@@ -19,7 +15,7 @@ export async function getNoteCollaborators(
   res.json({
     status: "ok",
     data: {
-      rows: await PopulateNoteCollaborators(note_id),
+      rows: await Collaborator.getCollaboratorsForNote(note_id),
     },
   });
 }

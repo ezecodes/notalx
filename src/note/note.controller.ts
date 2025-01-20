@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import {
   ApiError,
-  PopulateCollaboratorForNotes,
-  PopulateNoteCollaborators,
   QueryLLM1,
   queryVectors,
   validateIncomingNote,
@@ -49,53 +47,14 @@ export async function searchNotes(
     return;
   }
   let notes: INote[] = [];
-  for (const i of result) {
-    const note = await Note.findByPkWithCache(i.id);
-    if (note) notes.push(note);
-  }
 
   res.json({
     status: "ok",
     data: {
-      rows: await PopulateCollaboratorForNotes(notes),
+      rows: await Collaborator.constructNotesWithCollaborators(
+        result.map((i) => i.id)
+      ),
       pagination,
-    },
-  });
-}
-export async function getNotesSharedWithUser(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  const user_id = req.__user__?.id!;
-
-  const findJoins = (await Collaborator.findAll({
-    where: { user_id },
-    raw: true,
-    order: [["updatedAt", "DESC"]],
-  })) as any as ICollaborator[];
-  if (findJoins.length === 0) {
-    res.json({
-      status: "ok",
-      data: { rows: [], pagination: req.__pagination__! },
-    });
-    return;
-  }
-
-  let notes = (await Promise.all(
-    findJoins.map(async (item) => {
-      const note = await Note.findByPkWithCache(item.note_id);
-      if (!note) return;
-      return note;
-    })
-  )) as any as INote[];
-  notes = notes.filter((note) => note);
-
-  res.json({
-    status: "ok",
-    data: {
-      rows: await PopulateCollaboratorForNotes(notes),
-      paginaton: req.__pagination__!,
     },
   });
 }
@@ -261,7 +220,7 @@ export async function getNoteById(
     content: find!.content,
     createdAt: find!.createdAt,
     self_destroy_time: find!.self_destroy_time,
-    user_id: find!.owner_id,
+    owner_id: find!.owner_id,
     id: find!.id,
   };
 
@@ -270,7 +229,7 @@ export async function getNoteById(
     message: "Note retrieved",
     data: {
       note,
-      collaborators: await PopulateNoteCollaborators(note.id!),
+      collaborators: await Collaborator.getCollaboratorsForNote(note.id),
     },
   });
 }
@@ -280,20 +239,17 @@ export async function getNotesForAuthorizedUser(
   res: Response,
   next: NextFunction
 ) {
-  const owner_id = req.__user__?.id!;
-
-  let notes = (await Note.findAll({
-    where: {
-      owner_id,
-    },
-    raw: true,
-    order: [["updatedAt", "DESC"]],
-  })) as any as INote[];
+  const collaborators: ICollaborator[] = (await Collaborator.findAll({
+    where: { user_id: req.__user__!.id },
+  })) as any;
+  const data = await Collaborator.constructNotesWithCollaborators(
+    collaborators.map((i) => i.note_id)
+  );
 
   res.json({
     status: "ok",
     data: {
-      rows: await PopulateCollaboratorForNotes(notes),
+      rows: data,
     },
   });
 }
@@ -323,4 +279,34 @@ export async function createNote(
   });
 
   res.json({ status: "ok", data: note });
+}
+export async function getNoteCategories(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const rawNotes = await Note.findAll({
+    where: { owner_id: req.__user__!.id },
+    attributes: ["category_name"],
+  });
+
+  // Create a Map to store unique category_name entries
+  const uniqueNotesMap = new Map<string, INote>();
+
+  rawNotes.forEach((note) => {
+    if (
+      note.dataValues.category_name &&
+      !uniqueNotesMap.has(note.dataValues.category_name)
+    ) {
+      uniqueNotesMap.set(note.dataValues.category_name, note.dataValues as any);
+    }
+  });
+
+  // Convert the Map values to an array
+  const get: INote[] = Array.from(uniqueNotesMap.values());
+
+  res.json({
+    status: "ok",
+    data: { rows: get },
+  });
 }

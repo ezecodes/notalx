@@ -144,7 +144,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   useEffect(() => {
     getOTPExpiry();
     initializeSocket();
-    fetchNotifications();
+    // fetchNotifications();
   }, []);
 
   useEffect(() => {

@@ -35,6 +35,7 @@ const Home = () => {
   } = useContext(GlobalContext)!;
   const [searchParams] = useSearchParams();
   const [showSearchModal, setSearchModal] = useState(false);
+  const hasCalled = useRef(false);
 
   const [noteCategories, setNoteCategories] = useState<INoteCategoryRes[]>([]);
 
@@ -67,8 +68,8 @@ const Home = () => {
 
       fetchUserNotes();
 
-      fetchNotesSharedWithUser();
-      fetchAllNoteCategories();
+      // fetchNotesSharedWithUser();
+      // fetchAllNoteCategories();
     } catch (err) {
       console.error(err);
     }
@@ -85,7 +86,7 @@ const Home = () => {
       <SharedHeader />
       <SearchModal isOpen={showSearchModal} />
 
-      <div className="flex items-start gap-x-3  w-full">
+      {/* <div className="flex items-start gap-x-3  w-full">
         {otpExpiry?.is_valid_auth && (
           <>
             <Link
@@ -106,7 +107,7 @@ const Home = () => {
             </Link>{" "}
           </>
         )}
-      </div>
+      </div> */}
 
       {otpExpiry && otpExpiry.is_valid_auth && (
         <section className="w-full py-5 mb-3">

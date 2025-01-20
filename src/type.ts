@@ -146,7 +146,7 @@ export type IEmailDraft = {
   }[];
 };
 
-type ICollaboratorPermission = "read" | "write";
+export type ICollaboratorPermission = "read" | "write";
 
 export type IAgent = {
   id: string;
@@ -243,6 +243,10 @@ declare global {
         page: number;
         page_size: number;
         offset: number;
+      };
+      __collaborator_permission__: {
+        existingPermissionHierarchy: number;
+        incomingPermissionHierarchy: number;
       };
     }
   }

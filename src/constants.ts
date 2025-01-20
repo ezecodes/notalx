@@ -40,8 +40,9 @@ export const NoteAttributes = [
   "content",
   "createdAt",
   "id",
-  "user_id",
+  "owner_id",
   "self_destroy_time",
+  "category",
 ];
 
 export const DEFAULT_SCHEDULE_REMINDERS = [
