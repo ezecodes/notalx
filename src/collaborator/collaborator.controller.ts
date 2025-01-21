@@ -25,7 +25,8 @@ export async function addNoteCollaborator(
   res: Response,
   next: NextFunction
 ) {
-  const { user_id, note_id, permission } = req.body;
+  const { user_id, permission } = req.body;
+  const note_id = req.params.note_id;
 
   const update = await Collaborator.addCollaborator(
     user_id,
@@ -56,7 +57,7 @@ export async function addNoteCollaborator(
 
   res.json({
     status: "ok",
-    message: "Collaborators added successfully",
+    message: "Collaborator saved",
   });
 }
 
@@ -65,7 +66,7 @@ export async function deleteNoteCollaborator(
   res: Response,
   next: NextFunction
 ) {
-  const { note_id, user_id } = req.body;
+  const { note_id, user_id } = req.params;
 
   const find = await Note.findByPkWithCache(note_id);
 
@@ -76,9 +77,11 @@ export async function deleteNoteCollaborator(
     return;
   }
 
-  Collaborator.destroy({ where: { note_id, user_id } });
+  const action = await Collaborator.deleteWithCache(note_id, user_id);
+
   res.json({
     status: "ok",
     message: "Collaborator deleted",
+    data: action.data!,
   });
 }

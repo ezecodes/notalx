@@ -27,6 +27,19 @@ class Collaborator extends Model<
     );
   }
 
+  static async deleteWithCache(
+    this: typeof Collaborator,
+    note_id: string,
+    user_id: string
+  ): Promise<IApiResponse<null>> {
+    Collaborator.destroy({ where: { note_id, user_id } });
+    const key = `colaborators:${note_id}`;
+    await memcachedService.delete(key);
+    return {
+      status: "ok",
+    };
+  }
+
   static async getCollaboratorsForNote(
     this: typeof Collaborator,
     note_id: string
@@ -53,66 +66,26 @@ class Collaborator extends Model<
     user_id: string,
     note_id: string,
     permission: ICollaboratorPermission
-  ): Promise<IApiResponse<ICollaborator>> {
+  ): Promise<IApiResponse<null>> {
+    console.log(permission);
     if (permission !== "read" && permission !== "write") {
       throw new Error("Invalid permission");
     }
+    const key = `colaborators:${note_id}`;
 
-    const existingCollaborator: ICollaborator = (await Collaborator.findOne({
-      where: { user_id, note_id },
-    })) as any;
-
-    if (
-      existingCollaborator &&
-      existingCollaborator.permission === permission
-    ) {
-      return {
-        status: "err",
-        error_code: ErrorCodes.CONFLICT,
-        message: "User is already a collaborator",
-      };
-    }
     const values = { user_id, note_id, permission };
-    const newCollaborator: ICollaborator = (await Collaborator.findOrCreate({
-      defaults: values,
-      where: values,
-      returning: true,
-      raw: true,
-    })) as any;
+    const find = await Collaborator.findOne({ where: { note_id, user_id } });
+    await memcachedService.delete(key);
 
-    return {
-      status: "ok",
-      data: newCollaborator,
-    };
-  }
-  static async updatePermission(
-    this: typeof Collaborator,
-    userId: string,
-    noteId: string,
-    newPermission: ICollaboratorPermission
-  ): Promise<IApiResponse<null>> {
-    const validPermissions: ICollaboratorPermission[] = ["read", "write"];
-
-    if (!validPermissions.includes(newPermission)) {
-      return {
-        status: "err",
-        error_code: ErrorCodes.VALIDATION_ERROR,
-        message: "Invalid permission",
-      };
+    if (find) {
+      await Collaborator.update(
+        { permission },
+        { where: { user_id, note_id } }
+      );
+    } else {
+      await Collaborator.create(values);
     }
 
-    const collaborator = await Collaborator.findOne({
-      where: { user_id: userId, note_id: noteId },
-    });
-
-    if (!collaborator) {
-      return {
-        status: "err",
-        error_code: ErrorCodes.RESOURCE_NOT_FOUND,
-        message: "Collaborator not found",
-      };
-    }
-    await collaborator.update({ permission: newPermission });
     return {
       status: "ok",
     };

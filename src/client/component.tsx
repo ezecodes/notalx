@@ -409,7 +409,7 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
 
   return (
     <div className="relative w-full  ">
-      {label && <span className="font-[500] block mb-2 text-sm">{label}</span>}
+      {label && <span className="font-[500] block mb-2 ">{label}</span>}
       <div className="w-full p-2 input bg-transparent border border-gray-300 rounded-md  flex items-center">
         {selected && (
           <button

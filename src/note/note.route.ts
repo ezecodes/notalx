@@ -58,7 +58,13 @@ router
     authorize_user_as_note_collaborator("read"),
     NoteController.getNoteById
   );
-
+router
+  .route("/:note_id/collaborator/:user_id")
+  .delete(
+    authoriseUser,
+    authorize_user_as_note_owner,
+    CollaboratorController.deleteNoteCollaborator
+  );
 router
   .route("/:note_id/collaborator")
   .get(
