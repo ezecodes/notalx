@@ -95,8 +95,8 @@ httpServer.listen(4000, () => {
 });
 
 cron.schedule("* * * * *", async () => {
-  // notes_categorization_cron_job();
-  // notes_indexing_cron_job();
-  // await deleteExpiredNotes(); // Runs every minute
+  notes_categorization_cron_job();
+  notes_indexing_cron_job();
+  await deleteExpiredNotes(); // Runs every minute
 });
 export { httpServer, io, usersNameSpace };
