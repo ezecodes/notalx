@@ -2,15 +2,7 @@ NLP-Powered Notes and Task Manager
 
 ## Overview
 
-This project is a powerful note-taking and task management application that integrates Natural Language Processing (NLP) to provide:
-
-- **Full NLP-Powered Text Search**: Search notes using natural language queries, including fuzzy search, synonym detection, and contextual results.
-- **Task Scheduling Integration**: Convert notes into tasks or reminders automatically.
-- **Website Builder from Notes**: One-click transformation of notes into responsive, SEO-friendly websites.
-- **Internal Documentation Generator**: Auto-organize notes into team documentation.
-- **Real-Time Collaboration and Team Spaces**: Enable collaborative note-taking and task management.
-- **Smart Workflow Automation**: Automate workflows based on detected text patterns.
-- **Voice and Video Note Support**: Record audio or video directly in a note.
+This project is a powerful note-taking application that integrates Natural Language Processing (NLP) to enhance productivity and organization. It leverages Large Language Models (LLMs) to provide intelligent note categorization, automated task extraction, and advanced contextual search capabilities.
 
 ## Tech Stack
 
