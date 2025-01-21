@@ -240,6 +240,17 @@ const NoteEditor = () => {
     }
   }, [summaryResponse]);
 
+  useEffect(() => {
+    if (!editor?.title.trim() && !editor?.content.trim()) {
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      handleNoteUpload();
+    }, 500);
+
+    return () => clearTimeout(timeoutId); // Cleanup previous timeout on new input
+  }, [editor?.content, editor?.title]);
   const handleInsert = () => {
     if (summaryResponse && highlightedText) {
       const { end_index, start_index } = highlightedText;
@@ -313,14 +324,8 @@ const NoteEditor = () => {
 
       if (rect) {
         setPopupPosition({
-          top: Math.min(
-            rect.top + window.scrollY,
-            document.body.scrollHeight - 200
-          ),
-          left: Math.min(
-            rect.left + window.scrollX,
-            document.body.scrollWidth - 200
-          ),
+          top: window.innerHeight / 2,
+          left: window.innerWidth / 2,
         });
       }
     }
@@ -452,8 +457,8 @@ const NoteEditor = () => {
                     />
                     <div
                       style={{
-                        position: "fixed",
-                        top: popupPosition.top - 50,
+                        position: "absolute",
+                        top: popupPosition.top,
                         left: popupPosition.left,
                       }}
                       className={`z-[1000] flex-col gap-y-3 animate__animated flex items-start py-2 bg-[#2c2c2c] shadow-md px-3 gap-x-2 ${
@@ -517,6 +522,12 @@ const NoteEditor = () => {
                           text="Summarise"
                           onClick={handleSummariseAction}
                           icon={loadingStates.summary ? <RingsLoader /> : <></>}
+                        />
+                        <Button
+                          disabled={loadingStates.task}
+                          text="Schedule tasks"
+                          icon={loadingStates.task ? <RingsLoader /> : <></>}
+                          onClick={() => {}}
                         />
                         <CiCircleChevDown className="subtext" />
                       </div>

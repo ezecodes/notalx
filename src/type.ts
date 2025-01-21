@@ -90,7 +90,7 @@ export type INoteHistory = {
   updatedAt: Date;
 };
 export type ApiFetchNote = {
-  collaborators: IUserPublic[];
+  collaborators: IApiCollaborator[];
   note: INote;
 };
 /**

@@ -86,7 +86,7 @@ const Home = () => {
       <SharedHeader />
       <SearchModal isOpen={showSearchModal} />
 
-      {/* <div className="flex items-start gap-x-3  w-full">
+      <div className="flex items-start gap-x-3  w-full">
         {otpExpiry?.is_valid_auth && (
           <>
             <Link
@@ -107,7 +107,7 @@ const Home = () => {
             </Link>{" "}
           </>
         )}
-      </div> */}
+      </div>
 
       {otpExpiry && otpExpiry.is_valid_auth && (
         <section className="w-full py-5 mb-3">
@@ -189,16 +189,6 @@ const RenderNotes: FC<{
   return (
     <div className="flex flex-col w-full gap-y-4">
       <div className="flex items-center flex-wrap gap-y-3 flex-y-4 gap-x-3">
-        <SmallButton
-          text="Created By Me"
-          active={currentNoteTab === "owned"}
-          listener={() => setCurrentNoteTab("owned")}
-        />
-        <SmallButton
-          text="Shared With Me"
-          active={currentNoteTab === "shared"}
-          listener={() => setCurrentNoteTab("shared")}
-        />
         <Button onClick={() => navigate("?modal=search")} text="AI Search" />
       </div>
 

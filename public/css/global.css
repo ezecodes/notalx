@@ -211,7 +211,7 @@ label {
 }
 .ql-toolbar.ql-snow {
   background: var(--bg_color);
-  z-index: 990;
+  z-index: 500;
   position: sticky;
   top: 0;
 }

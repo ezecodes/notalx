@@ -8,6 +8,7 @@ import {
   IPaginatedResponse,
   ISummaryResponse,
   ITask,
+  IApiCollaborator,
 } from "../type";
 export const DEFAULT_SCHEDULE_REMINDERS = [
   "5 mins before",
@@ -72,7 +73,7 @@ export const fetchNote = async (slug: string) => {
   });
   return (await f.json()) as IApiResponse<{
     note: INote;
-    collaborators: IUserPublic[];
+    collaborators: IApiCollaborator[];
   }>;
 };
 export const fetchUser = async (id: string) => {

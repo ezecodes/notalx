@@ -17,6 +17,7 @@ import {
   IOtpExpiry,
   IPaginatedResponse,
   ITask,
+  IApiCollaborator,
 } from "../type";
 import { fetchAuthUserNotes } from "./utils";
 import { io } from "socket.io-client";
@@ -42,19 +43,19 @@ type IContext = {
 
   getOTPExpiry: () => void;
 
-  selectedNotes: { collaborators: IUserPublic[]; note: INote }[];
+  selectedNotes: { collaborators: IApiCollaborator[]; note: INote }[];
 
   deleteNote: (noteId: string) => void;
 
   Is_Authorised_User_Same_As_Note_User: (user_id: string) => boolean;
   isAuthorised: () => boolean;
   Is_Authorised_User_A_Note_Collaborator: (
-    collaborators: IUserPublic[]
+    collaborators: IApiCollaborator[]
   ) => boolean;
-  collaborators: null | { collaborators: IUserPublic[]; note_id: string };
+  collaborators: null | { collaborators: IApiCollaborator[]; note_id: string };
   setCollaborators: Dispatch<
     React.SetStateAction<null | {
-      collaborators: IUserPublic[];
+      collaborators: IApiCollaborator[];
       note_id: string;
     }>
   >;
@@ -86,7 +87,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedNotes, setSelectedNotes] = useState<ApiFetchNote[]>([]);
   const [selectedUser, setSelectedUser] = useState<IUserPublic | null>(null);
   const [collaborators, setCollaborators] = useState<null | {
-    collaborators: IUserPublic[];
+    collaborators: IApiCollaborator[];
     note_id: string;
   }>(null);
   const [searchResults, setSearchResults] = useState<ApiFetchNote[]>([]);
@@ -201,7 +202,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
 
   async function getNoteCollaborators(note_id: string) {
     const f = await fetch(`/api/note/${note_id}/collaborators`);
-    const response: IApiResponse<{ rows: IUserPublic[] }> = await f.json();
+    const response: IApiResponse<{ rows: IApiCollaborator[] }> = await f.json();
 
     response.status === "ok" &&
       setCollaborators({ note_id, collaborators: response.data!.rows });
@@ -300,7 +301,7 @@ const Provider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const Is_Authorised_User_A_Note_Collaborator = (
-    collaborators: IUserPublic[]
+    collaborators: IApiCollaborator[]
   ) => {
     if (!isAuthorised() || collaborators.length === 0) return false;
     const find = collaborators.find((i) => otpExpiry?.user_id === i.id);

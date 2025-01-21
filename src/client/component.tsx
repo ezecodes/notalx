@@ -957,7 +957,7 @@ export default AvatarGroup;
 export const SingleNote: FC<{
   type: "template" | "note";
   note: INote;
-  collaborators?: IUserPublic[];
+  collaborators?: IApiCollaborator[];
 }> = ({ note, collaborators, type }) => {
   const navigate = useNavigate();
   return (
@@ -980,7 +980,15 @@ export const SingleNote: FC<{
       ></section>
 
       <div className="flex  text-gray-400 cursor-pointer px-4 items-center justify-between gap-x-2">
-        {collaborators && <AvatarGroup size="2" avatars={collaborators} />}
+        {collaborators && (
+          <AvatarGroup
+            size="2"
+            avatars={collaborators.map((i) => ({
+              name: i["user.name"],
+              src: "",
+            }))}
+          />
+        )}
         <div className="flex items-center gap-x-2">
           <DisplayDateCreated date={note.createdAt} />
           <IoBookmarkOutline />
