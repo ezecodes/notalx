@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import {
   ApiError,
+  audioTransciption,
   QueryLLM1,
   queryVectors,
   validateIncomingNote,
@@ -20,6 +21,7 @@ import { randomBytes } from "crypto";
 import { SUMMARY_PROMPT_VARIATIONS, uploadDir } from "../constants";
 import { join } from "path";
 import ffmpeg from "fluent-ffmpeg";
+import { unlinkSync } from "fs";
 
 export async function searchNotes(
   req: Request,
@@ -97,43 +99,47 @@ export async function editNote(
   res.json({ status: "ok", message: "Note updated" });
 }
 
+async function convertToMp3(inputPath: string, outputPath: string) {
+  return await new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .toFormat("mp3")
+      .on("end", resolve)
+      .on("error", reject)
+      .save(outputPath);
+  });
+}
+
 export async function transcribeAudio(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const inputPath = req.file!.path; // Temporary path
+  const inputPath = req.file!.path;
   const outputPath = join(uploadDir, `${Date.now()}.mp3`);
 
   try {
-    await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .toFormat("mp3")
-        .on("end", resolve) // Resolve when conversion finishes
-        .on("error", reject) // Reject on error
-        .save(outputPath);
+    convertToMp3(inputPath, outputPath).then(async () => {
+      const result = await audioTransciption(outputPath);
+      console.log(result);
+      if (!result.success) {
+        next(
+          ApiError.error(
+            ErrorCodes.VALIDATION_ERROR,
+            "Audio file could not be transcribed"
+          )
+        );
+        return;
+      } else {
+        unlinkSync(outputPath);
+        unlinkSync(inputPath);
+      }
+      res.json({
+        status: "ok",
+        data: {
+          words: result.result.words.map((word) => word.word).join(" "),
+        },
+      });
     });
-
-    // const result = await audioTransciption(outputPath);
-    // console.log(result);
-    // if (!result.success) {
-    //   next(
-    //     ApiError.error(
-    //       ErrorCodes.VALIDATION_ERROR,
-    //       "Audio file could not be transcribed"
-    //     )
-    //   );
-    //   return;
-    // } else {
-    //   unlinkSync(outputPath);
-    //   unlinkSync(inputPath);
-    // }
-    // res.json({
-    //   status: "ok",
-    //   data: {
-    //     words: result.result.words.map((word) => word.word).join(" "),
-    //   },
-    // });
   } catch (err) {
     console.error(err);
     next(

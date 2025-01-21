@@ -67,6 +67,7 @@ const NoteEditor = () => {
 
   const quillRef = useRef<ReactQuill | null>(null);
   const [popupVisible, setPopupVisible] = useState<boolean>(false);
+  const [noteIsSaving, setNoteSavingState] = useState<boolean>(false);
   const [aiActionsVisible, setAiActionsVisible] = useState<boolean>(false);
 
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
@@ -147,23 +148,28 @@ const NoteEditor = () => {
     }
   }, [transcribedText]);
 
-  const handleNoteUpload = async (id: string) => {
+  const handleNoteUpload = async () => {
     if (!editor) return;
 
-    const f = await fetch("/api/note/" + id, {
-      method: "put",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        content: editor.content,
-        title: editor.title,
-      }),
-    });
-    const response: IApiResponse<null> = await f.json();
-    if (response.status === "err") toast.error(response.message);
-    else {
-      toast.success(response.message);
+    try {
+      setNoteSavingState(true);
+      const f = await fetch("/api/note/" + parsedNoteId.current, {
+        method: "put",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          content: editor.content,
+          title: editor.title,
+        }),
+      });
+      const response: IApiResponse<null> = await f.json();
+      if (response.status === "err") toast.error(response.message);
+      else {
+        // toast.success(response.message);
+      }
+    } finally {
+      setNoteSavingState(false);
     }
   };
 
@@ -350,6 +356,7 @@ const NoteEditor = () => {
                     {editor.self_destroy_time && (
                       <ExpirationInfo time={editor.self_destroy_time} />
                     )}
+
                     <DisplayDateCreated date={editor.createdAt} />
                     <Button
                       text={
@@ -380,6 +387,12 @@ const NoteEditor = () => {
                           : false
                       }
                       onClick={handleStartRecording}
+                    />
+                    <Button
+                      onClick={handleNoteUpload}
+                      disabled={noteIsSaving}
+                      text={noteIsSaving ? "" : "Save"}
+                      icon={noteIsSaving ? <RingsLoader /> : <></>}
                     />
                     <Settings
                       setCollabModal={() =>
